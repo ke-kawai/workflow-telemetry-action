@@ -14,11 +14,11 @@ export function info(msg: string) {
   core.info(LOG_HEADER + " " + msg);
 }
 
-export function error(msg: string | Error) {
-  if (msg instanceof String || typeof msg === "string") {
-    core.error(LOG_HEADER + " " + msg);
+export function error(msg: string | Error): void {
+  if (typeof msg === "string") {
+    core.error(`${LOG_HEADER} ${msg}`);
   } else {
-    core.error(LOG_HEADER + " " + (msg as Error).name);
-    core.error(msg as Error);
+    core.error(`${LOG_HEADER} ${msg.name}`);
+    core.error(msg);
   }
 }

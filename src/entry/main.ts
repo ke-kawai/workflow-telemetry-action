@@ -13,8 +13,9 @@ async function run(): Promise<void> {
     await processTracer.start();
 
     logger.info(`Initialization completed`);
-  } catch (error: any) {
-    logger.error(error.message);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error(message);
   }
 }
 

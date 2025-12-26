@@ -125,8 +125,8 @@ async function createChartFromConfig(
     if (data?.success && data?.url) {
       return data.url;
     }
-  } catch (error: any) {
-    logger.error(error);
+  } catch (error: unknown) {
+    logger.error(error instanceof Error ? error : String(error));
     logger.error(`${errorLabel} ${theme} ${JSON.stringify(payload)}`);
   }
   return null;

@@ -32260,11 +32260,11 @@ function info(msg) {
     coreExports.info(LOG_HEADER + " " + msg);
 }
 function error(msg) {
-    if (msg instanceof String || typeof msg === "string") {
-        coreExports.error(LOG_HEADER + " " + msg);
+    if (typeof msg === "string") {
+        coreExports.error(`${LOG_HEADER} ${msg}`);
     }
     else {
-        coreExports.error(LOG_HEADER + " " + msg.name);
+        coreExports.error(`${LOG_HEADER} ${msg.name}`);
         coreExports.error(msg);
     }
 }
@@ -32326,7 +32326,7 @@ async function finish$2(_currentJob) {
     }
     catch (error$1) {
         error("Unable to finish step tracer");
-        error(error$1);
+        error(error$1 instanceof Error ? error$1 : String(error$1));
         return false;
     }
 }
@@ -32342,7 +32342,7 @@ async function report$2(currentJob) {
     }
     catch (error$1) {
         error("Unable to report step tracer result");
-        error(error$1);
+        error(error$1 instanceof Error ? error$1 : String(error$1));
         return null;
     }
 }
@@ -32662,7 +32662,7 @@ async function finish$1(_currentJob) {
     }
     catch (error$1) {
         error("Unable to finish stat collector");
-        error(error$1);
+        error(error$1 instanceof Error ? error$1 : String(error$1));
         return false;
     }
 }
@@ -32675,7 +32675,7 @@ async function report$1(_currentJob) {
     }
     catch (error$1) {
         error("Unable to report stat collector result");
-        error(error$1);
+        error(error$1 instanceof Error ? error$1 : String(error$1));
         return null;
     }
 }
@@ -52524,7 +52524,8 @@ async function collectProcesses() {
         }
     }
     catch (error$1) {
-        error(`Error collecting processes: ${error$1.message}`);
+        const message = error$1 instanceof Error ? error$1.message : String(error$1);
+        error(`Error collecting processes: ${message}`);
     }
 }
 function saveData() {
@@ -52536,7 +52537,8 @@ function saveData() {
         require$$1.writeFileSync(PROC_TRACER_DATA_FILE, JSON.stringify(data, null, 2));
     }
     catch (error$1) {
-        error(`Error saving process data: ${error$1.message}`);
+        const message = error$1 instanceof Error ? error$1.message : String(error$1);
+        error(`Error saving process data: ${message}`);
     }
 }
 function loadData() {
@@ -52550,7 +52552,8 @@ function loadData() {
         }
     }
     catch (error$1) {
-        error(`Error loading process data: ${error$1.message}`);
+        const message = error$1 instanceof Error ? error$1.message : String(error$1);
+        error(`Error loading process data: ${message}`);
     }
 }
 function getExtraProcessInfo(proc) {
@@ -52604,7 +52607,7 @@ async function finish(_currentJob) {
     }
     catch (error$1) {
         error("Unable to finish process tracer");
-        error(error$1);
+        error(error$1 instanceof Error ? error$1 : String(error$1));
         return false;
     }
 }
@@ -52686,7 +52689,7 @@ async function report(currentJob) {
     }
     catch (error$1) {
         error("Unable to report process tracer result");
-        error(error$1);
+        error(error$1 instanceof Error ? error$1 : String(error$1));
         return null;
     }
 }
@@ -52714,7 +52717,7 @@ async function getCurrentJob() {
             const currentJobs = jobs.filter((it) => it.status === "in_progress" &&
                 it.runner_name === process.env.RUNNER_NAME);
             if (currentJobs && currentJobs.length) {
-                return currentJobs[0];
+                return currentJobs[0] ?? null;
             }
             // Since returning job count is less than page size, this means that there are no other jobs.
             // So no need to make another request for the next page.
@@ -52736,6 +52739,7 @@ async function getCurrentJob() {
     catch (error$1) {
         error(`Unable to get current workflow job info. ` +
             `Please sure that your workflow have "actions:read" permission!`);
+        error(error$1 instanceof Error ? error$1 : String(error$1));
     }
     return null;
 }
@@ -52804,7 +52808,8 @@ async function run() {
         info(`Finish completed`);
     }
     catch (error$1) {
-        error(error$1.message);
+        const message = error$1 instanceof Error ? error$1.message : String(error$1);
+        error(message);
     }
 }
 run();
@@ -52899,7 +52904,7 @@ async function createChartFromConfig(theme, config, chartConfig, errorLabel) {
         }
     }
     catch (error$1) {
-        error(error$1);
+        error(error$1 instanceof Error ? error$1 : String(error$1));
         error(`${errorLabel} ${theme} ${JSON.stringify(payload)}`);
     }
     return null;

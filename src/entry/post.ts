@@ -52,11 +52,12 @@ async function getCurrentJob(): Promise<WorkflowJobType | null> {
       }
       await new Promise((r) => setTimeout(r, GITHUB_API.CURRENT_JOB_RETRY_INTERVAL_MS));
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error(
       `Unable to get current workflow job info. ` +
         `Please sure that your workflow have "actions:read" permission!`
     );
+    logger.error(error instanceof Error ? error : String(error));
   }
   return null;
 }
@@ -153,8 +154,9 @@ async function run(): Promise<void> {
     await reportAll(currentJob, allContent);
 
     logger.info(`Finish completed`);
-  } catch (error: any) {
-    logger.error(error.message);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error(message);
   }
 }
 

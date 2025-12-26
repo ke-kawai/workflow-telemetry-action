@@ -47264,11 +47264,11 @@ function info(msg) {
     coreExports.info(LOG_HEADER + " " + msg);
 }
 function error(msg) {
-    if (msg instanceof String || typeof msg === "string") {
-        coreExports.error(LOG_HEADER + " " + msg);
+    if (typeof msg === "string") {
+        coreExports.error(`${LOG_HEADER} ${msg}`);
     }
     else {
-        coreExports.error(LOG_HEADER + " " + msg.name);
+        coreExports.error(`${LOG_HEADER} ${msg.name}`);
         coreExports.error(msg);
     }
 }
@@ -47379,7 +47379,7 @@ async function collectStatsForCollector(collector, statTime, timeInterval) {
         collector.histogram.push(stats);
     }
     catch (error$1) {
-        error(error$1);
+        error(error$1 instanceof Error ? error$1 : String(error$1));
     }
 }
 async function collectStats(triggeredFromScheduler = true) {
@@ -47473,11 +47473,11 @@ function startHttpServer() {
             await route.handler(request, response);
         }
         catch (error$1) {
-            error(error$1);
+            error(error$1 instanceof Error ? error$1 : String(error$1));
             response.statusCode = 500;
             response.end(JSON.stringify({
-                type: error$1.type,
-                message: error$1.message,
+                type: error$1 instanceof Error && 'type' in error$1 ? error$1.type : 'Unknown',
+                message: error$1 instanceof Error ? error$1.message : String(error$1),
             }));
         }
     });
