@@ -215,12 +215,6 @@ async function reportWorkflowMetrics(): Promise<string> {
   return postContentItems.join('\n')
 }
 
-function adjustTimestampForLocalTimezone(timestamp: number): number {
-  // Adjust timestamp so that when rendered as UTC on server,
-  // it displays as local time
-  const offset = new Date(timestamp).getTimezoneOffset() * 60 * 1000
-  return timestamp - offset
-}
 
 async function getCPUStats(): Promise<ProcessedCPUStats> {
   const userLoadX: ProcessedStats[] = []
@@ -234,12 +228,12 @@ async function getCPUStats(): Promise<ProcessedCPUStats> {
 
   response.data.forEach((element: CPUStats) => {
     userLoadX.push({
-      x: adjustTimestampForLocalTimezone(element.time),
+      x: element.time,
       y: element.userLoad && element.userLoad > 0 ? element.userLoad : 0
     })
 
     systemLoadX.push({
-      x: adjustTimestampForLocalTimezone(element.time),
+      x: element.time,
       y: element.systemLoad && element.systemLoad > 0 ? element.systemLoad : 0
     })
   })
@@ -261,7 +255,7 @@ async function getMemoryStats(): Promise<ProcessedMemoryStats> {
 
   response.data.forEach((element: MemoryStats) => {
     activeMemoryX.push({
-      x: adjustTimestampForLocalTimezone(element.time),
+      x: element.time,
       y:
         element.activeMemoryMb && element.activeMemoryMb > 0
           ? element.activeMemoryMb
@@ -269,7 +263,7 @@ async function getMemoryStats(): Promise<ProcessedMemoryStats> {
     })
 
     availableMemoryX.push({
-      x: adjustTimestampForLocalTimezone(element.time),
+      x: element.time,
       y:
         element.availableMemoryMb && element.availableMemoryMb > 0
           ? element.availableMemoryMb
@@ -294,12 +288,12 @@ async function getNetworkStats(): Promise<ProcessedNetworkStats> {
 
   response.data.forEach((element: NetworkStats) => {
     networkReadX.push({
-      x: adjustTimestampForLocalTimezone(element.time),
+      x: element.time,
       y: element.rxMb && element.rxMb > 0 ? element.rxMb : 0
     })
 
     networkWriteX.push({
-      x: adjustTimestampForLocalTimezone(element.time),
+      x: element.time,
       y: element.txMb && element.txMb > 0 ? element.txMb : 0
     })
   })
@@ -319,12 +313,12 @@ async function getDiskStats(): Promise<ProcessedDiskStats> {
 
   response.data.forEach((element: DiskStats) => {
     diskReadX.push({
-      x: adjustTimestampForLocalTimezone(element.time),
+      x: element.time,
       y: element.rxMb && element.rxMb > 0 ? element.rxMb : 0
     })
 
     diskWriteX.push({
-      x: adjustTimestampForLocalTimezone(element.time),
+      x: element.time,
       y: element.wxMb && element.wxMb > 0 ? element.wxMb : 0
     })
   })
@@ -346,7 +340,7 @@ async function getDiskSizeStats(): Promise<ProcessedDiskSizeStats> {
 
   response.data.forEach((element: DiskSizeStats) => {
     diskAvailableX.push({
-      x: adjustTimestampForLocalTimezone(element.time),
+      x: element.time,
       y:
         element.availableSizeMb && element.availableSizeMb > 0
           ? element.availableSizeMb
@@ -354,7 +348,7 @@ async function getDiskSizeStats(): Promise<ProcessedDiskSizeStats> {
     })
 
     diskUsedX.push({
-      x: adjustTimestampForLocalTimezone(element.time),
+      x: element.time,
       y: element.usedSizeMb && element.usedSizeMb > 0 ? element.usedSizeMb : 0
     })
   })

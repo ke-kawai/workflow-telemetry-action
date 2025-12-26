@@ -172,6 +172,12 @@ export async function report(
     let chartContent = ''
 
     if (procTraceChartShow) {
+      // Adjust timestamps to display as UTC instead of local time
+      const adjustToUTC = (timestamp: number): number => {
+        const offset = new Date(timestamp).getTimezoneOffset() * 60 * 1000
+        return timestamp + offset
+      }
+
       chartContent = chartContent.concat('gantt', '\n')
       chartContent = chartContent.concat('\t', `title ${currentJob.name}`, '\n')
       chartContent = chartContent.concat('\t', `dateFormat x`, '\n')
@@ -206,8 +212,10 @@ export async function report(
           chartContent = chartContent.concat('crit, ')
         }
 
-        const startTime: number = command.startTime
-        const finishTime: number = command.startTime + command.duration
+        const startTime: number = adjustToUTC(command.startTime)
+        const finishTime: number = adjustToUTC(
+          command.startTime + command.duration
+        )
         chartContent = chartContent.concat(
           `${Math.min(startTime, finishTime)}, ${finishTime}`,
           '\n'

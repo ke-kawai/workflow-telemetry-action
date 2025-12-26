@@ -55232,6 +55232,11 @@ function report(currentJob) {
             ///////////////////////////////////////////////////////////////////////////
             let chartContent = '';
             if (procTraceChartShow) {
+                // Adjust timestamps to display as UTC instead of local time
+                const adjustToUTC = (timestamp) => {
+                    const offset = new Date(timestamp).getTimezoneOffset() * 60 * 1000;
+                    return timestamp + offset;
+                };
                 chartContent = chartContent.concat('gantt', '\n');
                 chartContent = chartContent.concat('\t', `title ${currentJob.name}`, '\n');
                 chartContent = chartContent.concat('\t', `dateFormat x`, '\n');
@@ -55261,8 +55266,8 @@ function report(currentJob) {
                         // to show red
                         chartContent = chartContent.concat('crit, ');
                     }
-                    const startTime = command.startTime;
-                    const finishTime = command.startTime + command.duration;
+                    const startTime = adjustToUTC(command.startTime);
+                    const finishTime = adjustToUTC(command.startTime + command.duration);
                     chartContent = chartContent.concat(`${Math.min(startTime, finishTime)}, ${finishTime}`, '\n');
                 }
             }
@@ -55501,12 +55506,6 @@ function reportWorkflowMetrics() {
         return postContentItems.join('\n');
     });
 }
-function adjustTimestampForLocalTimezone(timestamp) {
-    // Adjust timestamp so that when rendered as UTC on server,
-    // it displays as local time
-    const offset = new Date(timestamp).getTimezoneOffset() * 60 * 1000;
-    return timestamp - offset;
-}
 function getCPUStats() {
     return __awaiter(this, void 0, void 0, function* () {
         const userLoadX = [];
@@ -55518,11 +55517,11 @@ function getCPUStats() {
         }
         response.data.forEach((element) => {
             userLoadX.push({
-                x: adjustTimestampForLocalTimezone(element.time),
+                x: element.time,
                 y: element.userLoad && element.userLoad > 0 ? element.userLoad : 0
             });
             systemLoadX.push({
-                x: adjustTimestampForLocalTimezone(element.time),
+                x: element.time,
                 y: element.systemLoad && element.systemLoad > 0 ? element.systemLoad : 0
             });
         });
@@ -55540,13 +55539,13 @@ function getMemoryStats() {
         }
         response.data.forEach((element) => {
             activeMemoryX.push({
-                x: adjustTimestampForLocalTimezone(element.time),
+                x: element.time,
                 y: element.activeMemoryMb && element.activeMemoryMb > 0
                     ? element.activeMemoryMb
                     : 0
             });
             availableMemoryX.push({
-                x: adjustTimestampForLocalTimezone(element.time),
+                x: element.time,
                 y: element.availableMemoryMb && element.availableMemoryMb > 0
                     ? element.availableMemoryMb
                     : 0
@@ -55566,11 +55565,11 @@ function getNetworkStats() {
         }
         response.data.forEach((element) => {
             networkReadX.push({
-                x: adjustTimestampForLocalTimezone(element.time),
+                x: element.time,
                 y: element.rxMb && element.rxMb > 0 ? element.rxMb : 0
             });
             networkWriteX.push({
-                x: adjustTimestampForLocalTimezone(element.time),
+                x: element.time,
                 y: element.txMb && element.txMb > 0 ? element.txMb : 0
             });
         });
@@ -55588,11 +55587,11 @@ function getDiskStats() {
         }
         response.data.forEach((element) => {
             diskReadX.push({
-                x: adjustTimestampForLocalTimezone(element.time),
+                x: element.time,
                 y: element.rxMb && element.rxMb > 0 ? element.rxMb : 0
             });
             diskWriteX.push({
-                x: adjustTimestampForLocalTimezone(element.time),
+                x: element.time,
                 y: element.wxMb && element.wxMb > 0 ? element.wxMb : 0
             });
         });
@@ -55610,13 +55609,13 @@ function getDiskSizeStats() {
         }
         response.data.forEach((element) => {
             diskAvailableX.push({
-                x: adjustTimestampForLocalTimezone(element.time),
+                x: element.time,
                 y: element.availableSizeMb && element.availableSizeMb > 0
                     ? element.availableSizeMb
                     : 0
             });
             diskUsedX.push({
-                x: adjustTimestampForLocalTimezone(element.time),
+                x: element.time,
                 y: element.usedSizeMb && element.usedSizeMb > 0 ? element.usedSizeMb : 0
             });
         });
@@ -55763,6 +55762,11 @@ function generateTraceChartForSteps(job) {
          Post Set up JDK 8 : 1658073655000, 1658073654000
          Post Run actions/checkout@v2 : 1658073655000, 1658073655000
     */
+    // Adjust timestamps to display as UTC instead of local time
+    const adjustToUTC = (timestamp) => {
+        const offset = new Date(timestamp).getTimezoneOffset() * 60 * 1000;
+        return timestamp + offset;
+    };
     chartContent = chartContent.concat('gantt', '\n');
     chartContent = chartContent.concat('\t', `title ${job.name}`, '\n');
     chartContent = chartContent.concat('\t', `dateFormat x`, '\n');
@@ -55783,8 +55787,8 @@ function generateTraceChartForSteps(job) {
             // to show grey
             chartContent = chartContent.concat('done, ');
         }
-        const startTime = new Date(step.started_at).getTime();
-        const finishTime = new Date(step.completed_at).getTime();
+        const startTime = adjustToUTC(new Date(step.started_at).getTime());
+        const finishTime = adjustToUTC(new Date(step.completed_at).getTime());
         chartContent = chartContent.concat(`${Math.min(startTime, finishTime)}, ${finishTime}`, '\n');
     }
     const postContentItems = [
