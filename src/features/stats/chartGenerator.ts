@@ -4,6 +4,7 @@ import {
   LineGraphOptions,
   StackedAreaGraphOptions,
 } from "../../interfaces";
+import { QUICKCHART, THEME } from "../../constants";
 
 /**
  * Chart Generator using QuickChart.io API
@@ -14,13 +15,17 @@ import {
  * Based on PR #98: https://github.com/catchpoint/workflow-telemetry-action/pull/98
  */
 
-const QUICKCHART_API_URL = "https://quickchart.io/chart/create";
+const QUICKCHART_API_URL = QUICKCHART.API_URL;
 
-const BLACK = "#000000";
-const WHITE = "#FFFFFF";
 const THEME_TO_CONFIG = {
-  light: { axisColor: BLACK, backgroundColor: "white" },
-  dark: { axisColor: WHITE, backgroundColor: "#0d1117" },
+  light: {
+    axisColor: THEME.LIGHT.AXIS_COLOR,
+    backgroundColor: THEME.LIGHT.BACKGROUND_COLOR,
+  },
+  dark: {
+    axisColor: THEME.DARK.AXIS_COLOR,
+    backgroundColor: THEME.DARK.BACKGROUND_COLOR,
+  },
 };
 
 type Theme = keyof typeof THEME_TO_CONFIG;
@@ -110,8 +115,8 @@ export async function getLineGraph(options: LineGraphOptions): Promise<string> {
       };
 
       const payload = {
-        width: 800,
-        height: 400,
+        width: QUICKCHART.CHART_WIDTH,
+        height: QUICKCHART.CHART_HEIGHT,
         backgroundColor: config.backgroundColor,
         chart: chartConfig,
       };
@@ -212,8 +217,8 @@ export async function getStackedAreaGraph(
       };
 
       const payload = {
-        width: 800,
-        height: 400,
+        width: QUICKCHART.CHART_WIDTH,
+        height: QUICKCHART.CHART_HEIGHT,
         backgroundColor: config.backgroundColor,
         chart: chartConfig,
       };

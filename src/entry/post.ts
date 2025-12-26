@@ -5,10 +5,11 @@ import * as statCollector from "../features/stats/collector";
 import * as processTracer from "../features/process/processTracer";
 import * as logger from "../utils/logger";
 import { WorkflowJobType } from "../interfaces";
+import { GITHUB_API } from "../constants";
 
 const { pull_request } = github.context.payload;
 const { workflow, job, repo, runId, sha } = github.context;
-const PAGE_SIZE = 100;
+const PAGE_SIZE = GITHUB_API.PAGE_SIZE;
 const token = core.getInput("github_token");
 const octokit = github.getOctokit(token);
 
@@ -44,12 +45,12 @@ async function getCurrentJob(): Promise<WorkflowJobType | null> {
     return null;
   };
   try {
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < GITHUB_API.CURRENT_JOB_RETRY_COUNT; i++) {
       const currentJob: WorkflowJobType | null = await _getCurrentJob();
       if (currentJob && currentJob.id) {
         return currentJob;
       }
-      await new Promise((r) => setTimeout(r, 1000));
+      await new Promise((r) => setTimeout(r, GITHUB_API.CURRENT_JOB_RETRY_INTERVAL_MS));
     }
   } catch (error: any) {
     logger.error(

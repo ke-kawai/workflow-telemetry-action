@@ -4,12 +4,13 @@ import * as core from "@actions/core";
 import si from "systeminformation";
 import { WorkflowJobType } from "../../interfaces";
 import * as logger from "../../utils/logger";
+import { PROCESS_TRACE, FILE_PATHS } from "../../constants";
 
-const PROC_TRACER_STATE_FILE = path.join(__dirname, "../.proc-tracer-started");
-const PROC_TRACER_DATA_FILE = path.join(__dirname, "../proc-tracer-data.json");
-const DEFAULT_PROC_TRACE_CHART_MAX_COUNT = 100;
-const GHA_FILE_NAME_PREFIX = "/home/runner/work/_actions/";
-const COLLECTION_INTERVAL_MS = 1000; // Collect process info every 1 second
+const PROC_TRACER_STATE_FILE = path.join(__dirname, "../", FILE_PATHS.PROC_TRACER_STATE);
+const PROC_TRACER_DATA_FILE = path.join(__dirname, "../", FILE_PATHS.PROC_TRACER_DATA);
+const DEFAULT_PROC_TRACE_CHART_MAX_COUNT = PROCESS_TRACE.DEFAULT_CHART_MAX_COUNT;
+const GHA_FILE_NAME_PREFIX = PROCESS_TRACE.GHA_FILE_PREFIX;
+const COLLECTION_INTERVAL_MS = PROCESS_TRACE.COLLECTION_INTERVAL_MS;
 
 interface TrackedProcess {
   pid: number;

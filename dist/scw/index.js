@@ -47273,12 +47273,25 @@ function error(msg) {
     }
 }
 
-const STATS_FREQ = parseInt(process.env.WORKFLOW_TELEMETRY_STAT_FREQ || "") || 5000;
-const SERVER_HOST = "localhost";
-// TODO
-// It is better to find an available/free port automatically and use it.
-// Then the post script (`post.ts`) needs to know the selected port.
-const SERVER_PORT = parseInt(process.env.WORKFLOW_TELEMETRY_SERVER_PORT || "") || 7777;
+/**
+ * HTTP Server Configuration
+ */
+const SERVER = {
+    /** HTTP server host (localhost only for security) */
+    HOST: "localhost",
+    /** HTTP server port for stats collection */
+    PORT: 7777,
+};
+/**
+ * Stats Collection Configuration
+ */
+const STATS_COLLECTION = {
+    /** Default stats collection frequency in milliseconds */
+    DEFAULT_FREQUENCY_MS: 5000};
+
+const STATS_FREQ = parseInt(process.env.WORKFLOW_TELEMETRY_STAT_FREQ || "") || STATS_COLLECTION.DEFAULT_FREQUENCY_MS;
+const SERVER_HOST = SERVER.HOST;
+const SERVER_PORT = SERVER.PORT;
 let expectedScheduleTime = 0;
 let statCollectTime = 0;
 ///////////////////////////
