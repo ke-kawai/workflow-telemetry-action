@@ -32347,7 +32347,67 @@ async function report$2(currentJob) {
     }
 }
 
-const STAT_SERVER_PORT = 7777;
+/**
+ * HTTP Server Configuration
+ */
+const SERVER = {
+    /** HTTP server port for stats collection */
+    PORT: 7777,
+};
+/**
+ * Process Tracing Configuration
+ */
+const PROCESS_TRACE = {
+    /** Default maximum number of processes to show in chart */
+    DEFAULT_CHART_MAX_COUNT: 100,
+    /** GitHub Actions file path prefix (Linux/Ubuntu specific) */
+    GHA_FILE_PREFIX: "/home/runner/work/_actions/",
+};
+/**
+ * GitHub API Configuration
+ */
+const GITHUB_API = {
+    /** Number of items per page for pagination */
+    PAGE_SIZE: 100,
+    /** Maximum number of retries for getting current job */
+    CURRENT_JOB_RETRY_COUNT: 10,
+    /** Retry interval in milliseconds */
+    CURRENT_JOB_RETRY_INTERVAL_MS: 1000,
+};
+/**
+ * QuickChart Configuration
+ */
+const QUICKCHART = {
+    /** QuickChart.io API endpoint */
+    API_URL: "https://quickchart.io/chart/create",
+    /** Chart width in pixels */
+    CHART_WIDTH: 800,
+    /** Chart height in pixels */
+    CHART_HEIGHT: 400};
+/**
+ * Theme Configuration
+ */
+const THEME = {
+    LIGHT: {
+        AXIS_COLOR: "#000000",
+        BACKGROUND_COLOR: "white",
+    },
+    DARK: {
+        AXIS_COLOR: "#FFFFFF",
+        BACKGROUND_COLOR: "#0d1117",
+    },
+};
+/**
+ * File Paths
+ */
+const FILE_PATHS = {
+    /** Process tracer state file */
+    PROC_TRACER_STATE: ".proc-tracer-started",
+    /** Process tracer data file */
+    PROC_TRACER_DATA: "proc-tracer-data.json",
+};
+
+const STAT_SERVER_PORT = SERVER.PORT;
 async function triggerStatCollect() {
     debug("Triggering stat collect ...");
     const response = await fetch(`http://localhost:${STAT_SERVER_PORT}/collect`, {
@@ -52400,10 +52460,10 @@ function requireLib () {
 var libExports = requireLib();
 var si = /*@__PURE__*/getDefaultExportFromCjs(libExports);
 
-const PROC_TRACER_STATE_FILE = require$$1$6.join(__dirname, "../.proc-tracer-started");
-const PROC_TRACER_DATA_FILE = require$$1$6.join(__dirname, "../proc-tracer-data.json");
-const DEFAULT_PROC_TRACE_CHART_MAX_COUNT = 100;
-const GHA_FILE_NAME_PREFIX = "/home/runner/work/_actions/";
+const PROC_TRACER_STATE_FILE = require$$1$6.join(__dirname, "../", FILE_PATHS.PROC_TRACER_STATE);
+const PROC_TRACER_DATA_FILE = require$$1$6.join(__dirname, "../", FILE_PATHS.PROC_TRACER_DATA);
+const DEFAULT_PROC_TRACE_CHART_MAX_COUNT = PROCESS_TRACE.DEFAULT_CHART_MAX_COUNT;
+const GHA_FILE_NAME_PREFIX = PROCESS_TRACE.GHA_FILE_PREFIX;
 let collectionInterval = null;
 let trackedProcesses = new Map();
 let completedProcesses = [];
@@ -52629,7 +52689,7 @@ async function report(currentJob) {
 
 const { pull_request } = githubExports.context.payload;
 const { workflow, job, repo, runId, sha } = githubExports.context;
-const PAGE_SIZE = 100;
+const PAGE_SIZE = GITHUB_API.PAGE_SIZE;
 const token = coreExports.getInput("github_token");
 const octokit = githubExports.getOctokit(token);
 async function getCurrentJob() {
@@ -52661,12 +52721,12 @@ async function getCurrentJob() {
         return null;
     };
     try {
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < GITHUB_API.CURRENT_JOB_RETRY_COUNT; i++) {
             const currentJob = await _getCurrentJob();
             if (currentJob && currentJob.id) {
                 return currentJob;
             }
-            await new Promise((r) => setTimeout(r, 1000));
+            await new Promise((r) => setTimeout(r, GITHUB_API.CURRENT_JOB_RETRY_INTERVAL_MS));
         }
     }
     catch (error$1) {
@@ -52753,12 +52813,16 @@ run();
  *
  * Based on PR #98: https://github.com/catchpoint/workflow-telemetry-action/pull/98
  */
-const QUICKCHART_API_URL = "https://quickchart.io/chart/create";
-const BLACK = "#000000";
-const WHITE = "#FFFFFF";
+const QUICKCHART_API_URL = QUICKCHART.API_URL;
 const THEME_TO_CONFIG = {
-    light: { axisColor: BLACK, backgroundColor: "white" },
-    dark: { axisColor: WHITE, backgroundColor: "#0d1117" },
+    light: {
+        axisColor: THEME.LIGHT.AXIS_COLOR,
+        backgroundColor: THEME.LIGHT.BACKGROUND_COLOR,
+    },
+    dark: {
+        axisColor: THEME.DARK.AXIS_COLOR,
+        backgroundColor: THEME.DARK.BACKGROUND_COLOR,
+    },
 };
 function generatePictureHTML(themeToURLMap, label) {
     const sources = Array.from(themeToURLMap.entries())
@@ -52835,8 +52899,8 @@ async function getLineGraph(options) {
             },
         };
         const payload = {
-            width: 800,
-            height: 400,
+            width: QUICKCHART.CHART_WIDTH,
+            height: QUICKCHART.CHART_HEIGHT,
             backgroundColor: config.backgroundColor,
             chart: chartConfig,
         };
@@ -52928,8 +52992,8 @@ async function getStackedAreaGraph(options) {
             },
         };
         const payload = {
-            width: 800,
-            height: 400,
+            width: QUICKCHART.CHART_WIDTH,
+            height: QUICKCHART.CHART_HEIGHT,
             backgroundColor: config.backgroundColor,
             chart: chartConfig,
         };

@@ -18,8 +18,9 @@ import {
   WorkflowJobType,
 } from "../../interfaces";
 import * as logger from "../../utils/logger";
+import { SERVER } from "../../constants";
 
-const STAT_SERVER_PORT = 7777;
+const STAT_SERVER_PORT = SERVER.PORT;
 
 async function triggerStatCollect(): Promise<void> {
   logger.debug("Triggering stat collect ...");

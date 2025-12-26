@@ -27521,6 +27521,25 @@ async function start$2() {
     }
 }
 
+/**
+ * HTTP Server Configuration
+ */
+/**
+ * Process Tracing Configuration
+ */
+const PROCESS_TRACE = {
+    /** Process collection interval in milliseconds */
+    COLLECTION_INTERVAL_MS: 1000};
+/**
+ * File Paths
+ */
+const FILE_PATHS = {
+    /** Process tracer state file */
+    PROC_TRACER_STATE: ".proc-tracer-started",
+    /** Process tracer data file */
+    PROC_TRACER_DATA: "proc-tracer-data.json",
+};
+
 ///////////////////////////
 async function start$1() {
     info(`Starting stat collector ...`);
@@ -47320,9 +47339,9 @@ function requireLib () {
 var libExports = requireLib();
 var si = /*@__PURE__*/getDefaultExportFromCjs(libExports);
 
-const PROC_TRACER_STATE_FILE = require$$1$5.join(__dirname, "../.proc-tracer-started");
-const PROC_TRACER_DATA_FILE = require$$1$5.join(__dirname, "../proc-tracer-data.json");
-const COLLECTION_INTERVAL_MS = 1000; // Collect process info every 1 second
+const PROC_TRACER_STATE_FILE = require$$1$5.join(__dirname, "../", FILE_PATHS.PROC_TRACER_STATE);
+const PROC_TRACER_DATA_FILE = require$$1$5.join(__dirname, "../", FILE_PATHS.PROC_TRACER_DATA);
+const COLLECTION_INTERVAL_MS = PROCESS_TRACE.COLLECTION_INTERVAL_MS;
 let collectionInterval = null;
 let trackedProcesses = new Map();
 let completedProcesses = [];
