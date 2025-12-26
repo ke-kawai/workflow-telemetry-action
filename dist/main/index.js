@@ -44312,6 +44312,233 @@ exports["default"] = _default;
 
 /***/ }),
 
+/***/ 7318:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getStackedAreaGraph = exports.getLineGraph = void 0;
+const axios_1 = __importDefault(__nccwpck_require__(8757));
+const logger = __importStar(__nccwpck_require__(4636));
+/**
+ * Chart Generator using QuickChart.io API
+ * QuickChart.io is an open-source Chart.js service that can be self-hosted
+ * Free tier: https://quickchart.io
+ * GitHub: https://github.com/typpo/quickchart
+ *
+ * Based on PR #98: https://github.com/catchpoint/workflow-telemetry-action/pull/98
+ */
+const QUICKCHART_API_URL = 'https://quickchart.io/chart/create';
+/**
+ * Generate a line chart using QuickChart API
+ */
+function getLineGraph(options) {
+    var _a, _b;
+    return __awaiter(this, void 0, void 0, function* () {
+        const chartConfig = {
+            type: 'line',
+            data: {
+                datasets: [
+                    {
+                        label: options.line.label,
+                        data: options.line.points,
+                        borderColor: options.line.color,
+                        backgroundColor: options.line.color + '33',
+                        fill: false,
+                        tension: 0.1
+                    }
+                ]
+            },
+            options: {
+                scales: {
+                    xAxes: [
+                        {
+                            type: 'time',
+                            time: {
+                                displayFormats: {
+                                    second: 'HH:mm:ss',
+                                    minute: 'HH:mm:ss',
+                                    hour: 'HH:mm'
+                                }
+                            },
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'Time',
+                                fontColor: options.axisColor
+                            },
+                            ticks: {
+                                fontColor: options.axisColor
+                            }
+                        }
+                    ],
+                    yAxes: [
+                        {
+                            scaleLabel: {
+                                display: true,
+                                labelString: options.label,
+                                fontColor: options.axisColor
+                            },
+                            ticks: {
+                                fontColor: options.axisColor,
+                                beginAtZero: true
+                            }
+                        }
+                    ]
+                },
+                legend: {
+                    labels: {
+                        fontColor: options.axisColor
+                    }
+                }
+            }
+        };
+        const payload = {
+            width: 800,
+            height: 400,
+            chart: chartConfig
+        };
+        let response = null;
+        try {
+            response = yield axios_1.default.post(QUICKCHART_API_URL, payload);
+        }
+        catch (error) {
+            logger.error(error);
+            logger.error(`getLineGraph ${JSON.stringify(payload)}`);
+        }
+        if (((_a = response === null || response === void 0 ? void 0 : response.data) === null || _a === void 0 ? void 0 : _a.success) && ((_b = response === null || response === void 0 ? void 0 : response.data) === null || _b === void 0 ? void 0 : _b.url)) {
+            const urlParts = response.data.url.split('/');
+            const id = urlParts[urlParts.length - 1] || 'line-chart';
+            return { id, url: response.data.url };
+        }
+        return response === null || response === void 0 ? void 0 : response.data;
+    });
+}
+exports.getLineGraph = getLineGraph;
+/**
+ * Generate a stacked area chart using QuickChart API
+ */
+function getStackedAreaGraph(options) {
+    var _a, _b;
+    return __awaiter(this, void 0, void 0, function* () {
+        const datasets = options.areas.map((area, index) => ({
+            label: area.label,
+            data: area.points,
+            borderColor: area.color,
+            backgroundColor: area.color,
+            fill: index === 0 ? 'origin' : '-1',
+            tension: 0.1
+        }));
+        const chartConfig = {
+            type: 'line',
+            data: {
+                datasets
+            },
+            options: {
+                scales: {
+                    xAxes: [
+                        {
+                            type: 'time',
+                            time: {
+                                displayFormats: {
+                                    second: 'HH:mm:ss',
+                                    minute: 'HH:mm:ss',
+                                    hour: 'HH:mm'
+                                }
+                            },
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'Time',
+                                fontColor: options.axisColor
+                            },
+                            ticks: {
+                                fontColor: options.axisColor
+                            }
+                        }
+                    ],
+                    yAxes: [
+                        {
+                            stacked: true,
+                            scaleLabel: {
+                                display: true,
+                                labelString: options.label,
+                                fontColor: options.axisColor
+                            },
+                            ticks: {
+                                fontColor: options.axisColor,
+                                beginAtZero: true
+                            }
+                        }
+                    ]
+                },
+                legend: {
+                    labels: {
+                        fontColor: options.axisColor
+                    }
+                }
+            }
+        };
+        const payload = {
+            width: 800,
+            height: 400,
+            chart: chartConfig
+        };
+        let response = null;
+        try {
+            response = yield axios_1.default.post(QUICKCHART_API_URL, payload);
+        }
+        catch (error) {
+            logger.error(error);
+            logger.error(`getStackedAreaGraph ${JSON.stringify(payload)}`);
+        }
+        if (((_a = response === null || response === void 0 ? void 0 : response.data) === null || _a === void 0 ? void 0 : _a.success) && ((_b = response === null || response === void 0 ? void 0 : response.data) === null || _b === void 0 ? void 0 : _b.url)) {
+            const urlParts = response.data.url.split('/');
+            const id = urlParts[urlParts.length - 1] || 'stacked-area-chart';
+            return { id, url: response.data.url };
+        }
+        return response === null || response === void 0 ? void 0 : response.data;
+    });
+}
+exports.getStackedAreaGraph = getStackedAreaGraph;
+
+
+/***/ }),
+
 /***/ 4636:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -44430,6 +44657,277 @@ function run() {
     });
 }
 run();
+
+
+/***/ }),
+
+/***/ 4967:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.NativeProcessTracer = void 0;
+const child_process_1 = __nccwpck_require__(2081);
+const util_1 = __nccwpck_require__(3837);
+const fs = __importStar(__nccwpck_require__(7147));
+const path = __importStar(__nccwpck_require__(1017));
+const logger = __importStar(__nccwpck_require__(4636));
+const execAsync = (0, util_1.promisify)(child_process_1.exec);
+class NativeProcessTracer {
+    constructor(outputFilePath) {
+        this.running = false;
+        this.outputStream = null;
+        this.previousProcesses = new Map();
+        this.pollingInterval = null;
+        this.POLL_INTERVAL_MS = 1000; // 1秒ごとにポーリング
+        this.outputFilePath = outputFilePath;
+    }
+    start() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (this.running) {
+                logger.info('Native process tracer is already running');
+                return;
+            }
+            logger.info('Starting native process tracer...');
+            try {
+                // 出力ディレクトリを作成
+                const outputDir = path.dirname(this.outputFilePath);
+                if (!fs.existsSync(outputDir)) {
+                    fs.mkdirSync(outputDir, { recursive: true });
+                }
+                // 出力ファイルを開く
+                this.outputStream = fs.createWriteStream(this.outputFilePath, {
+                    flags: 'w'
+                });
+                this.running = true;
+                // 初回スナップショット
+                yield this.captureSnapshot();
+                // 定期的にスナップショットを取得
+                this.pollingInterval = setInterval(() => __awaiter(this, void 0, void 0, function* () {
+                    try {
+                        yield this.captureSnapshot();
+                    }
+                    catch (error) {
+                        logger.error(`Error capturing process snapshot: ${error}`);
+                    }
+                }), this.POLL_INTERVAL_MS);
+                logger.info('Native process tracer started successfully');
+            }
+            catch (error) {
+                logger.error(`Failed to start native process tracer: ${error}`);
+                throw error;
+            }
+        });
+    }
+    stop() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (!this.running) {
+                logger.info('Native process tracer is not running');
+                return;
+            }
+            logger.info('Stopping native process tracer...');
+            this.running = false;
+            // ポーリング停止
+            if (this.pollingInterval) {
+                clearInterval(this.pollingInterval);
+                this.pollingInterval = null;
+            }
+            // 最終スナップショット - すべてのプロセスを終了として記録
+            yield this.finalizeAllProcesses();
+            // 出力ストリームを閉じる
+            if (this.outputStream) {
+                this.outputStream.end();
+                this.outputStream = null;
+            }
+            logger.info('Native process tracer stopped');
+        });
+    }
+    captureSnapshot() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const currentProcesses = yield this.getProcessList();
+            const currentPids = new Set(currentProcesses.keys());
+            const previousPids = new Set(this.previousProcesses.keys());
+            // 新しいプロセス（EXEC イベント）
+            for (const [pid, info] of currentProcesses) {
+                if (!previousPids.has(pid)) {
+                    this.writeEvent({
+                        event: 'EXEC',
+                        ts: new Date().toISOString(),
+                        name: info.name,
+                        pid: info.pid,
+                        ppid: info.ppid,
+                        uid: info.uid,
+                        startTime: info.startTime,
+                        fileName: info.fileName,
+                        args: info.args
+                    });
+                }
+            }
+            // 終了したプロセス（EXIT イベント）
+            for (const [pid, info] of this.previousProcesses) {
+                if (!currentPids.has(pid)) {
+                    const duration = Date.now() - info.startTime;
+                    this.writeEvent({
+                        event: 'EXIT',
+                        ts: new Date().toISOString(),
+                        name: info.name,
+                        pid: info.pid,
+                        duration,
+                        exitCode: 0 // 正確な終了コードは取得困難なため0とする
+                    });
+                }
+            }
+            this.previousProcesses = currentProcesses;
+        });
+    }
+    finalizeAllProcesses() {
+        return __awaiter(this, void 0, void 0, function* () {
+            // すべての追跡中プロセスを終了として記録
+            for (const [pid, info] of this.previousProcesses) {
+                const duration = Date.now() - info.startTime;
+                this.writeEvent({
+                    event: 'EXIT',
+                    ts: new Date().toISOString(),
+                    name: info.name,
+                    pid: info.pid,
+                    duration,
+                    exitCode: 0
+                });
+            }
+            this.previousProcesses.clear();
+        });
+    }
+    getProcessList() {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                // ps コマンドでプロセスリストを取得
+                // フォーマット: PID,PPID,UID,COMM,COMMAND,LSTART
+                const { stdout } = yield execAsync('ps -eo pid,ppid,uid,comm,args,lstart --no-headers', { maxBuffer: 10 * 1024 * 1024 } // 10MB buffer
+                );
+                const processes = new Map();
+                const lines = stdout.trim().split('\n');
+                for (const line of lines) {
+                    const parsed = this.parseProcessLine(line);
+                    if (parsed) {
+                        processes.set(parsed.pid, parsed);
+                    }
+                }
+                return processes;
+            }
+            catch (error) {
+                logger.error(`Failed to get process list: ${error}`);
+                return new Map();
+            }
+        });
+    }
+    parseProcessLine(line) {
+        try {
+            // ps出力をパース
+            const parts = line.trim().split(/\s+/);
+            if (parts.length < 5) {
+                return null;
+            }
+            const pid = parseInt(parts[0], 10);
+            const ppid = parseInt(parts[1], 10);
+            const uid = parseInt(parts[2], 10);
+            const comm = parts[3];
+            // コマンドライン引数の部分を抽出
+            // LSTART（開始時刻）の前まで
+            const commandParts = [];
+            let commandEndIndex = 4;
+            for (let i = 4; i < parts.length; i++) {
+                // LSTART の開始を検出（曜日名で始まる）
+                if (/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)$/.test(parts[i])) {
+                    commandEndIndex = i;
+                    break;
+                }
+                commandParts.push(parts[i]);
+            }
+            const commandLine = commandParts.join(' ');
+            const args = commandParts.length > 1 ? commandParts.slice(1) : [];
+            // 開始時刻をパース（lstartフィールド）
+            let startTime = Date.now(); // デフォルトは現在時刻
+            if (commandEndIndex < parts.length) {
+                const lstartParts = parts.slice(commandEndIndex);
+                if (lstartParts.length >= 5) {
+                    try {
+                        // "Mon Dec 26 12:00:00 2025" 形式
+                        const lstartStr = lstartParts.join(' ');
+                        const date = new Date(lstartStr);
+                        if (!isNaN(date.getTime())) {
+                            startTime = date.getTime();
+                        }
+                    }
+                    catch (e) {
+                        // パース失敗時は現在時刻を使用
+                    }
+                }
+            }
+            return {
+                pid,
+                ppid,
+                uid,
+                name: comm,
+                fileName: commandParts[0] || comm,
+                args,
+                startTime
+            };
+        }
+        catch (error) {
+            logger.debug(`Failed to parse process line ${line}: ${error}`);
+            return null;
+        }
+    }
+    writeEvent(event) {
+        if (!this.outputStream) {
+            return;
+        }
+        try {
+            const eventJson = JSON.stringify(event);
+            this.outputStream.write(eventJson + '\n');
+            if (logger.isDebugEnabled()) {
+                logger.debug(`Process event: ${eventJson}`);
+            }
+        }
+        catch (error) {
+            logger.error(`Failed to write process event: ${error}`);
+        }
+    }
+}
+exports.NativeProcessTracer = NativeProcessTracer;
 
 
 /***/ }),
@@ -44665,39 +45163,31 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.report = exports.finish = exports.start = void 0;
-const child_process_1 = __nccwpck_require__(2081);
 const path_1 = __importDefault(__nccwpck_require__(1017));
 const core = __importStar(__nccwpck_require__(2186));
 const systeminformation_1 = __importDefault(__nccwpck_require__(9284));
 const sprintf_js_1 = __nccwpck_require__(3988);
 const procTraceParser_1 = __nccwpck_require__(9576);
 const logger = __importStar(__nccwpck_require__(4636));
-const PROC_TRACER_PID_KEY = 'PROC_TRACER_PID';
+const nativeProcessTracer_1 = __nccwpck_require__(4967);
+const PROC_TRACER_STATE_KEY = 'PROC_TRACER_STARTED';
 const PROC_TRACER_OUTPUT_FILE_NAME = 'proc-trace.out';
-const PROC_TRACER_BINARY_NAME_UBUNTU_20 = 'proc_tracer_ubuntu-20';
-const PROC_TRACER_BINARY_NAME_UBUNTU_22 = 'proc_tracer_ubuntu-22';
 const DEFAULT_PROC_TRACE_CHART_MAX_COUNT = 100;
 const GHA_FILE_NAME_PREFIX = '/home/runner/work/_actions/';
 let finished = false;
-function getProcessTracerBinaryName() {
+let nativeTracer = null;
+function isSupportedOS() {
     return __awaiter(this, void 0, void 0, function* () {
         const osInfo = yield systeminformation_1.default.osInfo();
         if (osInfo) {
-            // Check whether we are running on Ubuntu
-            if (osInfo.distro === 'Ubuntu') {
-                const majorVersion = parseInt(osInfo.release.split('.')[0]);
-                if (majorVersion === 20) {
-                    logger.info(`Using ${PROC_TRACER_BINARY_NAME_UBUNTU_20}`);
-                    return PROC_TRACER_BINARY_NAME_UBUNTU_20;
-                }
-                if (majorVersion === 22) {
-                    logger.info(`Using ${PROC_TRACER_BINARY_NAME_UBUNTU_22}`);
-                    return PROC_TRACER_BINARY_NAME_UBUNTU_22;
-                }
+            // Check whether we are running on Ubuntu (or Linux in general)
+            if (osInfo.platform === 'linux') {
+                logger.info(`Process tracing enabled on ${osInfo.distro} ${osInfo.release}`);
+                return true;
             }
         }
         logger.info(`Process tracing disabled because of unsupported OS: ${JSON.stringify(osInfo)}`);
-        return null;
+        return false;
     });
 }
 function getExtraProcessInfo(command) {
@@ -44719,32 +45209,20 @@ function getExtraProcessInfo(command) {
 }
 ///////////////////////////
 function start() {
-    var _a;
     return __awaiter(this, void 0, void 0, function* () {
         logger.info(`Starting process tracer ...`);
         try {
-            const procTracerBinaryName = yield getProcessTracerBinaryName();
-            if (procTracerBinaryName) {
-                const procTraceOutFilePath = path_1.default.join(__dirname, '../proc-tracer', PROC_TRACER_OUTPUT_FILE_NAME);
-                const child = (0, child_process_1.spawn)('sudo', [
-                    path_1.default.join(__dirname, `../proc-tracer/${procTracerBinaryName}`),
-                    '-f',
-                    'json',
-                    '-o',
-                    procTraceOutFilePath
-                ], {
-                    detached: true,
-                    stdio: 'ignore',
-                    env: Object.assign({}, process.env)
-                });
-                child.unref();
-                core.saveState(PROC_TRACER_PID_KEY, (_a = child.pid) === null || _a === void 0 ? void 0 : _a.toString());
-                logger.info(`Started process tracer`);
-                return true;
-            }
-            else {
+            const isSupported = yield isSupportedOS();
+            if (!isSupported) {
                 return false;
             }
+            const procTraceOutFilePath = path_1.default.join(__dirname, '../proc-tracer', PROC_TRACER_OUTPUT_FILE_NAME);
+            // Create native process tracer instance
+            nativeTracer = new nativeProcessTracer_1.NativeProcessTracer(procTraceOutFilePath);
+            yield nativeTracer.start();
+            core.saveState(PROC_TRACER_STATE_KEY, 'true');
+            logger.info(`Started process tracer`);
+            return true;
         }
         catch (error) {
             logger.error('Unable to start process tracer');
@@ -44757,14 +45235,13 @@ exports.start = start;
 function finish(currentJob) {
     return __awaiter(this, void 0, void 0, function* () {
         logger.info(`Finishing process tracer ...`);
-        const procTracePID = core.getState(PROC_TRACER_PID_KEY);
-        if (!procTracePID) {
+        const isStarted = core.getState(PROC_TRACER_STATE_KEY);
+        if (!isStarted || !nativeTracer) {
             logger.info(`Skipped finishing process tracer since process tracer didn't started`);
             return false;
         }
         try {
-            logger.debug(`Interrupting process tracer with pid ${procTracePID} to stop gracefully ...`);
-            (0, child_process_1.exec)(`sudo kill -s INT ${procTracePID}`);
+            yield nativeTracer.stop();
             finished = true;
             logger.info(`Finished process tracer`);
             return true;
@@ -45196,60 +45673,16 @@ function getDiskSizeStats() {
 }
 function getLineGraph(options) {
     return __awaiter(this, void 0, void 0, function* () {
-        const payload = {
-            options: {
-                width: 1000,
-                height: 500,
-                xAxis: {
-                    label: 'Time'
-                },
-                yAxis: {
-                    label: options.label
-                },
-                timeTicks: {
-                    unit: 'auto'
-                }
-            },
-            lines: [options.line]
-        };
-        let response = null;
-        try {
-            response = yield axios_1.default.put('https://api.globadge.com/v1/chartgen/line/time', payload);
-        }
-        catch (error) {
-            logger.error(error);
-            logger.error(`getLineGraph ${JSON.stringify(payload)}`);
-        }
-        return response === null || response === void 0 ? void 0 : response.data;
+        // Import chartGenerator functions dynamically
+        const chartGenerator = yield Promise.resolve().then(() => __importStar(__nccwpck_require__(7318)));
+        return chartGenerator.getLineGraph(options);
     });
 }
 function getStackedAreaGraph(options) {
     return __awaiter(this, void 0, void 0, function* () {
-        const payload = {
-            options: {
-                width: 1000,
-                height: 500,
-                xAxis: {
-                    label: 'Time'
-                },
-                yAxis: {
-                    label: options.label
-                },
-                timeTicks: {
-                    unit: 'auto'
-                }
-            },
-            areas: options.areas
-        };
-        let response = null;
-        try {
-            response = yield axios_1.default.put('https://api.globadge.com/v1/chartgen/stacked-area/time', payload);
-        }
-        catch (error) {
-            logger.error(error);
-            logger.error(`getStackedAreaGraph ${JSON.stringify(payload)}`);
-        }
-        return response === null || response === void 0 ? void 0 : response.data;
+        // Import chartGenerator functions dynamically
+        const chartGenerator = yield Promise.resolve().then(() => __importStar(__nccwpck_require__(7318)));
+        return chartGenerator.getStackedAreaGraph(options);
     });
 }
 ///////////////////////////

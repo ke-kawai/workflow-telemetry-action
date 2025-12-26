@@ -97,3 +97,7 @@ Thumbs.db
 # Ignore built ts files
 __tests__/runner/*
 lib/**/*
+
+# Workflow telemetry generated files
+dist/proc-tracer/*.out
+dist/charts/*.png
