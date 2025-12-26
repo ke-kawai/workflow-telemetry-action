@@ -215,7 +215,6 @@ async function reportWorkflowMetrics(): Promise<string> {
   return postContentItems.join('\n')
 }
 
-
 async function getCPUStats(): Promise<ProcessedCPUStats> {
   const userLoadX: ProcessedStats[] = []
   const systemLoadX: ProcessedStats[] = []
