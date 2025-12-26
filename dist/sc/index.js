@@ -19,17 +19,18 @@ var require$$1$2 = require('tls');
 var require$$7 = require('buffer');
 var require$$8$1 = require('querystring');
 var require$$14 = require('stream/web');
-var node_module = require('node:module');
-var require$$0$6 = require('worker_threads');
+var require$$0$7 = require('node:stream');
+var require$$1$3 = require('node:util');
+var require$$0$6 = require('node:events');
+var require$$0$8 = require('worker_threads');
 var require$$2$1 = require('perf_hooks');
 var require$$5 = require('util/types');
 var require$$4$2 = require('async_hooks');
-var require$$1$3 = require('console');
+var require$$1$4 = require('console');
 var require$$6 = require('string_decoder');
-var require$$0$7 = require('diagnostics_channel');
+var require$$0$9 = require('diagnostics_channel');
 var require$$6$1 = require('timers');
 
-var _documentCurrentScript = typeof document !== 'undefined' ? document.currentScript : null;
 /**
  * Create a bound version of a function with a specified `this` context
  *
@@ -21132,15 +21133,6 @@ function requireTimers () {
 
 var main = {exports: {}};
 
-const require$3 = node_module.createRequire((typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('index.js', document.baseURI).href)));
-function __require$2() { return require$3("node:stream"); }
-
-const require$2 = node_module.createRequire((typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('index.js', document.baseURI).href)));
-function __require$1() { return require$2("node:util"); }
-
-const require$1 = node_module.createRequire((typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('index.js', document.baseURI).href)));
-function __require() { return require$1("node:events"); }
-
 var sbmh;
 var hasRequiredSbmh;
 
@@ -21174,8 +21166,8 @@ function requireSbmh () {
 	 * Based heavily on the Streaming Boyer-Moore-Horspool C++ implementation
 	 * by Hongli Lai at: https://github.com/FooBarWidget/boyer-moore-horspool
 	 */
-	const EventEmitter = __require().EventEmitter;
-	const inherits = __require$1().inherits;
+	const EventEmitter = require$$0$6.EventEmitter;
+	const inherits = require$$1$3.inherits;
 
 	function SBMH (needle) {
 	  if (typeof needle === 'string') {
@@ -21384,8 +21376,8 @@ function requirePartStream () {
 	if (hasRequiredPartStream) return PartStream_1;
 	hasRequiredPartStream = 1;
 
-	const inherits = __require$1().inherits;
-	const ReadableStream = __require$2().Readable;
+	const inherits = require$$1$3.inherits;
+	const ReadableStream = require$$0$7.Readable;
 
 	function PartStream (opts) {
 	  ReadableStream.call(this, opts);
@@ -21429,8 +21421,8 @@ function requireHeaderParser () {
 	if (hasRequiredHeaderParser) return HeaderParser_1;
 	hasRequiredHeaderParser = 1;
 
-	const EventEmitter = __require().EventEmitter;
-	const inherits = __require$1().inherits;
+	const EventEmitter = require$$0$6.EventEmitter;
+	const inherits = require$$1$3.inherits;
 	const getLimit = requireGetLimit();
 
 	const StreamSearch = requireSbmh();
@@ -21537,8 +21529,8 @@ function requireDicer () {
 	if (hasRequiredDicer) return Dicer_1;
 	hasRequiredDicer = 1;
 
-	const WritableStream = __require$2().Writable;
-	const inherits = __require$1().inherits;
+	const WritableStream = require$$0$7.Writable;
+	const inherits = require$$1$3.inherits;
 
 	const StreamSearch = requireSbmh();
 
@@ -22114,8 +22106,8 @@ function requireMultipart () {
 	//  * support limits.fieldNameSize
 	//     -- this will require modifications to utils.parseParams
 
-	const { Readable } = __require$2();
-	const { inherits } = __require$1();
+	const { Readable } = require$$0$7;
+	const { inherits } = require$$1$3;
 
 	const Dicer = requireDicer();
 
@@ -22680,8 +22672,8 @@ function requireMain () {
 	if (hasRequiredMain) return main.exports;
 	hasRequiredMain = 1;
 
-	const WritableStream = __require$2().Writable;
-	const { inherits } = __require$1();
+	const WritableStream = require$$0$7.Writable;
+	const { inherits } = require$$1$3;
 	const Dicer = requireDicer();
 
 	const MultipartParser = requireMultipart();
@@ -22773,7 +22765,7 @@ function requireConstants$3 () {
 	if (hasRequiredConstants$3) return constants$3;
 	hasRequiredConstants$3 = 1;
 
-	const { MessageChannel, receiveMessageOnPort } = require$$0$6;
+	const { MessageChannel, receiveMessageOnPort } = require$$0$8;
 
 	const corsSafeListedMethods = ['GET', 'HEAD', 'POST'];
 	const corsSafeListedMethodsSet = new Set(corsSafeListedMethods);
@@ -33529,7 +33521,7 @@ function requirePendingInterceptorsFormatter () {
 	hasRequiredPendingInterceptorsFormatter = 1;
 
 	const { Transform } = stream;
-	const { Console } = require$$1$3;
+	const { Console } = require$$1$4;
 
 	/**
 	 * Gets the output of `console.table(…)` as a string.
@@ -41706,7 +41698,7 @@ function requireEvents () {
 
 	const { webidl } = requireWebidl();
 	const { kEnumerableProperty } = requireUtil$6();
-	const { MessagePort } = require$$0$6;
+	const { MessagePort } = require$$0$8;
 
 	/**
 	 * @see https://html.spec.whatwg.org/multipage/comms.html#messageevent
@@ -42223,7 +42215,7 @@ function requireConnection () {
 	if (hasRequiredConnection) return connection;
 	hasRequiredConnection = 1;
 
-	const diagnosticsChannel = require$$0$7;
+	const diagnosticsChannel = require$$0$9;
 	const { uid, states } = requireConstants();
 	const {
 	  kReadyState,
@@ -42604,7 +42596,7 @@ function requireReceiver () {
 	hasRequiredReceiver = 1;
 
 	const { Writable } = stream;
-	const diagnosticsChannel = require$$0$7;
+	const diagnosticsChannel = require$$0$9;
 	const { parserStates, opcodes, states, emptyBuffer } = requireConstants();
 	const { kReadyState, kSentClose, kResponse, kReceivedClose } = requireSymbols();
 	const { isValidStatusCode, failWebsocketConnection, websocketMessageReceived } = requireUtil();

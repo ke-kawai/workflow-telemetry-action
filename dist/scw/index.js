@@ -16,19 +16,20 @@ var require$$0$6 = require('stream');
 var require$$7 = require('buffer');
 var require$$8 = require('querystring');
 var require$$14 = require('stream/web');
-var node_module = require('node:module');
-var require$$0$7 = require('worker_threads');
+var require$$0$8 = require('node:stream');
+var require$$1$4 = require('node:util');
+var require$$0$7 = require('node:events');
+var require$$0$9 = require('worker_threads');
 var require$$2$1 = require('perf_hooks');
 var require$$5$1 = require('util/types');
 var require$$4$1 = require('async_hooks');
-var require$$1$4 = require('console');
-var require$$1$5 = require('url');
+var require$$1$5 = require('console');
+var require$$1$6 = require('url');
 var require$$3 = require('zlib');
 var require$$6 = require('string_decoder');
-var require$$0$8 = require('diagnostics_channel');
+var require$$0$a = require('diagnostics_channel');
 var require$$6$1 = require('timers');
 
-var _documentCurrentScript = typeof document !== 'undefined' ? document.currentScript : null;
 var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 
 function getDefaultExportFromCjs (x) {
@@ -37,7 +38,7 @@ function getDefaultExportFromCjs (x) {
 
 var lib$1 = {};
 
-var version = "5.28.0";
+var version = "5.28.1";
 var require$$0 = {
 	version: version};
 
@@ -100,13 +101,13 @@ function requireUtil$7 () {
 
 	const execOptsWin = {
 	  windowsHide: true,
-	  maxBuffer: 1024 * 20000,
+	  maxBuffer: 1024 * 102400,
 	  encoding: 'UTF-8',
 	  env: Object.assign({}, process.env, { LANG: 'en_US.UTF-8' })
 	};
 
 	const execOptsLinux = {
-	  maxBuffer: 1024 * 20000,
+	  maxBuffer: 1024 * 102400,
 	  encoding: 'UTF-8',
 	  stdio: ['pipe', 'pipe', 'ignore']
 	};
@@ -485,7 +486,7 @@ function requireUtil$7 () {
 	    _psChild = spawn(_powerShell, ['-NoProfile', '-NoLogo', '-InputFormat', 'Text', '-NoExit', '-Command', '-'], {
 	      stdio: 'pipe',
 	      windowsHide: true,
-	      maxBuffer: 1024 * 20000,
+	      maxBuffer: 1024 * 102400,
 	      encoding: 'UTF-8',
 	      env: Object.assign({}, process.env, { LANG: 'en_US.UTF-8' })
 	    });
@@ -565,7 +566,7 @@ function requireUtil$7 () {
 	          const child = spawn(_powerShell, ['-NoProfile', '-NoLogo', '-InputFormat', 'Text', '-ExecutionPolicy', 'Unrestricted', '-Command', cmd], {
 	            stdio: 'pipe',
 	            windowsHide: true,
-	            maxBuffer: 1024 * 20000,
+	            maxBuffer: 1024 * 102400,
 	            encoding: 'UTF-8',
 	            env: Object.assign({}, process.env, { LANG: 'en_US.UTF-8' })
 	          });
@@ -8843,7 +8844,7 @@ function requireGraphics () {
 	            try {
 	              stdout = execSync(
 	                'defaults read /Library/Preferences/com.apple.windowserver.plist 2>/dev/null;defaults read /Library/Preferences/com.apple.windowserver.displays.plist 2>/dev/null; echo ""',
-	                { maxBuffer: 1024 * 20000 }
+	                { maxBuffer: 1024 * 102400 }
 	              );
 	              const output = (stdout || '').toString();
 	              const obj = util.plistReader(output);
@@ -11535,12 +11536,12 @@ function requireNetwork () {
 	function getDarwinNics() {
 	  const cmd = '/sbin/ifconfig -v';
 	  try {
-	    const lines = execSync(cmd, { maxBuffer: 1024 * 20000 })
+	    const lines = execSync(cmd, { maxBuffer: 1024 * 102400 })
 	      .toString()
 	      .split('\n');
 	    const nsections = splitSectionsNics(lines);
 	    return parseLinesDarwinNics(nsections);
-	  } catch (e) {
+	  } catch {
 	    return [];
 	  }
 	}
@@ -11554,7 +11555,7 @@ function requireNetwork () {
 	    const connectionNameLines = resultFormat.split(' ').slice(3);
 	    const connectionName = connectionNameLines.join(' ');
 	    return connectionName !== '--' ? connectionName : '';
-	  } catch (e) {
+	  } catch {
 	    return '';
 	  }
 	}
@@ -11577,7 +11578,7 @@ function requireNetwork () {
 	        result = result.concat(checkLinuxDCHPInterfaces(file));
 	      }
 	    });
-	  } catch (e) {
+	  } catch {
 	    util.noop();
 	  }
 	  return result;
@@ -11591,12 +11592,12 @@ function requireNetwork () {
 	    const lines = execSync(cmd, util.execOptsLinux).toString().split('\n');
 	    const nsections = splitSectionsNics(lines);
 	    result = parseLinuxDHCPNics(nsections);
-	  } catch (e) {
+	  } catch {
 	    util.noop();
 	  }
 	  try {
 	    result = checkLinuxDCHPInterfaces('/etc/network/interfaces');
-	  } catch (e) {
+	  } catch {
 	    util.noop();
 	  }
 	  return result;
@@ -11643,7 +11644,7 @@ function requireNetwork () {
 	          break;
 	      }
 	      return result;
-	    } catch (e) {
+	    } catch {
 	      return DHCPNics.indexOf(iface) >= 0;
 	    }
 	  } else {
@@ -11659,7 +11660,7 @@ function requireNetwork () {
 	    if (lines.length && lines[0].startsWith('lease_time')) {
 	      result = true;
 	    }
-	  } catch (e) {
+	  } catch {
 	    util.noop();
 	  }
 	  return result;
@@ -11673,7 +11674,7 @@ function requireNetwork () {
 	      const resultFormat = result.replace(/\s+/g, ' ').trim();
 	      const dnsSuffix = resultFormat.split(' ').slice(1).toString();
 	      return dnsSuffix === '--' ? 'Not defined' : dnsSuffix;
-	    } catch (e) {
+	    } catch {
 	      return 'Unknown';
 	    }
 	  } else {
@@ -11690,7 +11691,7 @@ function requireNetwork () {
 	      const authenticationProtocol = resultFormat.split(' ').slice(1).toString();
 
 	      return authenticationProtocol === '--' ? '' : authenticationProtocol;
-	    } catch (e) {
+	    } catch {
 	      return 'Not defined';
 	    }
 	  } else {
@@ -11796,15 +11797,43 @@ function requireNetwork () {
 	          nics = getDarwinNics();
 
 	          nics.forEach((nic) => {
+	            let ip4link = '';
+	            let ip4linksubnet = '';
+	            let ip6link = '';
+	            let ip6linksubnet = '';
+	            nic.ip4 = '';
+	            nic.ip6 = '';
 	            if ({}.hasOwnProperty.call(ifaces, nic.iface)) {
 	              ifaces[nic.iface].forEach((details) => {
 	                if (details.family === 'IPv4' || details.family === 4) {
-	                  nic.ip4subnet = details.netmask;
+	                  if (!nic.ip4 && !nic.ip4.match(/^169.254/i)) {
+	                    nic.ip4 = details.address;
+	                    nic.ip4subnet = details.netmask;
+	                  }
+	                  if (nic.ip4.match(/^169.254/i)) {
+	                    ip4link = details.address;
+	                    ip4linksubnet = details.netmask;
+	                  }
 	                }
 	                if (details.family === 'IPv6' || details.family === 6) {
-	                  nic.ip6subnet = details.netmask;
+	                  if (!nic.ip6 && !nic.ip6.match(/^fe80::/i)) {
+	                    nic.ip6 = details.address;
+	                    nic.ip6subnet = details.netmask;
+	                  }
+	                  if (nic.ip6.match(/^fe80::/i)) {
+	                    ip6link = details.address;
+	                    ip6linksubnet = details.netmask;
+	                  }
 	                }
 	              });
+	            }
+	            if (!nic.ip4 && ip4link) {
+	              nic.ip4 = ip4link;
+	              nic.ip4subnet = ip4linksubnet;
+	            }
+	            if (!nic.ip6 && ip6link) {
+	              nic.ip6 = ip6link;
+	              nic.ip6subnet = ip6linksubnet;
 	            }
 
 	            let ifaceSanitized = '';
@@ -11883,17 +11912,32 @@ function requireNetwork () {
 	            let ieee8021xState = '';
 	            let type = '';
 
+	            let ip4link = '';
+	            let ip4linksubnet = '';
+	            let ip6link = '';
+	            let ip6linksubnet = '';
+
 	            if ({}.hasOwnProperty.call(ifaces, dev)) {
-	              let ifaceName = dev;
-	              ifaces[dev].forEach(function (details) {
+	              const ifaceName = dev;
+	              ifaces[dev].forEach((details) => {
 	                if (details.family === 'IPv4' || details.family === 4) {
-	                  ip4 = details.address;
-	                  ip4subnet = details.netmask;
+	                  if (!ip4 && !ip4.match(/^169.254/i)) {
+	                    ip4 = details.address;
+	                    ip4subnet = details.netmask;
+	                  }
+	                  if (ip4.match(/^169.254/i)) {
+	                    ip4link = details.address;
+	                    ip4linksubnet = details.netmask;
+	                  }
 	                }
 	                if (details.family === 'IPv6' || details.family === 6) {
-	                  if (!ip6 || ip6.match(/^fe80::/i)) {
+	                  if (!ip6 && !ip6.match(/^fe80::/i)) {
 	                    ip6 = details.address;
 	                    ip6subnet = details.netmask;
+	                  }
+	                  if (ip6.match(/^fe80::/i)) {
+	                    ip6link = details.address;
+	                    ip6linksubnet = details.netmask;
 	                  }
 	                }
 	                mac = details.mac;
@@ -11906,7 +11950,15 @@ function requireNetwork () {
 	                  mac = _mac[dev] || '';
 	                }
 	              });
-	              let iface = dev.split(':')[0].trim().toLowerCase();
+	              if (!ip4 && ip4link) {
+	                ip4 = ip4link;
+	                ip4subnet = ip4linksubnet;
+	              }
+	              if (!ip6 && ip6link) {
+	                ip6 = ip6link;
+	                ip6subnet = ip6linksubnet;
+	              }
+	              const iface = dev.split(':')[0].trim().toLowerCase();
 	              let ifaceSanitized = '';
 	              const s = util.isPrototypePolluted() ? '---' : util.sanitizeShellString(iface);
 	              const l = util.mathMin(s.length, 2000);
@@ -12245,7 +12297,7 @@ function requireNetwork () {
 	          ifaces.__proto__.substring = util.stringSubstring;
 	          ifaces.__proto__.trim = util.stringTrim;
 	          ifaces.__proto__.startsWith = util.stringStartWith;
-	        } catch (e) {
+	        } catch {
 	          Object.setPrototypeOf(ifaces, util.stringObj);
 	        }
 
@@ -12562,7 +12614,7 @@ function requireNetwork () {
 	          cmd =
 	            'export LC_ALL=C; netstat -na | grep "ESTABLISHED\\|SYN_SENT\\|SYN_RECV\\|FIN_WAIT1\\|FIN_WAIT2\\|TIME_WAIT\\|CLOSE\\|CLOSE_WAIT\\|LAST_ACK\\|LISTEN\\|CLOSING\\|UNKNOWN"; unset LC_ALL';
 	        }
-	        exec(cmd, { maxBuffer: 1024 * 20000 }, function (error, stdout) {
+	        exec(cmd, { maxBuffer: 1024 * 102400 }, function (error, stdout) {
 	          let lines = stdout.toString().split('\n');
 	          if (!error && (lines.length > 1 || lines[0] !== '')) {
 	            lines.forEach(function (line) {
@@ -12607,7 +12659,7 @@ function requireNetwork () {
 	            resolve(result);
 	          } else {
 	            cmd = 'ss -tunap | grep "ESTAB\\|SYN-SENT\\|SYN-RECV\\|FIN-WAIT1\\|FIN-WAIT2\\|TIME-WAIT\\|CLOSE\\|CLOSE-WAIT\\|LAST-ACK\\|LISTEN\\|CLOSING"';
-	            exec(cmd, { maxBuffer: 1024 * 20000 }, function (error, stdout) {
+	            exec(cmd, { maxBuffer: 1024 * 102400 }, function (error, stdout) {
 	              if (!error) {
 	                let lines = stdout.toString().split('\n');
 	                lines.forEach(function (line) {
@@ -12671,9 +12723,9 @@ function requireNetwork () {
 	      if (_darwin) {
 	        let cmd = 'netstat -natvln | head -n2; netstat -natvln | grep "tcp4\\|tcp6\\|udp4\\|udp6"';
 	        const states = 'ESTABLISHED|SYN_SENT|SYN_RECV|FIN_WAIT1|FIN_WAIT_1|FIN_WAIT2|FIN_WAIT_2|TIME_WAIT|CLOSE|CLOSE_WAIT|LAST_ACK|LISTEN|CLOSING|UNKNOWN'.split('|');
-	        exec(cmd, { maxBuffer: 1024 * 20000 }, function (error, stdout) {
+	        exec(cmd, { maxBuffer: 1024 * 102400 }, function (error, stdout) {
 	          if (!error) {
-	            exec('ps -axo pid,command', { maxBuffer: 1024 * 20000 }, function (err2, stdout2) {
+	            exec('ps -axo pid,command', { maxBuffer: 1024 * 102400 }, function (err2, stdout2) {
 	              let processes = stdout2.toString().split('\n');
 	              processes = processes.map((line) => {
 	                return line.trim().replace(/ +/g, ' ');
@@ -12832,7 +12884,7 @@ function requireNetwork () {
 	              resolve(result);
 	            }
 	          });
-	        } catch (e) {
+	        } catch {
 	          if (callback) {
 	            callback(result);
 	          }
@@ -12852,7 +12904,7 @@ function requireNetwork () {
 	      if (_linux || _freebsd || _openbsd || _netbsd) {
 	        let cmd = 'ip route get 1';
 	        try {
-	          exec(cmd, { maxBuffer: 1024 * 20000 }, function (error, stdout) {
+	          exec(cmd, { maxBuffer: 1024 * 102400 }, function (error, stdout) {
 	            if (!error) {
 	              let lines = stdout.toString().split('\n');
 	              const line = lines && lines[0] ? lines[0] : '';
@@ -12872,7 +12924,7 @@ function requireNetwork () {
 	              resolve(result);
 	            }
 	          });
-	        } catch (e) {
+	        } catch {
 	          if (callback) {
 	            callback(result);
 	          }
@@ -12882,7 +12934,7 @@ function requireNetwork () {
 	      if (_darwin) {
 	        let cmd = 'route -n get default';
 	        try {
-	          exec(cmd, { maxBuffer: 1024 * 20000 }, function (error, stdout) {
+	          exec(cmd, { maxBuffer: 1024 * 102400 }, function (error, stdout) {
 	            if (!error) {
 	              const lines = stdout
 	                .toString()
@@ -12892,7 +12944,7 @@ function requireNetwork () {
 	            }
 	            if (!result) {
 	              cmd = "netstat -rn | awk '/default/ {print $2}'";
-	              exec(cmd, { maxBuffer: 1024 * 20000 }, function (error, stdout) {
+	              exec(cmd, { maxBuffer: 1024 * 102400 }, function (error, stdout) {
 	                const lines = stdout
 	                  .toString()
 	                  .split('\n')
@@ -12912,7 +12964,7 @@ function requireNetwork () {
 	              resolve(result);
 	            }
 	          });
-	        } catch (e) {
+	        } catch {
 	          if (callback) {
 	            callback(result);
 	          }
@@ -12964,7 +13016,7 @@ function requireNetwork () {
 	              resolve(result);
 	            }
 	          });
-	        } catch (e) {
+	        } catch {
 	          if (callback) {
 	            callback(result);
 	          }
@@ -13853,13 +13905,13 @@ function requireProcesses () {
 
 	let _platform = process.platform;
 
-	const _linux = (_platform === 'linux' || _platform === 'android');
-	const _darwin = (_platform === 'darwin');
-	const _windows = (_platform === 'win32');
-	const _freebsd = (_platform === 'freebsd');
-	const _openbsd = (_platform === 'openbsd');
-	const _netbsd = (_platform === 'netbsd');
-	const _sunos = (_platform === 'sunos');
+	const _linux = _platform === 'linux' || _platform === 'android';
+	const _darwin = _platform === 'darwin';
+	const _windows = _platform === 'win32';
+	const _freebsd = _platform === 'freebsd';
+	const _openbsd = _platform === 'openbsd';
+	const _netbsd = _platform === 'netbsd';
+	const _sunos = _platform === 'sunos';
 
 	const _processes_cpu = {
 	  all: 0,
@@ -13885,16 +13937,16 @@ function requireProcesses () {
 	};
 
 	const _winStatusValues = {
-	  '0': 'unknown',
-	  '1': 'other',
-	  '2': 'ready',
-	  '3': 'running',
-	  '4': 'blocked',
-	  '5': 'suspended blocked',
-	  '6': 'suspended ready',
-	  '7': 'terminated',
-	  '8': 'stopped',
-	  '9': 'growing',
+	  0: 'unknown',
+	  1: 'other',
+	  2: 'ready',
+	  3: 'running',
+	  4: 'blocked',
+	  5: 'suspended blocked',
+	  6: 'suspended ready',
+	  7: 'terminated',
+	  8: 'stopped',
+	  9: 'growing'
 	};
 
 	function parseTimeUnix(time) {
@@ -13919,7 +13971,7 @@ function requireProcesses () {
 	  const hours = timeStr.length === 3 ? parseInt(timeStr[0] || 0) : 0;
 	  const mins = parseInt(timeStr[timeStr.length === 3 ? 1 : 0] || 0);
 	  const secs = parseInt(timeStr[timeStr.length === 3 ? 2 : 1] || 0);
-	  const ms = (((((days * 24 + hours) * 60) + mins) * 60 + secs) * 1000);
+	  const ms = (((days * 24 + hours) * 60 + mins) * 60 + secs) * 1000;
 
 	  let res = new Date(current.getTime());
 	  let result = res.toISOString().substring(0, 10) + ' ' + res.toISOString().substring(11, 19);
@@ -13938,7 +13990,6 @@ function requireProcesses () {
 	// this function gives an array back, if the services are running.
 
 	function services(srv, callback) {
-
 	  // fallback - if only callback is given
 	  if (util.isFunction(srv) && !callback) {
 	    callback = srv;
@@ -13948,7 +13999,9 @@ function requireProcesses () {
 	  return new Promise((resolve) => {
 	    process.nextTick(() => {
 	      if (typeof srv !== 'string') {
-	        if (callback) { callback([]); }
+	        if (callback) {
+	          callback([]);
+	        }
 	        return resolve([]);
 	      }
 
@@ -14029,11 +14082,14 @@ function requireProcesses () {
 	              }
 	            }
 	          }
-	          if ((_darwin) && srvString === '*') { // service enumeration not yet suported on mac OS
-	            if (callback) { callback(result); }
+	          if (_darwin && srvString === '*') {
+	            // service enumeration not yet suported on mac OS
+	            if (callback) {
+	              callback(result);
+	            }
 	            resolve(result);
 	          }
-	          let args = (_darwin) ? ['-caxo', 'pcpu,pmem,pid,command'] : ['-axo', 'pcpu,pmem,pid,command'];
+	          let args = _darwin ? ['-caxo', 'pcpu,pmem,pid,command'] : ['-axo', 'pcpu,pmem,pid,command'];
 	          if (srvString !== '' && srvs.length > 0) {
 	            util.execSafe('ps', args).then((stdout) => {
 	              if (stdout) {
@@ -14042,12 +14098,17 @@ function requireProcesses () {
 	                  let ps;
 	                  if (_darwin) {
 	                    ps = lines.filter(function (e) {
-	                      return (e.toLowerCase().indexOf(srv) !== -1);
+	                      return e.toLowerCase().indexOf(srv) !== -1;
 	                    });
-
 	                  } else {
 	                    ps = lines.filter(function (e) {
-	                      return (e.toLowerCase().indexOf(' ' + srv.toLowerCase() + ':') !== -1) || (e.toLowerCase().indexOf('(' + srv.toLowerCase() + ' ') !== -1) || (e.toLowerCase().indexOf('(' + srv.toLowerCase() + ')') !== -1) || (e.toLowerCase().indexOf(' ' + srv.toLowerCase().replace(/[0-9.]/g, '') + ':') !== -1) || (e.toLowerCase().indexOf('/' + srv.toLowerCase()) !== -1);
+	                      return (
+	                        e.toLowerCase().indexOf(' ' + srv.toLowerCase() + ':') !== -1 ||
+	                        e.toLowerCase().indexOf('(' + srv.toLowerCase() + ' ') !== -1 ||
+	                        e.toLowerCase().indexOf('(' + srv.toLowerCase() + ')') !== -1 ||
+	                        e.toLowerCase().indexOf(' ' + srv.toLowerCase().replace(/[0-9.]/g, '') + ':') !== -1 ||
+	                        e.toLowerCase().indexOf('/' + srv.toLowerCase()) !== -1
+	                      );
 	                    });
 	                  }
 	                  const pids = [];
@@ -14062,12 +14123,20 @@ function requireProcesses () {
 	                    running: ps.length > 0,
 	                    startmode: '',
 	                    pids: pids,
-	                    cpu: parseFloat((ps.reduce(function (pv, cv) {
-	                      return pv + parseFloat(cv.trim().split(' ')[0]);
-	                    }, 0)).toFixed(2)),
-	                    mem: parseFloat((ps.reduce(function (pv, cv) {
-	                      return pv + parseFloat(cv.trim().split(' ')[1]);
-	                    }, 0)).toFixed(2))
+	                    cpu: parseFloat(
+	                      ps
+	                        .reduce(function (pv, cv) {
+	                          return pv + parseFloat(cv.trim().split(' ')[0]);
+	                        }, 0)
+	                        .toFixed(2)
+	                    ),
+	                    mem: parseFloat(
+	                      ps
+	                        .reduce(function (pv, cv) {
+	                          return pv + parseFloat(cv.trim().split(' ')[1]);
+	                        }, 0)
+	                        .toFixed(2)
+	                    )
 	                  });
 	                });
 	                if (_linux) {
@@ -14075,10 +14144,10 @@ function requireProcesses () {
 	                  let cmd = 'cat /proc/stat | grep "cpu "';
 	                  for (let i in result) {
 	                    for (let j in result[i].pids) {
-	                      cmd += (';cat /proc/' + result[i].pids[j] + '/stat');
+	                      cmd += ';cat /proc/' + result[i].pids[j] + '/stat';
 	                    }
 	                  }
-	                  exec(cmd, { maxBuffer: 1024 * 20000 }, function (error, stdout) {
+	                  exec(cmd, { maxBuffer: 1024 * 102400 }, function (error, stdout) {
 	                    let curr_processes = stdout.toString().split('\n');
 
 	                    // first line (all - /proc/stat)
@@ -14120,11 +14189,15 @@ function requireProcesses () {
 	                    _services_cpu.list = Object.assign({}, list_new);
 	                    _services_cpu.ms = Date.now() - _services_cpu.ms;
 	                    _services_cpu.result = Object.assign({}, result);
-	                    if (callback) { callback(result); }
+	                    if (callback) {
+	                      callback(result);
+	                    }
 	                    resolve(result);
 	                  });
 	                } else {
-	                  if (callback) { callback(result); }
+	                  if (callback) {
+	                    callback(result);
+	                  }
 	                  resolve(result);
 	                }
 	              } else {
@@ -14144,7 +14217,9 @@ function requireProcesses () {
 	                        mem: 0
 	                      });
 	                    });
-	                    if (callback) { callback(result); }
+	                    if (callback) {
+	                      callback(result);
+	                    }
 	                    resolve(result);
 	                  } else {
 	                    srvs.forEach(function (srv) {
@@ -14156,14 +14231,18 @@ function requireProcesses () {
 	                        mem: 0
 	                      });
 	                    });
-	                    if (callback) { callback(result); }
+	                    if (callback) {
+	                      callback(result);
+	                    }
 	                    resolve(result);
 	                  }
 	                });
 	              }
 	            });
 	          } else {
-	            if (callback) { callback(result); }
+	            if (callback) {
+	              callback(result);
+	            }
 	            resolve(result);
 	          }
 	        }
@@ -14192,7 +14271,7 @@ function requireProcesses () {
 	                    if (srvString === '*' || srvs.indexOf(srvName) >= 0 || srvs.indexOf(srvCaption) >= 0) {
 	                      result.push({
 	                        name: srvName,
-	                        running: (started.toLowerCase() === 'true'),
+	                        running: started.toLowerCase() === 'true',
 	                        startmode: startMode,
 	                        pids: [pid],
 	                        cpu: 0,
@@ -14202,14 +14281,11 @@ function requireProcesses () {
 	                      dataSrv.push(srvCaption);
 	                    }
 	                  }
-
 	                });
 
 	                if (srvString !== '*') {
-	                  let srvsMissing = srvs.filter(function (e) {
-	                    return dataSrv.indexOf(e) === -1;
-	                  });
-	                  srvsMissing.forEach(function (srvName) {
+	                  const srvsMissing = srvs.filter((e) => dataSrv.indexOf(e) === -1);
+	                  srvsMissing.forEach((srvName) => {
 	                    result.push({
 	                      name: srvName,
 	                      running: false,
@@ -14220,10 +14296,12 @@ function requireProcesses () {
 	                    });
 	                  });
 	                }
-	                if (callback) { callback(result); }
+	                if (callback) {
+	                  callback(result);
+	                }
 	                resolve(result);
 	              } else {
-	                srvs.forEach(function (srvName) {
+	                srvs.forEach((srvName) => {
 	                  result.push({
 	                    name: srvName,
 	                    running: false,
@@ -14232,17 +14310,23 @@ function requireProcesses () {
 	                    mem: 0
 	                  });
 	                });
-	                if (callback) { callback(result); }
+	                if (callback) {
+	                  callback(result);
+	                }
 	                resolve(result);
 	              }
 	            });
-	          } catch (e) {
-	            if (callback) { callback(result); }
+	          } catch {
+	            if (callback) {
+	              callback(result);
+	            }
 	            resolve(result);
 	          }
 	        }
 	      } else {
-	        if (callback) { callback([]); }
+	        if (callback) {
+	          callback([]);
+	        }
 	        resolve([]);
 	      }
 	    });
@@ -14252,17 +14336,17 @@ function requireProcesses () {
 	processes.services = services;
 
 	function parseProcStat(line) {
-	  let parts = line.replace(/ +/g, ' ').split(' ');
-	  let user = (parts.length >= 2 ? parseInt(parts[1]) : 0);
-	  let nice = (parts.length >= 3 ? parseInt(parts[2]) : 0);
-	  let system = (parts.length >= 4 ? parseInt(parts[3]) : 0);
-	  let idle = (parts.length >= 5 ? parseInt(parts[4]) : 0);
-	  let iowait = (parts.length >= 6 ? parseInt(parts[5]) : 0);
-	  let irq = (parts.length >= 7 ? parseInt(parts[6]) : 0);
-	  let softirq = (parts.length >= 8 ? parseInt(parts[7]) : 0);
-	  let steal = (parts.length >= 9 ? parseInt(parts[8]) : 0);
-	  let guest = (parts.length >= 10 ? parseInt(parts[9]) : 0);
-	  let guest_nice = (parts.length >= 11 ? parseInt(parts[10]) : 0);
+	  const parts = line.replace(/ +/g, ' ').split(' ');
+	  const user = parts.length >= 2 ? parseInt(parts[1]) : 0;
+	  const nice = parts.length >= 3 ? parseInt(parts[2]) : 0;
+	  const system = parts.length >= 4 ? parseInt(parts[3]) : 0;
+	  const idle = parts.length >= 5 ? parseInt(parts[4]) : 0;
+	  const iowait = parts.length >= 6 ? parseInt(parts[5]) : 0;
+	  const irq = parts.length >= 7 ? parseInt(parts[6]) : 0;
+	  const softirq = parts.length >= 8 ? parseInt(parts[7]) : 0;
+	  const steal = parts.length >= 9 ? parseInt(parts[8]) : 0;
+	  const guest = parts.length >= 10 ? parseInt(parts[9]) : 0;
+	  const guest_nice = parts.length >= 11 ? parseInt(parts[10]) : 0;
 	  return user + nice + system + idle + iowait + irq + softirq + steal + guest + guest_nice;
 	}
 
@@ -14281,11 +14365,11 @@ function requireProcesses () {
 	      let cpuu = 0;
 	      let cpus = 0;
 	      if (_cpu_old.all > 0 && _cpu_old.list[pid]) {
-	        cpuu = (utime + cutime - _cpu_old.list[pid].utime - _cpu_old.list[pid].cutime) / (all - _cpu_old.all) * 100; // user
-	        cpus = (stime + cstime - _cpu_old.list[pid].stime - _cpu_old.list[pid].cstime) / (all - _cpu_old.all) * 100; // system
+	        cpuu = ((utime + cutime - _cpu_old.list[pid].utime - _cpu_old.list[pid].cutime) / (all - _cpu_old.all)) * 100; // user
+	        cpus = ((stime + cstime - _cpu_old.list[pid].stime - _cpu_old.list[pid].cstime) / (all - _cpu_old.all)) * 100; // system
 	      } else {
-	        cpuu = (utime + cutime) / (all) * 100; // user
-	        cpus = (stime + cstime) / (all) * 100; // system
+	        cpuu = ((utime + cutime) / all) * 100; // user
+	        cpus = ((stime + cstime) / all) * 100; // system
 	      }
 	      return {
 	        pid: pid,
@@ -14325,11 +14409,11 @@ function requireProcesses () {
 	  let cpuu = 0;
 	  let cpus = 0;
 	  if (_cpu_old.all > 0 && _cpu_old.list[procStat.pid]) {
-	    cpuu = (procStat.utime - _cpu_old.list[procStat.pid].utime) / (all - _cpu_old.all) * 100; // user
-	    cpus = (procStat.stime - _cpu_old.list[procStat.pid].stime) / (all - _cpu_old.all) * 100; // system
+	    cpuu = ((procStat.utime - _cpu_old.list[procStat.pid].utime) / (all - _cpu_old.all)) * 100; // user
+	    cpus = ((procStat.stime - _cpu_old.list[procStat.pid].stime) / (all - _cpu_old.all)) * 100; // system
 	  } else {
-	    cpuu = (procStat.utime) / (all) * 100; // user
-	    cpus = (procStat.stime) / (all) * 100; // system
+	    cpuu = (procStat.utime / all) * 100; // user
+	    cpus = (procStat.stime / all) * 100; // system
 	  }
 	  return {
 	    pid: procStat.pid,
@@ -14340,13 +14424,10 @@ function requireProcesses () {
 	  };
 	}
 
-
-
 	// --------------------------
 	// running processes
 
 	function processes$1(callback) {
-
 	  let parsedhead = [];
 
 	  function getName(command) {
@@ -14367,7 +14448,6 @@ function requireProcesses () {
 	  }
 
 	  function parseLine(line) {
-
 	    let offset = 0;
 	    let offset2 = 0;
 
@@ -14397,13 +14477,32 @@ function requireProcesses () {
 	    checkColumn(7);
 	    const nice = parseInt(line.substring(parsedhead[7].from + offset, parsedhead[7].to + offset2)) || 0;
 	    checkColumn(8);
-	    const started = !_sunos ? parseElapsedTime(line.substring(parsedhead[8].from + offset, parsedhead[8].to + offset2).trim()) : parseTimeUnix(line.substring(parsedhead[8].from + offset, parsedhead[8].to + offset2).trim());
+	    const started = !_sunos
+	      ? parseElapsedTime(line.substring(parsedhead[8].from + offset, parsedhead[8].to + offset2).trim())
+	      : parseTimeUnix(line.substring(parsedhead[8].from + offset, parsedhead[8].to + offset2).trim());
 	    checkColumn(9);
 	    let state = line.substring(parsedhead[9].from + offset, parsedhead[9].to + offset2).trim();
-	    state = (state[0] === 'R' ? 'running' : (state[0] === 'S' ? 'sleeping' : (state[0] === 'T' ? 'stopped' : (state[0] === 'W' ? 'paging' : (state[0] === 'X' ? 'dead' : (state[0] === 'Z' ? 'zombie' : ((state[0] === 'D' || state[0] === 'U') ? 'blocked' : 'unknown')))))));
+	    state =
+	      state[0] === 'R'
+	        ? 'running'
+	        : state[0] === 'S'
+	          ? 'sleeping'
+	          : state[0] === 'T'
+	            ? 'stopped'
+	            : state[0] === 'W'
+	              ? 'paging'
+	              : state[0] === 'X'
+	                ? 'dead'
+	                : state[0] === 'Z'
+	                  ? 'zombie'
+	                  : state[0] === 'D' || state[0] === 'U'
+	                    ? 'blocked'
+	                    : 'unknown';
 	    checkColumn(10);
 	    let tty = line.substring(parsedhead[10].from + offset, parsedhead[10].to + offset2).trim();
-	    if (tty === '?' || tty === '??') { tty = ''; }
+	    if (tty === '?' || tty === '??') {
+	      tty = '';
+	    }
 	    checkColumn(11);
 	    const user = line.substring(parsedhead[11].from + offset, parsedhead[11].to + offset2).trim();
 	    checkColumn(12);
@@ -14411,9 +14510,12 @@ function requireProcesses () {
 	    let command = '';
 	    let params = '';
 	    let fullcommand = line.substring(parsedhead[12].from + offset, parsedhead[12].to + offset2).trim();
-	    if (fullcommand.substr(fullcommand.length - 1) === ']') { fullcommand = fullcommand.slice(0, -1); }
-	    if (fullcommand.substr(0, 1) === '[') { command = fullcommand.substring(1); }
-	    else {
+	    if (fullcommand.substr(fullcommand.length - 1) === ']') {
+	      fullcommand = fullcommand.slice(0, -1);
+	    }
+	    if (fullcommand.substr(0, 1) === '[') {
+	      command = fullcommand.substring(1);
+	    } else {
 	      const p1 = fullcommand.indexOf('(');
 	      const p2 = fullcommand.indexOf(')');
 	      const p3 = fullcommand.indexOf('/');
@@ -14429,8 +14531,8 @@ function requireProcesses () {
 	          // try to figure out where parameter starts
 	          let firstParamPos = fullcommand.indexOf(' -');
 	          let firstParamPathPos = fullcommand.indexOf(' /');
-	          firstParamPos = (firstParamPos >= 0 ? firstParamPos : 10000);
-	          firstParamPathPos = (firstParamPathPos >= 0 ? firstParamPathPos : 10000);
+	          firstParamPos = firstParamPos >= 0 ? firstParamPos : 10000;
+	          firstParamPathPos = firstParamPathPos >= 0 ? firstParamPathPos : 10000;
 	          const firstPos = Math.min(firstParamPos, firstParamPathPos);
 	          let tmpCommand = fullcommand.substr(0, firstPos);
 	          const tmpParams = fullcommand.substr(firstPos);
@@ -14455,10 +14557,9 @@ function requireProcesses () {
 	          }
 	        }
 	      }
-
 	    }
 
-	    return ({
+	    return {
 	      pid: pid,
 	      parentPid: ppid,
 	      name: _linux ? getName(command) : command,
@@ -14477,7 +14578,7 @@ function requireProcesses () {
 	      command: command,
 	      params: params,
 	      path: cmdPath
-	    });
+	    };
 	  }
 
 	  function parseProcesses(lines) {
@@ -14486,7 +14587,7 @@ function requireProcesses () {
 	      let head = lines[0];
 	      parsedhead = util.parseHead(head, 8);
 	      lines.shift();
-	      lines.forEach(function (line) {
+	      lines.forEach((line) => {
 	        if (line.trim() !== '') {
 	          result.push(parseLine(line));
 	        }
@@ -14495,7 +14596,6 @@ function requireProcesses () {
 	    return result;
 	  }
 	  function parseProcesses2(lines) {
-
 	    function formatDateTime(time) {
 	      const month = ('0' + (time.getMonth() + 1).toString()).slice(-2);
 	      const year = time.getFullYear().toString();
@@ -14504,7 +14604,7 @@ function requireProcesses () {
 	      const mins = ('0' + time.getMinutes().toString()).slice(-2);
 	      const secs = ('0' + time.getSeconds().toString()).slice(-2);
 
-	      return (year + '-' + month + '-' + day + ' ' + hours + ':' + mins + ':' + secs);
+	      return year + '-' + month + '-' + day + ' ' + hours + ':' + mins + ':' + secs;
 	    }
 
 	    function parseElapsed(etime) {
@@ -14523,12 +14623,12 @@ function requireProcesses () {
 	    }
 
 	    let result = [];
-	    lines.forEach(function (line) {
+	    lines.forEach((line) => {
 	      if (line.trim() !== '') {
 	        line = line.trim().replace(/ +/g, ' ').replace(/,+/g, '.');
 	        const parts = line.split(' ');
 	        const command = parts.slice(9).join(' ');
-	        const pmem = parseFloat((1.0 * parseInt(parts[3]) * 1024 / os.totalmem()).toFixed(1));
+	        const pmem = parseFloat(((1.0 * parseInt(parts[3]) * 1024) / os.totalmem()).toFixed(1));
 	        const started = parseElapsed(parts[5]);
 
 	        result.push({
@@ -14544,7 +14644,22 @@ function requireProcesses () {
 	          memRss: parseInt(parts[3]),
 	          nice: parseInt(parts[4]),
 	          started: started,
-	          state: (parts[6] === 'R' ? 'running' : (parts[6] === 'S' ? 'sleeping' : (parts[6] === 'T' ? 'stopped' : (parts[6] === 'W' ? 'paging' : (parts[6] === 'X' ? 'dead' : (parts[6] === 'Z' ? 'zombie' : ((parts[6] === 'D' || parts[6] === 'U') ? 'blocked' : 'unknown'))))))),
+	          state:
+	            parts[6] === 'R'
+	              ? 'running'
+	              : parts[6] === 'S'
+	                ? 'sleeping'
+	                : parts[6] === 'T'
+	                  ? 'stopped'
+	                  : parts[6] === 'W'
+	                    ? 'paging'
+	                    : parts[6] === 'X'
+	                      ? 'dead'
+	                      : parts[6] === 'Z'
+	                        ? 'zombie'
+	                        : parts[6] === 'D' || parts[6] === 'U'
+	                          ? 'blocked'
+	                          : 'unknown',
 	          tty: parts[7],
 	          user: parts[8],
 	          command: command
@@ -14569,223 +14684,265 @@ function requireProcesses () {
 
 	      if ((_processes_cpu.ms && Date.now() - _processes_cpu.ms >= 500) || _processes_cpu.ms === 0) {
 	        if (_linux || _freebsd || _openbsd || _netbsd || _darwin || _sunos) {
-	          if (_linux) { cmd = 'export LC_ALL=C; ps -axo pid:11,ppid:11,pcpu:6,pmem:6,pri:5,vsz:11,rss:11,ni:5,etime:30,state:5,tty:15,user:20,command; unset LC_ALL'; }
-	          if (_freebsd || _openbsd || _netbsd) { cmd = 'export LC_ALL=C; ps -axo pid,ppid,pcpu,pmem,pri,vsz,rss,ni,etime,state,tty,user,command; unset LC_ALL'; }
-	          if (_darwin) { cmd = 'ps -axo pid,ppid,pcpu,pmem,pri,vsz=temp_title_1,rss=temp_title_2,nice,etime=temp_title_3,state,tty,user,command -r'; }
-	          if (_sunos) { cmd = 'ps -Ao pid,ppid,pcpu,pmem,pri,vsz,rss,nice,stime,s,tty,user,comm'; }
-	          exec(cmd, { maxBuffer: 1024 * 20000 }, function (error, stdout) {
-	            if (!error && stdout.toString().trim()) {
-	              result.list = (parseProcesses(stdout.toString().split('\n'))).slice();
-	              result.all = result.list.length;
-	              result.running = result.list.filter(function (e) {
-	                return e.state === 'running';
-	              }).length;
-	              result.blocked = result.list.filter(function (e) {
-	                return e.state === 'blocked';
-	              }).length;
-	              result.sleeping = result.list.filter(function (e) {
-	                return e.state === 'sleeping';
-	              }).length;
+	          if (_linux) {
+	            cmd = 'export LC_ALL=C; ps -axo pid:11,ppid:11,pcpu:6,pmem:6,pri:5,vsz:11,rss:11,ni:5,etime:30,state:5,tty:15,user:20,command; unset LC_ALL';
+	          }
+	          if (_freebsd || _openbsd || _netbsd) {
+	            cmd = 'export LC_ALL=C; ps -axo pid,ppid,pcpu,pmem,pri,vsz,rss,ni,etime,state,tty,user,command; unset LC_ALL';
+	          }
+	          if (_darwin) {
+	            cmd = 'ps -axo pid,ppid,pcpu,pmem,pri,vsz=temp_title_1,rss=temp_title_2,nice,etime=temp_title_3,state,tty,user,command -r';
+	          }
+	          if (_sunos) {
+	            cmd = 'ps -Ao pid,ppid,pcpu,pmem,pri,vsz,rss,nice,stime,s,tty,user,comm';
+	          }
+	          try {
+	            exec(cmd, { maxBuffer: 1024 * 102400 }, (error, stdout) => {
+	              if (!error && stdout.toString().trim()) {
+	                result.list = parseProcesses(stdout.toString().split('\n')).slice();
+	                result.all = result.list.length;
+	                result.running = result.list.filter((e) => {
+	                  return e.state === 'running';
+	                }).length;
+	                result.blocked = result.list.filter((e) => {
+	                  return e.state === 'blocked';
+	                }).length;
+	                result.sleeping = result.list.filter((e) => {
+	                  return e.state === 'sleeping';
+	                }).length;
 
-	              if (_linux) {
-	                // calc process_cpu - ps is not accurate in linux!
-	                cmd = 'cat /proc/stat | grep "cpu "';
-	                result.list.forEach((element) => {
-	                  cmd += (';cat /proc/' + element.pid + '/stat');
+	                if (_linux) {
+	                  // calc process_cpu - ps is not accurate in linux!
+	                  cmd = 'cat /proc/stat | grep "cpu "';
+	                  result.list.forEach((element) => {
+	                    cmd += ';cat /proc/' + element.pid + '/stat';
+	                  });
+	                  exec(cmd, { maxBuffer: 1024 * 102400 }, (error, stdout) => {
+	                    let curr_processes = stdout.toString().split('\n');
+
+	                    // first line (all - /proc/stat)
+	                    let all = parseProcStat(curr_processes.shift());
+
+	                    // process
+	                    let list_new = {};
+	                    let resultProcess = {};
+	                    curr_processes.forEach((element) => {
+	                      resultProcess = calcProcStatLinux(element, all, _processes_cpu);
+
+	                      if (resultProcess.pid) {
+	                        // store pcpu in outer array
+	                        let listPos = result.list
+	                          .map((e) => {
+	                            return e.pid;
+	                          })
+	                          .indexOf(resultProcess.pid);
+	                        if (listPos >= 0) {
+	                          result.list[listPos].cpu = resultProcess.cpuu + resultProcess.cpus;
+	                          result.list[listPos].cpuu = resultProcess.cpuu;
+	                          result.list[listPos].cpus = resultProcess.cpus;
+	                        }
+
+	                        // save new values
+	                        list_new[resultProcess.pid] = {
+	                          cpuu: resultProcess.cpuu,
+	                          cpus: resultProcess.cpus,
+	                          utime: resultProcess.utime,
+	                          stime: resultProcess.stime,
+	                          cutime: resultProcess.cutime,
+	                          cstime: resultProcess.cstime
+	                        };
+	                      }
+	                    });
+
+	                    // store old values
+	                    _processes_cpu.all = all;
+	                    _processes_cpu.list = Object.assign({}, list_new);
+	                    _processes_cpu.ms = Date.now() - _processes_cpu.ms;
+	                    _processes_cpu.result = Object.assign({}, result);
+	                    if (callback) {
+	                      callback(result);
+	                    }
+	                    resolve(result);
+	                  });
+	                } else {
+	                  if (callback) {
+	                    callback(result);
+	                  }
+	                  resolve(result);
+	                }
+	              } else {
+	                cmd = 'ps -o pid,ppid,vsz,rss,nice,etime,stat,tty,user,comm';
+	                if (_sunos) {
+	                  cmd = 'ps -o pid,ppid,vsz,rss,nice,etime,s,tty,user,comm';
+	                }
+	                exec(cmd, { maxBuffer: 1024 * 102400 }, (error, stdout) => {
+	                  if (!error) {
+	                    let lines = stdout.toString().split('\n');
+	                    lines.shift();
+
+	                    result.list = parseProcesses2(lines).slice();
+	                    result.all = result.list.length;
+	                    result.running = result.list.filter((e) => {
+	                      return e.state === 'running';
+	                    }).length;
+	                    result.blocked = result.list.filter((e) => {
+	                      return e.state === 'blocked';
+	                    }).length;
+	                    result.sleeping = result.list.filter((e) => {
+	                      return e.state === 'sleeping';
+	                    }).length;
+	                    if (callback) {
+	                      callback(result);
+	                    }
+	                    resolve(result);
+	                  } else {
+	                    if (callback) {
+	                      callback(result);
+	                    }
+	                    resolve(result);
+	                  }
 	                });
-	                exec(cmd, { maxBuffer: 1024 * 20000 }, function (error, stdout) {
-	                  let curr_processes = stdout.toString().split('\n');
-
-	                  // first line (all - /proc/stat)
-	                  let all = parseProcStat(curr_processes.shift());
-
-	                  // process
+	              }
+	            });
+	          } catch {
+	            if (callback) {
+	              callback(result);
+	            }
+	            resolve(result);
+	          }
+	        } else if (_windows) {
+	          try {
+	            util
+	              .powerShell(
+	                'Get-CimInstance Win32_Process | select-Object ProcessId,ParentProcessId,ExecutionState,Caption,CommandLine,ExecutablePath,UserModeTime,KernelModeTime,WorkingSetSize,Priority,PageFileUsage, @{n="CreationDate";e={$_.CreationDate.ToString("yyyy-MM-dd HH:mm:ss")}} | fl'
+	              )
+	              .then((stdout, error) => {
+	                if (!error) {
+	                  let processSections = stdout.split(/\n\s*\n/);
+	                  let procs = [];
+	                  let procStats = [];
 	                  let list_new = {};
-	                  let resultProcess = {};
-	                  curr_processes.forEach((element) => {
-	                    resultProcess = calcProcStatLinux(element, all, _processes_cpu);
-
-	                    if (resultProcess.pid) {
-
-	                      // store pcpu in outer array
-	                      let listPos = result.list.map(function (e) { return e.pid; }).indexOf(resultProcess.pid);
-	                      if (listPos >= 0) {
-	                        result.list[listPos].cpu = resultProcess.cpuu + resultProcess.cpus;
-	                        result.list[listPos].cpuu = resultProcess.cpuu;
-	                        result.list[listPos].cpus = resultProcess.cpus;
+	                  let allcpuu = 0;
+	                  let allcpus = 0;
+	                  processSections.forEach((element) => {
+	                    if (element.trim() !== '') {
+	                      let lines = element.trim().split('\r\n');
+	                      let pid = parseInt(util.getValue(lines, 'ProcessId', ':', true), 10);
+	                      let parentPid = parseInt(util.getValue(lines, 'ParentProcessId', ':', true), 10);
+	                      let statusValue = util.getValue(lines, 'ExecutionState', ':');
+	                      let name = util.getValue(lines, 'Caption', ':', true);
+	                      let commandLine = util.getValue(lines, 'CommandLine', ':', true);
+	                      // get additional command line data
+	                      let additionalCommand = false;
+	                      lines.forEach((line) => {
+	                        if (additionalCommand && line.toLowerCase().startsWith(' ')) {
+	                          commandLine += ' ' + line.trim();
+	                        } else {
+	                          additionalCommand = false;
+	                        }
+	                        if (line.toLowerCase().startsWith('commandline')) {
+	                          additionalCommand = true;
+	                        }
+	                      });
+	                      let commandPath = util.getValue(lines, 'ExecutablePath', ':', true);
+	                      let utime = parseInt(util.getValue(lines, 'UserModeTime', ':', true), 10);
+	                      let stime = parseInt(util.getValue(lines, 'KernelModeTime', ':', true), 10);
+	                      let memw = parseInt(util.getValue(lines, 'WorkingSetSize', ':', true), 10);
+	                      allcpuu = allcpuu + utime;
+	                      allcpus = allcpus + stime;
+	                      result.all++;
+	                      if (!statusValue) {
+	                        result.unknown++;
+	                      }
+	                      if (statusValue === '3') {
+	                        result.running++;
+	                      }
+	                      if (statusValue === '4' || statusValue === '5') {
+	                        result.blocked++;
 	                      }
 
-	                      // save new values
-	                      list_new[resultProcess.pid] = {
-	                        cpuu: resultProcess.cpuu,
-	                        cpus: resultProcess.cpus,
-	                        utime: resultProcess.utime,
-	                        stime: resultProcess.stime,
-	                        cutime: resultProcess.cutime,
-	                        cstime: resultProcess.cstime
-	                      };
+	                      procStats.push({
+	                        pid: pid,
+	                        utime: utime,
+	                        stime: stime,
+	                        cpu: 0,
+	                        cpuu: 0,
+	                        cpus: 0
+	                      });
+	                      procs.push({
+	                        pid: pid,
+	                        parentPid: parentPid,
+	                        name: name,
+	                        cpu: 0,
+	                        cpuu: 0,
+	                        cpus: 0,
+	                        mem: (memw / os.totalmem()) * 100,
+	                        priority: parseInt(util.getValue(lines, 'Priority', ':', true), 10),
+	                        memVsz: parseInt(util.getValue(lines, 'PageFileUsage', ':', true), 10),
+	                        memRss: Math.floor(parseInt(util.getValue(lines, 'WorkingSetSize', ':', true), 10) / 1024),
+	                        nice: 0,
+	                        started: util.getValue(lines, 'CreationDate', ':', true),
+	                        state: !statusValue ? _winStatusValues[0] : _winStatusValues[statusValue],
+	                        tty: '',
+	                        user: '',
+	                        command: commandLine || name,
+	                        path: commandPath,
+	                        params: ''
+	                      });
 	                    }
 	                  });
 
+	                  result.sleeping = result.all - result.running - result.blocked - result.unknown;
+	                  result.list = procs;
+	                  procStats.forEach((element) => {
+	                    let resultProcess = calcProcStatWin(element, allcpuu + allcpus, _processes_cpu);
+
+	                    // store pcpu in outer array
+	                    let listPos = result.list.map((e) => e.pid).indexOf(resultProcess.pid);
+	                    if (listPos >= 0) {
+	                      result.list[listPos].cpu = resultProcess.cpuu + resultProcess.cpus;
+	                      result.list[listPos].cpuu = resultProcess.cpuu;
+	                      result.list[listPos].cpus = resultProcess.cpus;
+	                    }
+
+	                    // save new values
+	                    list_new[resultProcess.pid] = {
+	                      cpuu: resultProcess.cpuu,
+	                      cpus: resultProcess.cpus,
+	                      utime: resultProcess.utime,
+	                      stime: resultProcess.stime
+	                    };
+	                  });
+
 	                  // store old values
-	                  _processes_cpu.all = all;
+	                  _processes_cpu.all = allcpuu + allcpus;
+	                  _processes_cpu.all_utime = allcpuu;
+	                  _processes_cpu.all_stime = allcpus;
 	                  _processes_cpu.list = Object.assign({}, list_new);
 	                  _processes_cpu.ms = Date.now() - _processes_cpu.ms;
 	                  _processes_cpu.result = Object.assign({}, result);
-	                  if (callback) { callback(result); }
-	                  resolve(result);
-	                });
-	              } else {
-	                if (callback) { callback(result); }
-	                resolve(result);
-	              }
-	            } else {
-	              cmd = 'ps -o pid,ppid,vsz,rss,nice,etime,stat,tty,user,comm';
-	              if (_sunos) {
-	                cmd = 'ps -o pid,ppid,vsz,rss,nice,etime,s,tty,user,comm';
-	              }
-	              exec(cmd, { maxBuffer: 1024 * 20000 }, function (error, stdout) {
-	                if (!error) {
-	                  let lines = stdout.toString().split('\n');
-	                  lines.shift();
-
-	                  result.list = parseProcesses2(lines).slice();
-	                  result.all = result.list.length;
-	                  result.running = result.list.filter(function (e) {
-	                    return e.state === 'running';
-	                  }).length;
-	                  result.blocked = result.list.filter(function (e) {
-	                    return e.state === 'blocked';
-	                  }).length;
-	                  result.sleeping = result.list.filter(function (e) {
-	                    return e.state === 'sleeping';
-	                  }).length;
-	                  if (callback) { callback(result); }
-	                  resolve(result);
-	                } else {
-	                  if (callback) { callback(result); }
-	                  resolve(result);
 	                }
+	                if (callback) {
+	                  callback(result);
+	                }
+	                resolve(result);
 	              });
+	          } catch {
+	            if (callback) {
+	              callback(result);
 	            }
-	          });
-	        } else if (_windows) {
-	          try {
-	            util.powerShell('Get-CimInstance Win32_Process | select-Object ProcessId,ParentProcessId,ExecutionState,Caption,CommandLine,ExecutablePath,UserModeTime,KernelModeTime,WorkingSetSize,Priority,PageFileUsage, @{n="CreationDate";e={$_.CreationDate.ToString("yyyy-MM-dd HH:mm:ss")}} | fl').then((stdout, error) => {
-	              if (!error) {
-	                let processSections = stdout.split(/\n\s*\n/);
-	                let procs = [];
-	                let procStats = [];
-	                let list_new = {};
-	                let allcpuu = 0;
-	                let allcpus = 0;
-	                processSections.forEach((element) => {
-	                  if (element.trim() !== '') {
-	                    let lines = element.trim().split('\r\n');
-	                    let pid = parseInt(util.getValue(lines, 'ProcessId', ':', true), 10);
-	                    let parentPid = parseInt(util.getValue(lines, 'ParentProcessId', ':', true), 10);
-	                    let statusValue = util.getValue(lines, 'ExecutionState', ':');
-	                    let name = util.getValue(lines, 'Caption', ':', true);
-	                    let commandLine = util.getValue(lines, 'CommandLine', ':', true);
-	                    // get additional command line data
-	                    let additionalCommand = false;
-	                    lines.forEach((line) => {
-	                      if (additionalCommand && line.toLowerCase().startsWith(' ')) {
-	                        commandLine += ' ' + line.trim();
-	                      } else {
-	                        additionalCommand = false;
-	                      }
-	                      if (line.toLowerCase().startsWith('commandline')) {
-	                        additionalCommand = true;
-	                      }
-	                    });
-	                    let commandPath = util.getValue(lines, 'ExecutablePath', ':', true);
-	                    let utime = parseInt(util.getValue(lines, 'UserModeTime', ':', true), 10);
-	                    let stime = parseInt(util.getValue(lines, 'KernelModeTime', ':', true), 10);
-	                    let memw = parseInt(util.getValue(lines, 'WorkingSetSize', ':', true), 10);
-	                    allcpuu = allcpuu + utime;
-	                    allcpus = allcpus + stime;
-	                    result.all++;
-	                    if (!statusValue) { result.unknown++; }
-	                    if (statusValue === '3') { result.running++; }
-	                    if (statusValue === '4' || statusValue === '5') { result.blocked++; }
-
-	                    procStats.push({
-	                      pid: pid,
-	                      utime: utime,
-	                      stime: stime,
-	                      cpu: 0,
-	                      cpuu: 0,
-	                      cpus: 0,
-	                    });
-	                    procs.push({
-	                      pid: pid,
-	                      parentPid: parentPid,
-	                      name: name,
-	                      cpu: 0,
-	                      cpuu: 0,
-	                      cpus: 0,
-	                      mem: memw / os.totalmem() * 100,
-	                      priority: parseInt(util.getValue(lines, 'Priority', ':', true), 10),
-	                      memVsz: parseInt(util.getValue(lines, 'PageFileUsage', ':', true), 10),
-	                      memRss: Math.floor(parseInt(util.getValue(lines, 'WorkingSetSize', ':', true), 10) / 1024),
-	                      nice: 0,
-	                      started: util.getValue(lines, 'CreationDate', ':', true),
-	                      state: (!statusValue ? _winStatusValues[0] : _winStatusValues[statusValue]),
-	                      tty: '',
-	                      user: '',
-	                      command: commandLine || name,
-	                      path: commandPath,
-	                      params: ''
-	                    });
-	                  }
-	                });
-
-	                result.sleeping = result.all - result.running - result.blocked - result.unknown;
-	                result.list = procs;
-	                procStats.forEach((element) => {
-	                  let resultProcess = calcProcStatWin(element, allcpuu + allcpus, _processes_cpu);
-
-	                  // store pcpu in outer array
-	                  let listPos = result.list.map(function (e) { return e.pid; }).indexOf(resultProcess.pid);
-	                  if (listPos >= 0) {
-	                    result.list[listPos].cpu = resultProcess.cpuu + resultProcess.cpus;
-	                    result.list[listPos].cpuu = resultProcess.cpuu;
-	                    result.list[listPos].cpus = resultProcess.cpus;
-	                  }
-
-	                  // save new values
-	                  list_new[resultProcess.pid] = {
-	                    cpuu: resultProcess.cpuu,
-	                    cpus: resultProcess.cpus,
-	                    utime: resultProcess.utime,
-	                    stime: resultProcess.stime
-	                  };
-	                });
-
-	                // store old values
-	                _processes_cpu.all = allcpuu + allcpus;
-	                _processes_cpu.all_utime = allcpuu;
-	                _processes_cpu.all_stime = allcpus;
-	                _processes_cpu.list = Object.assign({}, list_new);
-	                _processes_cpu.ms = Date.now() - _processes_cpu.ms;
-	                _processes_cpu.result = Object.assign({}, result);
-	              }
-	              if (callback) {
-	                callback(result);
-	              }
-	              resolve(result);
-	            });
-	          } catch (e) {
-	            if (callback) { callback(result); }
 	            resolve(result);
 	          }
 	        } else {
-	          if (callback) { callback(result); }
+	          if (callback) {
+	            callback(result);
+	          }
 	          resolve(result);
 	        }
 	      } else {
-	        if (callback) { callback(_processes_cpu.result); }
+	        if (callback) {
+	          callback(_processes_cpu.result);
+	        }
 	        resolve(_processes_cpu.result);
 	      }
 	    });
@@ -14800,7 +14957,6 @@ function requireProcesses () {
 	// (PID, CPU-Usage %, Mem-Usage %)
 
 	function processLoad(proc, callback) {
-
 	  // fallback - if only callback is given
 	  if (util.isFunction(proc) && !callback) {
 	    callback = proc;
@@ -14809,11 +14965,12 @@ function requireProcesses () {
 
 	  return new Promise((resolve) => {
 	    process.nextTick(() => {
-
 	      proc = proc || '';
 
 	      if (typeof proc !== 'string') {
-	        if (callback) { callback([]); }
+	        if (callback) {
+	          callback([]);
+	        }
 	        return resolve([]);
 	      }
 
@@ -14826,8 +14983,7 @@ function requireProcesses () {
 	        processesString.__proto__.substring = util.stringSubstring;
 	        processesString.__proto__.trim = util.stringTrim;
 	        processesString.__proto__.startsWith = util.stringStartWith;
-
-	      } catch (e) {
+	      } catch {
 	        Object.setPrototypeOf(processesString, util.stringObj);
 	      }
 
@@ -14850,7 +15006,7 @@ function requireProcesses () {
 	      let processes = processesString.split('|');
 	      let result = [];
 
-	      const procSanitized = util.isPrototypePolluted() ? '' : (util.sanitizeShellString(proc) || '*');
+	      const procSanitized = util.isPrototypePolluted() ? '' : util.sanitizeShellString(proc) || '*';
 
 	      // from here new
 	      // let result = {
@@ -14894,7 +15050,7 @@ function requireProcesses () {
 	                    });
 	                    let pname = '';
 	                    let inList = false;
-	                    processes.forEach(function (proc) {
+	                    processes.forEach((proc) => {
 	                      if (name.toLowerCase().indexOf(proc.toLowerCase()) >= 0 && !inList) {
 	                        inList = true;
 	                        pname = proc;
@@ -14903,10 +15059,10 @@ function requireProcesses () {
 
 	                    if (processesString === '*' || inList) {
 	                      let processFound = false;
-	                      result.forEach(function (item) {
+	                      result.forEach((item) => {
 	                        if (item.proc.toLowerCase() === pname.toLowerCase()) {
 	                          item.pids.push(pid);
-	                          item.mem += mem / os.totalmem() * 100;
+	                          item.mem += (mem / os.totalmem()) * 100;
 	                          processFound = true;
 	                        }
 	                      });
@@ -14916,7 +15072,7 @@ function requireProcesses () {
 	                          pid: pid,
 	                          pids: [pid],
 	                          cpu: 0,
-	                          mem: mem / os.totalmem() * 100
+	                          mem: (mem / os.totalmem()) * 100
 	                        });
 	                      }
 	                    }
@@ -14925,11 +15081,8 @@ function requireProcesses () {
 
 	                // add missing processes
 	                if (processesString !== '*') {
-	                  let processesMissing = processes.filter(function (name) {
-	                    return procStats.filter(function (item) { return item.name.toLowerCase().indexOf(name) >= 0; }).length === 0;
-
-	                  });
-	                  processesMissing.forEach(function (procName) {
+	                  let processesMissing = processes.filter((name) => procStats.filter((item) => item.name.toLowerCase().indexOf(name) >= 0).length === 0);
+	                  processesMissing.forEach((procName) => {
 	                    result.push({
 	                      proc: procName,
 	                      pid: null,
@@ -14946,7 +15099,9 @@ function requireProcesses () {
 
 	                  let listPos = -1;
 	                  for (let j = 0; j < result.length; j++) {
-	                    if (result[j].pid === resultProcess.pid || result[j].pids.indexOf(resultProcess.pid) >= 0) { listPos = j; }
+	                    if (result[j].pid === resultProcess.pid || result[j].pids.indexOf(resultProcess.pid) >= 0) {
+	                      listPos = j;
+	                    }
 	                  }
 	                  if (listPos >= 0) {
 	                    result[listPos].cpu += resultProcess.cpuu + resultProcess.cpus;
@@ -14975,7 +15130,9 @@ function requireProcesses () {
 	              }
 	            });
 	          } catch (e) {
-	            if (callback) { callback(result); }
+	            if (callback) {
+	              callback(result);
+	            }
 	            resolve(result);
 	          }
 	        }
@@ -14984,22 +15141,29 @@ function requireProcesses () {
 	          const params = ['-axo', 'pid,ppid,pcpu,pmem,comm'];
 	          util.execSafe('ps', params).then((stdout) => {
 	            if (stdout) {
-	              let procStats = [];
-	              let lines = stdout.toString().split('\n').filter(function (line) {
-	                if (processesString === '*') { return true; }
-	                if (line.toLowerCase().indexOf('grep') !== -1) { return false; } // remove this??
-	                let found = false;
-	                processes.forEach(function (item) {
-	                  found = found || (line.toLowerCase().indexOf(item.toLowerCase()) >= 0);
+	              const procStats = [];
+	              const lines = stdout
+	                .toString()
+	                .split('\n')
+	                .filter((line) => {
+	                  if (processesString === '*') {
+	                    return true;
+	                  }
+	                  if (line.toLowerCase().indexOf('grep') !== -1) {
+	                    return false;
+	                  } // remove this??
+	                  let found = false;
+	                  processes.forEach((item) => {
+	                    found = found || line.toLowerCase().indexOf(item.toLowerCase()) >= 0;
+	                  });
+	                  return found;
 	                });
-	                return found;
-	              });
 	              lines.shift();
-	              lines.forEach(function (line) {
-	                let data = line.trim().replace(/ +/g, ' ').split(' ');
+	              lines.forEach((line) => {
+	                const data = line.trim().replace(/ +/g, ' ').split(' ');
 	                if (data.length > 4) {
 	                  const linuxName = data[4].indexOf('/') >= 0 ? data[4].substring(0, data[4].indexOf('/')) : data[4];
-	                  const name = _linux ? (linuxName) : data[4].substring(data[4].lastIndexOf('/') + 1);
+	                  const name = _linux ? linuxName : data[4].substring(data[4].lastIndexOf('/') + 1);
 	                  procStats.push({
 	                    name,
 	                    pid: parseInt(data[0]) || 0,
@@ -15010,7 +15174,7 @@ function requireProcesses () {
 	                }
 	              });
 
-	              procStats.forEach(function (item) {
+	              procStats.forEach((item) => {
 	                let listPos = -1;
 	                let inList = false;
 	                let name = item.name;
@@ -15019,14 +15183,13 @@ function requireProcesses () {
 	                    listPos = j;
 	                  }
 	                }
-	                processes.forEach(function (proc) {
-
+	                processes.forEach((proc) => {
 	                  if (item.name.toLowerCase().indexOf(proc.toLowerCase()) >= 0 && !inList) {
 	                    inList = true;
 	                    name = proc;
 	                  }
 	                });
-	                if ((processesString === '*') || inList) {
+	                if (processesString === '*' || inList) {
 	                  if (listPos < 0) {
 	                    if (name) {
 	                      result.push({
@@ -15050,10 +15213,14 @@ function requireProcesses () {
 
 	              if (processesString !== '*') {
 	                // add missing processes
-	                let processesMissing = processes.filter(function (name) {
-	                  return procStats.filter(function (item) { return item.name.toLowerCase().indexOf(name) >= 0; }).length === 0;
+	                let processesMissing = processes.filter((name) => {
+	                  return (
+	                    procStats.filter((item) => {
+	                      return item.name.toLowerCase().indexOf(name) >= 0;
+	                    }).length === 0
+	                  );
 	                });
-	                processesMissing.forEach(function (procName) {
+	                processesMissing.forEach((procName) => {
 	                  result.push({
 	                    proc: procName,
 	                    pid: null,
@@ -15065,16 +15232,16 @@ function requireProcesses () {
 	              }
 	              if (_linux) {
 	                // calc process_cpu - ps is not accurate in linux!
-	                result.forEach(function (item) {
+	                result.forEach((item) => {
 	                  item.cpu = 0;
 	                });
 	                let cmd = 'cat /proc/stat | grep "cpu "';
 	                for (let i in result) {
 	                  for (let j in result[i].pids) {
-	                    cmd += (';cat /proc/' + result[i].pids[j] + '/stat');
+	                    cmd += ';cat /proc/' + result[i].pids[j] + '/stat';
 	                  }
 	                }
-	                exec(cmd, { maxBuffer: 1024 * 20000 }, function (error, stdout) {
+	                exec(cmd, { maxBuffer: 1024 * 102400 }, (error, stdout) => {
 	                  let curr_processes = stdout.toString().split('\n');
 
 	                  // first line (all - /proc/stat)
@@ -15087,7 +15254,6 @@ function requireProcesses () {
 	                    resultProcess = calcProcStatLinux(element, all, _process_cpu);
 
 	                    if (resultProcess.pid) {
-
 	                      // find result item
 	                      let resultItemId = -1;
 	                      for (let i in result) {
@@ -15112,7 +15278,7 @@ function requireProcesses () {
 	                    }
 	                  });
 
-	                  result.forEach(function (item) {
+	                  result.forEach((item) => {
 	                    item.cpu = Math.round(item.cpu * 100) / 100;
 	                  });
 
@@ -15120,15 +15286,21 @@ function requireProcesses () {
 	                  _process_cpu.list = Object.assign({}, list_new);
 	                  _process_cpu.ms = Date.now() - _process_cpu.ms;
 	                  _process_cpu.result = Object.assign({}, result);
-	                  if (callback) { callback(result); }
+	                  if (callback) {
+	                    callback(result);
+	                  }
 	                  resolve(result);
 	                });
 	              } else {
-	                if (callback) { callback(result); }
+	                if (callback) {
+	                  callback(result);
+	                }
 	                resolve(result);
 	              }
 	            } else {
-	              if (callback) { callback(result); }
+	              if (callback) {
+	                callback(result);
+	              }
 	              resolve(result);
 	            }
 	          });
@@ -21359,15 +21531,6 @@ function requireTimers () {
 
 var main = {exports: {}};
 
-const require$3 = node_module.createRequire((typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('index.js', document.baseURI).href)));
-function __require$2() { return require$3("node:stream"); }
-
-const require$2 = node_module.createRequire((typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('index.js', document.baseURI).href)));
-function __require$1() { return require$2("node:util"); }
-
-const require$1 = node_module.createRequire((typeof document === 'undefined' ? require('u' + 'rl').pathToFileURL(__filename).href : (_documentCurrentScript && _documentCurrentScript.tagName.toUpperCase() === 'SCRIPT' && _documentCurrentScript.src || new URL('index.js', document.baseURI).href)));
-function __require() { return require$1("node:events"); }
-
 var sbmh;
 var hasRequiredSbmh;
 
@@ -21401,8 +21564,8 @@ function requireSbmh () {
 	 * Based heavily on the Streaming Boyer-Moore-Horspool C++ implementation
 	 * by Hongli Lai at: https://github.com/FooBarWidget/boyer-moore-horspool
 	 */
-	const EventEmitter = __require().EventEmitter;
-	const inherits = __require$1().inherits;
+	const EventEmitter = require$$0$7.EventEmitter;
+	const inherits = require$$1$4.inherits;
 
 	function SBMH (needle) {
 	  if (typeof needle === 'string') {
@@ -21611,8 +21774,8 @@ function requirePartStream () {
 	if (hasRequiredPartStream) return PartStream_1;
 	hasRequiredPartStream = 1;
 
-	const inherits = __require$1().inherits;
-	const ReadableStream = __require$2().Readable;
+	const inherits = require$$1$4.inherits;
+	const ReadableStream = require$$0$8.Readable;
 
 	function PartStream (opts) {
 	  ReadableStream.call(this, opts);
@@ -21656,8 +21819,8 @@ function requireHeaderParser () {
 	if (hasRequiredHeaderParser) return HeaderParser_1;
 	hasRequiredHeaderParser = 1;
 
-	const EventEmitter = __require().EventEmitter;
-	const inherits = __require$1().inherits;
+	const EventEmitter = require$$0$7.EventEmitter;
+	const inherits = require$$1$4.inherits;
 	const getLimit = requireGetLimit();
 
 	const StreamSearch = requireSbmh();
@@ -21764,8 +21927,8 @@ function requireDicer () {
 	if (hasRequiredDicer) return Dicer_1;
 	hasRequiredDicer = 1;
 
-	const WritableStream = __require$2().Writable;
-	const inherits = __require$1().inherits;
+	const WritableStream = require$$0$8.Writable;
+	const inherits = require$$1$4.inherits;
 
 	const StreamSearch = requireSbmh();
 
@@ -22341,8 +22504,8 @@ function requireMultipart () {
 	//  * support limits.fieldNameSize
 	//     -- this will require modifications to utils.parseParams
 
-	const { Readable } = __require$2();
-	const { inherits } = __require$1();
+	const { Readable } = require$$0$8;
+	const { inherits } = require$$1$4;
 
 	const Dicer = requireDicer();
 
@@ -22907,8 +23070,8 @@ function requireMain () {
 	if (hasRequiredMain) return main.exports;
 	hasRequiredMain = 1;
 
-	const WritableStream = __require$2().Writable;
-	const { inherits } = __require$1();
+	const WritableStream = require$$0$8.Writable;
+	const { inherits } = require$$1$4;
 	const Dicer = requireDicer();
 
 	const MultipartParser = requireMultipart();
@@ -23000,7 +23163,7 @@ function requireConstants$3 () {
 	if (hasRequiredConstants$3) return constants$3;
 	hasRequiredConstants$3 = 1;
 
-	const { MessageChannel, receiveMessageOnPort } = require$$0$7;
+	const { MessageChannel, receiveMessageOnPort } = require$$0$9;
 
 	const corsSafeListedMethods = ['GET', 'HEAD', 'POST'];
 	const corsSafeListedMethodsSet = new Set(corsSafeListedMethods);
@@ -33756,7 +33919,7 @@ function requirePendingInterceptorsFormatter () {
 	hasRequiredPendingInterceptorsFormatter = 1;
 
 	const { Transform } = require$$0$6;
-	const { Console } = require$$1$4;
+	const { Console } = require$$1$5;
 
 	/**
 	 * Gets the output of `console.table(…)` as a string.
@@ -33983,7 +34146,7 @@ function requireProxyAgent () {
 	hasRequiredProxyAgent = 1;
 
 	const { kProxy, kClose, kDestroy, kInterceptors } = requireSymbols$4();
-	const { URL } = require$$1$5;
+	const { URL } = require$$1$6;
 	const Agent = requireAgent();
 	const Pool = requirePool();
 	const DispatcherBase = requireDispatcherBase();
@@ -41933,7 +42096,7 @@ function requireEvents () {
 
 	const { webidl } = requireWebidl();
 	const { kEnumerableProperty } = requireUtil$6();
-	const { MessagePort } = require$$0$7;
+	const { MessagePort } = require$$0$9;
 
 	/**
 	 * @see https://html.spec.whatwg.org/multipage/comms.html#messageevent
@@ -42450,7 +42613,7 @@ function requireConnection () {
 	if (hasRequiredConnection) return connection;
 	hasRequiredConnection = 1;
 
-	const diagnosticsChannel = require$$0$8;
+	const diagnosticsChannel = require$$0$a;
 	const { uid, states } = requireConstants();
 	const {
 	  kReadyState,
@@ -42831,7 +42994,7 @@ function requireReceiver () {
 	hasRequiredReceiver = 1;
 
 	const { Writable } = require$$0$6;
-	const diagnosticsChannel = require$$0$8;
+	const diagnosticsChannel = require$$0$a;
 	const { parserStates, opcodes, states, emptyBuffer } = requireConstants();
 	const { kReadyState, kSentClose, kResponse, kReceivedClose } = requireSymbols();
 	const { isValidStatusCode, failWebsocketConnection, websocketMessageReceived } = requireUtil();
