@@ -1,9 +1,9 @@
-import * as logger from './logger'
+import * as logger from "./logger";
 import {
   GraphResponse,
   LineGraphOptions,
-  StackedAreaGraphOptions
-} from './interfaces'
+  StackedAreaGraphOptions,
+} from "./interfaces";
 
 /**
  * Chart Generator using QuickChart.io API
@@ -14,16 +14,16 @@ import {
  * Based on PR #98: https://github.com/catchpoint/workflow-telemetry-action/pull/98
  */
 
-const QUICKCHART_API_URL = 'https://quickchart.io/chart/create'
+const QUICKCHART_API_URL = "https://quickchart.io/chart/create";
 
-const BLACK = '#000000'
-const WHITE = '#FFFFFF'
+const BLACK = "#000000";
+const WHITE = "#FFFFFF";
 const THEME_TO_CONFIG = {
-  light: { axisColor: BLACK, backgroundColor: 'white' },
-  dark: { axisColor: WHITE, backgroundColor: '#0d1117' }
-}
+  light: { axisColor: BLACK, backgroundColor: "white" },
+  dark: { axisColor: WHITE, backgroundColor: "#0d1117" },
+};
 
-type Theme = keyof typeof THEME_TO_CONFIG
+type Theme = keyof typeof THEME_TO_CONFIG;
 
 function generatePictureHTML(
   themeToURLMap: Map<Theme, string>,
@@ -34,9 +34,9 @@ function generatePictureHTML(
       ([theme, url]) =>
         `<source media="(prefers-color-scheme: ${theme})" srcset="${url}">`
     )
-    .join('')
-  const fallbackUrl = themeToURLMap.get('light') || ''
-  return `<picture>${sources}<img alt="${label}" src="${fallbackUrl}"></picture>`
+    .join("");
+  const fallbackUrl = themeToURLMap.get("light") || "";
+  return `<picture>${sources}<img alt="${label}" src="${fallbackUrl}"></picture>`;
 }
 
 /**
@@ -44,98 +44,98 @@ function generatePictureHTML(
  * Time format matches Mermaid gantt chart (HH:mm:ss)
  */
 export async function getLineGraph(options: LineGraphOptions): Promise<string> {
-  const themeToURLMap = new Map<Theme, string>()
+  const themeToURLMap = new Map<Theme, string>();
 
   await Promise.all(
-    (Object.keys(THEME_TO_CONFIG) as Theme[]).map(async theme => {
-      const config = THEME_TO_CONFIG[theme]
+    (Object.keys(THEME_TO_CONFIG) as Theme[]).map(async (theme) => {
+      const config = THEME_TO_CONFIG[theme];
       const chartConfig = {
-        type: 'line',
+        type: "line",
         data: {
           datasets: [
             {
               label: options.line.label,
               data: options.line.points,
               borderColor: options.line.color,
-              backgroundColor: options.line.color + '33',
+              backgroundColor: options.line.color + "33",
               fill: false,
-              tension: 0.1
-            }
-          ]
+              tension: 0.1,
+            },
+          ],
         },
         options: {
           scales: {
             xAxes: [
               {
-                type: 'time',
+                type: "time",
                 time: {
                   displayFormats: {
-                    millisecond: 'HH:mm:ss',
-                    second: 'HH:mm:ss',
-                    minute: 'HH:mm:ss',
-                    hour: 'HH:mm'
+                    millisecond: "HH:mm:ss",
+                    second: "HH:mm:ss",
+                    minute: "HH:mm:ss",
+                    hour: "HH:mm",
                   },
-                  unit: 'second'
+                  unit: "second",
                 },
                 scaleLabel: {
                   display: true,
-                  labelString: 'Time',
-                  fontColor: config.axisColor
+                  labelString: "Time",
+                  fontColor: config.axisColor,
                 },
                 ticks: {
-                  fontColor: config.axisColor
-                }
-              }
+                  fontColor: config.axisColor,
+                },
+              },
             ],
             yAxes: [
               {
                 scaleLabel: {
                   display: true,
                   labelString: options.label,
-                  fontColor: config.axisColor
+                  fontColor: config.axisColor,
                 },
                 ticks: {
                   fontColor: config.axisColor,
-                  beginAtZero: true
-                }
-              }
-            ]
+                  beginAtZero: true,
+                },
+              },
+            ],
           },
           legend: {
             labels: {
-              fontColor: config.axisColor
-            }
-          }
-        }
-      }
+              fontColor: config.axisColor,
+            },
+          },
+        },
+      };
 
       const payload = {
         width: 800,
         height: 400,
         backgroundColor: config.backgroundColor,
-        chart: chartConfig
-      }
+        chart: chartConfig,
+      };
 
       try {
         const response = await fetch(QUICKCHART_API_URL, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json'
+            "Content-Type": "application/json",
           },
-          body: JSON.stringify(payload)
-        })
-        const data: GraphResponse = await response.json()
+          body: JSON.stringify(payload),
+        });
+        const data: GraphResponse = await response.json();
         if (data?.success && data?.url) {
-          themeToURLMap.set(theme, data.url)
+          themeToURLMap.set(theme, data.url);
         }
       } catch (error: any) {
-        logger.error(error)
-        logger.error(`getLineGraph ${theme} ${JSON.stringify(payload)}`)
+        logger.error(error);
+        logger.error(`getLineGraph ${theme} ${JSON.stringify(payload)}`);
       }
     })
-  )
+  );
 
-  return generatePictureHTML(themeToURLMap, options.label)
+  return generatePictureHTML(themeToURLMap, options.label);
 }
 
 /**
@@ -145,48 +145,48 @@ export async function getLineGraph(options: LineGraphOptions): Promise<string> {
 export async function getStackedAreaGraph(
   options: StackedAreaGraphOptions
 ): Promise<string> {
-  const themeToURLMap = new Map<Theme, string>()
+  const themeToURLMap = new Map<Theme, string>();
 
   await Promise.all(
-    (Object.keys(THEME_TO_CONFIG) as Theme[]).map(async theme => {
-      const config = THEME_TO_CONFIG[theme]
+    (Object.keys(THEME_TO_CONFIG) as Theme[]).map(async (theme) => {
+      const config = THEME_TO_CONFIG[theme];
       const datasets = options.areas.map((area, index) => ({
         label: area.label,
         data: area.points,
         borderColor: area.color,
         backgroundColor: area.color,
-        fill: index === 0 ? 'origin' : '-1',
-        tension: 0.1
-      }))
+        fill: index === 0 ? "origin" : "-1",
+        tension: 0.1,
+      }));
 
       const chartConfig = {
-        type: 'line',
+        type: "line",
         data: {
-          datasets
+          datasets,
         },
         options: {
           scales: {
             xAxes: [
               {
-                type: 'time',
+                type: "time",
                 time: {
                   displayFormats: {
-                    millisecond: 'HH:mm:ss',
-                    second: 'HH:mm:ss',
-                    minute: 'HH:mm:ss',
-                    hour: 'HH:mm'
+                    millisecond: "HH:mm:ss",
+                    second: "HH:mm:ss",
+                    minute: "HH:mm:ss",
+                    hour: "HH:mm",
                   },
-                  unit: 'second'
+                  unit: "second",
                 },
                 scaleLabel: {
                   display: true,
-                  labelString: 'Time',
-                  fontColor: config.axisColor
+                  labelString: "Time",
+                  fontColor: config.axisColor,
                 },
                 ticks: {
-                  fontColor: config.axisColor
-                }
-              }
+                  fontColor: config.axisColor,
+                },
+              },
             ],
             yAxes: [
               {
@@ -194,48 +194,48 @@ export async function getStackedAreaGraph(
                 scaleLabel: {
                   display: true,
                   labelString: options.label,
-                  fontColor: config.axisColor
+                  fontColor: config.axisColor,
                 },
                 ticks: {
                   fontColor: config.axisColor,
-                  beginAtZero: true
-                }
-              }
-            ]
+                  beginAtZero: true,
+                },
+              },
+            ],
           },
           legend: {
             labels: {
-              fontColor: config.axisColor
-            }
-          }
-        }
-      }
+              fontColor: config.axisColor,
+            },
+          },
+        },
+      };
 
       const payload = {
         width: 800,
         height: 400,
         backgroundColor: config.backgroundColor,
-        chart: chartConfig
-      }
+        chart: chartConfig,
+      };
 
       try {
         const response = await fetch(QUICKCHART_API_URL, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json'
+            "Content-Type": "application/json",
           },
-          body: JSON.stringify(payload)
-        })
-        const data: GraphResponse = await response.json()
+          body: JSON.stringify(payload),
+        });
+        const data: GraphResponse = await response.json();
         if (data?.success && data?.url) {
-          themeToURLMap.set(theme, data.url)
+          themeToURLMap.set(theme, data.url);
         }
       } catch (error: any) {
-        logger.error(error)
-        logger.error(`getStackedAreaGraph ${theme} ${JSON.stringify(payload)}`)
+        logger.error(error);
+        logger.error(`getStackedAreaGraph ${theme} ${JSON.stringify(payload)}`);
       }
     })
-  )
+  );
 
-  return generatePictureHTML(themeToURLMap, options.label)
+  return generatePictureHTML(themeToURLMap, options.label);
 }

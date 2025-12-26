@@ -27489,30 +27489,32 @@ function requireCore () {
 
 var coreExports = requireCore();
 
-const LOG_HEADER = '[Workflow Telemetry]';
+const LOG_HEADER = "[Workflow Telemetry]";
 function isDebugEnabled() {
     return coreExports.isDebug();
 }
 function debug(msg) {
-    coreExports.debug(LOG_HEADER + ' ' + msg);
+    coreExports.debug(LOG_HEADER + " " + msg);
 }
 function info(msg) {
-    coreExports.info(LOG_HEADER + ' ' + msg);
+    coreExports.info(LOG_HEADER + " " + msg);
 }
 function error(msg) {
-    if (msg instanceof String || typeof msg === 'string') {
-        coreExports.error(LOG_HEADER + ' ' + msg);
+    if (msg instanceof String || typeof msg === "string") {
+        coreExports.error(LOG_HEADER + " " + msg);
     }
     else {
-        coreExports.error(LOG_HEADER + ' ' + msg.name);
+        coreExports.error(LOG_HEADER + " " + msg.name);
         coreExports.error(msg);
     }
 }
 
 const STAT_SERVER_PORT = 7777;
 async function triggerStatCollect() {
-    debug('Triggering stat collect ...');
-    const response = await fetch(`http://localhost:${STAT_SERVER_PORT}/collect`, { method: 'POST' });
+    debug("Triggering stat collect ...");
+    const response = await fetch(`http://localhost:${STAT_SERVER_PORT}/collect`, {
+        method: "POST",
+    });
     if (isDebugEnabled()) {
         const text = await response.text();
         if (text) {
@@ -27520,7 +27522,7 @@ async function triggerStatCollect() {
             debug(`Triggered stat collect: ${JSON.stringify(data)}`);
         }
         else {
-            debug('Triggered stat collect: no response body');
+            debug("Triggered stat collect: no response body");
         }
     }
 }
@@ -27532,19 +27534,19 @@ async function reportWorkflowMetrics() {
     const { diskAvailableX, diskUsedX } = await getDiskSizeStats();
     const cpuLoad = userLoadX && userLoadX.length && systemLoadX && systemLoadX.length
         ? await getStackedAreaGraph$1({
-            label: 'CPU Load (%)',
+            label: "CPU Load (%)",
             areas: [
                 {
-                    label: 'User Load',
-                    color: '#e41a1c99',
-                    points: userLoadX
+                    label: "User Load",
+                    color: "#e41a1c99",
+                    points: userLoadX,
                 },
                 {
-                    label: 'System Load',
-                    color: '#ff7f0099',
-                    points: systemLoadX
-                }
-            ]
+                    label: "System Load",
+                    color: "#ff7f0099",
+                    points: systemLoadX,
+                },
+            ],
         })
         : null;
     const memoryUsage = activeMemoryX &&
@@ -27552,87 +27554,87 @@ async function reportWorkflowMetrics() {
         availableMemoryX &&
         availableMemoryX.length
         ? await getStackedAreaGraph$1({
-            label: 'Memory Usage (MB)',
+            label: "Memory Usage (MB)",
             areas: [
                 {
-                    label: 'Used',
-                    color: '#377eb899',
-                    points: activeMemoryX
+                    label: "Used",
+                    color: "#377eb899",
+                    points: activeMemoryX,
                 },
                 {
-                    label: 'Free',
-                    color: '#4daf4a99',
-                    points: availableMemoryX
-                }
-            ]
+                    label: "Free",
+                    color: "#4daf4a99",
+                    points: availableMemoryX,
+                },
+            ],
         })
         : null;
     const networkIORead = networkReadX && networkReadX.length
         ? await getLineGraph$1({
-            label: 'Network I/O Read (MB)',
+            label: "Network I/O Read (MB)",
             line: {
-                label: 'Read',
-                color: '#be4d25',
-                points: networkReadX
-            }
+                label: "Read",
+                color: "#be4d25",
+                points: networkReadX,
+            },
         })
         : null;
     const networkIOWrite = networkWriteX && networkWriteX.length
         ? await getLineGraph$1({
-            label: 'Network I/O Write (MB)',
+            label: "Network I/O Write (MB)",
             line: {
-                label: 'Write',
-                color: '#6c25be',
-                points: networkWriteX
-            }
+                label: "Write",
+                color: "#6c25be",
+                points: networkWriteX,
+            },
         })
         : null;
     const diskIORead = diskReadX && diskReadX.length
         ? await getLineGraph$1({
-            label: 'Disk I/O Read (MB)',
+            label: "Disk I/O Read (MB)",
             line: {
-                label: 'Read',
-                color: '#be4d25',
-                points: diskReadX
-            }
+                label: "Read",
+                color: "#be4d25",
+                points: diskReadX,
+            },
         })
         : null;
     const diskIOWrite = diskWriteX && diskWriteX.length
         ? await getLineGraph$1({
-            label: 'Disk I/O Write (MB)',
+            label: "Disk I/O Write (MB)",
             line: {
-                label: 'Write',
-                color: '#6c25be',
-                points: diskWriteX
-            }
+                label: "Write",
+                color: "#6c25be",
+                points: diskWriteX,
+            },
         })
         : null;
     const diskSizeUsage = diskUsedX && diskUsedX.length && diskAvailableX && diskAvailableX.length
         ? await getStackedAreaGraph$1({
-            label: 'Disk Usage (MB)',
+            label: "Disk Usage (MB)",
             areas: [
                 {
-                    label: 'Used',
-                    color: '#377eb899',
-                    points: diskUsedX
+                    label: "Used",
+                    color: "#377eb899",
+                    points: diskUsedX,
                 },
                 {
-                    label: 'Free',
-                    color: '#4daf4a99',
-                    points: diskAvailableX
-                }
-            ]
+                    label: "Free",
+                    color: "#4daf4a99",
+                    points: diskAvailableX,
+                },
+            ],
         })
         : null;
     const postContentItems = [];
     if (cpuLoad) {
-        postContentItems.push('### CPU Metrics', cpuLoad, '');
+        postContentItems.push("### CPU Metrics", cpuLoad, "");
     }
     if (memoryUsage) {
-        postContentItems.push('### Memory Metrics', memoryUsage, '');
+        postContentItems.push("### Memory Metrics", memoryUsage, "");
     }
     if ((networkIORead && networkIOWrite) || (diskIORead && diskIOWrite)) {
-        postContentItems.push('### IO Metrics', '|               | Read      | Write     |', '|---            |---        |---        |');
+        postContentItems.push("### IO Metrics", "|               | Read      | Write     |", "|---            |---        |---        |");
     }
     if (networkIORead && networkIOWrite) {
         postContentItems.push(`| Network I/O   | ${networkIORead}        | ${networkIOWrite}        |`);
@@ -27641,14 +27643,14 @@ async function reportWorkflowMetrics() {
         postContentItems.push(`| Disk I/O      | ${diskIORead}              | ${diskIOWrite}              |`);
     }
     if (diskSizeUsage) {
-        postContentItems.push('### Disk Size Metrics', diskSizeUsage, '');
+        postContentItems.push("### Disk Size Metrics", diskSizeUsage, "");
     }
-    return postContentItems.join('\n');
+    return postContentItems.join("\n");
 }
 async function getCPUStats() {
     const userLoadX = [];
     const systemLoadX = [];
-    debug('Getting CPU stats ...');
+    debug("Getting CPU stats ...");
     const response = await fetch(`http://localhost:${STAT_SERVER_PORT}/cpu`);
     const data = await response.json();
     if (isDebugEnabled()) {
@@ -27657,11 +27659,11 @@ async function getCPUStats() {
     data.forEach((element) => {
         userLoadX.push({
             x: element.time,
-            y: element.userLoad && element.userLoad > 0 ? element.userLoad : 0
+            y: element.userLoad && element.userLoad > 0 ? element.userLoad : 0,
         });
         systemLoadX.push({
             x: element.time,
-            y: element.systemLoad && element.systemLoad > 0 ? element.systemLoad : 0
+            y: element.systemLoad && element.systemLoad > 0 ? element.systemLoad : 0,
         });
     });
     return { userLoadX, systemLoadX };
@@ -27669,7 +27671,7 @@ async function getCPUStats() {
 async function getMemoryStats() {
     const activeMemoryX = [];
     const availableMemoryX = [];
-    debug('Getting memory stats ...');
+    debug("Getting memory stats ...");
     const response = await fetch(`http://localhost:${STAT_SERVER_PORT}/memory`);
     const data = await response.json();
     if (isDebugEnabled()) {
@@ -27680,13 +27682,13 @@ async function getMemoryStats() {
             x: element.time,
             y: element.activeMemoryMb && element.activeMemoryMb > 0
                 ? element.activeMemoryMb
-                : 0
+                : 0,
         });
         availableMemoryX.push({
             x: element.time,
             y: element.availableMemoryMb && element.availableMemoryMb > 0
                 ? element.availableMemoryMb
-                : 0
+                : 0,
         });
     });
     return { activeMemoryX, availableMemoryX };
@@ -27694,7 +27696,7 @@ async function getMemoryStats() {
 async function getNetworkStats() {
     const networkReadX = [];
     const networkWriteX = [];
-    debug('Getting network stats ...');
+    debug("Getting network stats ...");
     const response = await fetch(`http://localhost:${STAT_SERVER_PORT}/network`);
     const data = await response.json();
     if (isDebugEnabled()) {
@@ -27703,11 +27705,11 @@ async function getNetworkStats() {
     data.forEach((element) => {
         networkReadX.push({
             x: element.time,
-            y: element.rxMb && element.rxMb > 0 ? element.rxMb : 0
+            y: element.rxMb && element.rxMb > 0 ? element.rxMb : 0,
         });
         networkWriteX.push({
             x: element.time,
-            y: element.txMb && element.txMb > 0 ? element.txMb : 0
+            y: element.txMb && element.txMb > 0 ? element.txMb : 0,
         });
     });
     return { networkReadX, networkWriteX };
@@ -27715,7 +27717,7 @@ async function getNetworkStats() {
 async function getDiskStats() {
     const diskReadX = [];
     const diskWriteX = [];
-    debug('Getting disk stats ...');
+    debug("Getting disk stats ...");
     const response = await fetch(`http://localhost:${STAT_SERVER_PORT}/disk`);
     const data = await response.json();
     if (isDebugEnabled()) {
@@ -27724,11 +27726,11 @@ async function getDiskStats() {
     data.forEach((element) => {
         diskReadX.push({
             x: element.time,
-            y: element.rxMb && element.rxMb > 0 ? element.rxMb : 0
+            y: element.rxMb && element.rxMb > 0 ? element.rxMb : 0,
         });
         diskWriteX.push({
             x: element.time,
-            y: element.wxMb && element.wxMb > 0 ? element.wxMb : 0
+            y: element.wxMb && element.wxMb > 0 ? element.wxMb : 0,
         });
     });
     return { diskReadX, diskWriteX };
@@ -27736,7 +27738,7 @@ async function getDiskStats() {
 async function getDiskSizeStats() {
     const diskAvailableX = [];
     const diskUsedX = [];
-    debug('Getting disk size stats ...');
+    debug("Getting disk size stats ...");
     const response = await fetch(`http://localhost:${STAT_SERVER_PORT}/disk_size`);
     const data = await response.json();
     if (isDebugEnabled()) {
@@ -27747,11 +27749,11 @@ async function getDiskSizeStats() {
             x: element.time,
             y: element.availableSizeMb && element.availableSizeMb > 0
                 ? element.availableSizeMb
-                : 0
+                : 0,
         });
         diskUsedX.push({
             x: element.time,
-            y: element.usedSizeMb && element.usedSizeMb > 0 ? element.usedSizeMb : 0
+            y: element.usedSizeMb && element.usedSizeMb > 0 ? element.usedSizeMb : 0,
         });
     });
     return { diskAvailableX, diskUsedX };
@@ -27771,29 +27773,29 @@ async function start() {
     info(`Starting stat collector ...`);
     try {
         let metricFrequency = 0;
-        const metricFrequencyInput = coreExports.getInput('metric_frequency');
+        const metricFrequencyInput = coreExports.getInput("metric_frequency");
         if (metricFrequencyInput) {
             const metricFrequencyVal = parseInt(metricFrequencyInput);
             if (Number.isInteger(metricFrequencyVal)) {
                 metricFrequency = metricFrequencyVal * 1000;
             }
         }
-        const child = require$$2$2.spawn(process.argv[0], [require$$1$5.join(__dirname, '../scw/index.js')], {
+        const child = require$$2$2.spawn(process.argv[0], [require$$1$5.join(__dirname, "../scw/index.js")], {
             detached: true,
-            stdio: 'ignore',
+            stdio: "ignore",
             env: {
                 ...process.env,
                 WORKFLOW_TELEMETRY_STAT_FREQ: metricFrequency
                     ? `${metricFrequency}`
-                    : undefined
-            }
+                    : undefined,
+            },
         });
         child.unref();
         info(`Started stat collector`);
         return true;
     }
     catch (error$1) {
-        error('Unable to start stat collector');
+        error("Unable to start stat collector");
         error(error$1);
         return false;
     }
@@ -27807,7 +27809,7 @@ async function finish(currentJob) {
         return true;
     }
     catch (error$1) {
-        error('Unable to finish stat collector');
+        error("Unable to finish stat collector");
         error(error$1);
         return false;
     }
@@ -27820,7 +27822,7 @@ async function report(currentJob) {
         return postContent;
     }
     catch (error$1) {
-        error('Unable to report stat collector result');
+        error("Unable to report stat collector result");
         error(error$1);
         return null;
     }
@@ -27834,18 +27836,18 @@ async function report(currentJob) {
  *
  * Based on PR #98: https://github.com/catchpoint/workflow-telemetry-action/pull/98
  */
-const QUICKCHART_API_URL = 'https://quickchart.io/chart/create';
-const BLACK = '#000000';
-const WHITE = '#FFFFFF';
+const QUICKCHART_API_URL = "https://quickchart.io/chart/create";
+const BLACK = "#000000";
+const WHITE = "#FFFFFF";
 const THEME_TO_CONFIG = {
-    light: { axisColor: BLACK, backgroundColor: 'white' },
-    dark: { axisColor: WHITE, backgroundColor: '#0d1117' }
+    light: { axisColor: BLACK, backgroundColor: "white" },
+    dark: { axisColor: WHITE, backgroundColor: "#0d1117" },
 };
 function generatePictureHTML(themeToURLMap, label) {
     const sources = Array.from(themeToURLMap.entries())
         .map(([theme, url]) => `<source media="(prefers-color-scheme: ${theme})" srcset="${url}">`)
-        .join('');
-    const fallbackUrl = themeToURLMap.get('light') || '';
+        .join("");
+    const fallbackUrl = themeToURLMap.get("light") || "";
     return `<picture>${sources}<img alt="${label}" src="${fallbackUrl}"></picture>`;
 }
 /**
@@ -27857,77 +27859,77 @@ async function getLineGraph(options) {
     await Promise.all(Object.keys(THEME_TO_CONFIG).map(async (theme) => {
         const config = THEME_TO_CONFIG[theme];
         const chartConfig = {
-            type: 'line',
+            type: "line",
             data: {
                 datasets: [
                     {
                         label: options.line.label,
                         data: options.line.points,
                         borderColor: options.line.color,
-                        backgroundColor: options.line.color + '33',
+                        backgroundColor: options.line.color + "33",
                         fill: false,
-                        tension: 0.1
-                    }
-                ]
+                        tension: 0.1,
+                    },
+                ],
             },
             options: {
                 scales: {
                     xAxes: [
                         {
-                            type: 'time',
+                            type: "time",
                             time: {
                                 displayFormats: {
-                                    millisecond: 'HH:mm:ss',
-                                    second: 'HH:mm:ss',
-                                    minute: 'HH:mm:ss',
-                                    hour: 'HH:mm'
+                                    millisecond: "HH:mm:ss",
+                                    second: "HH:mm:ss",
+                                    minute: "HH:mm:ss",
+                                    hour: "HH:mm",
                                 },
-                                unit: 'second'
+                                unit: "second",
                             },
                             scaleLabel: {
                                 display: true,
-                                labelString: 'Time',
-                                fontColor: config.axisColor
+                                labelString: "Time",
+                                fontColor: config.axisColor,
                             },
                             ticks: {
-                                fontColor: config.axisColor
-                            }
-                        }
+                                fontColor: config.axisColor,
+                            },
+                        },
                     ],
                     yAxes: [
                         {
                             scaleLabel: {
                                 display: true,
                                 labelString: options.label,
-                                fontColor: config.axisColor
+                                fontColor: config.axisColor,
                             },
                             ticks: {
                                 fontColor: config.axisColor,
-                                beginAtZero: true
-                            }
-                        }
-                    ]
+                                beginAtZero: true,
+                            },
+                        },
+                    ],
                 },
                 legend: {
                     labels: {
-                        fontColor: config.axisColor
-                    }
-                }
-            }
+                        fontColor: config.axisColor,
+                    },
+                },
+            },
         };
         const payload = {
             width: 800,
             height: 400,
             backgroundColor: config.backgroundColor,
-            chart: chartConfig
+            chart: chartConfig,
         };
         try {
             const response = await fetch(QUICKCHART_API_URL, {
-                method: 'POST',
+                method: "POST",
                 headers: {
-                    'Content-Type': 'application/json'
+                    "Content-Type": "application/json",
                 },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(payload),
             });
             const data = await response.json();
             if (data?.success && data?.url) {
@@ -27954,37 +27956,37 @@ async function getStackedAreaGraph(options) {
             data: area.points,
             borderColor: area.color,
             backgroundColor: area.color,
-            fill: index === 0 ? 'origin' : '-1',
-            tension: 0.1
+            fill: index === 0 ? "origin" : "-1",
+            tension: 0.1,
         }));
         const chartConfig = {
-            type: 'line',
+            type: "line",
             data: {
-                datasets
+                datasets,
             },
             options: {
                 scales: {
                     xAxes: [
                         {
-                            type: 'time',
+                            type: "time",
                             time: {
                                 displayFormats: {
-                                    millisecond: 'HH:mm:ss',
-                                    second: 'HH:mm:ss',
-                                    minute: 'HH:mm:ss',
-                                    hour: 'HH:mm'
+                                    millisecond: "HH:mm:ss",
+                                    second: "HH:mm:ss",
+                                    minute: "HH:mm:ss",
+                                    hour: "HH:mm",
                                 },
-                                unit: 'second'
+                                unit: "second",
                             },
                             scaleLabel: {
                                 display: true,
-                                labelString: 'Time',
-                                fontColor: config.axisColor
+                                labelString: "Time",
+                                fontColor: config.axisColor,
                             },
                             ticks: {
-                                fontColor: config.axisColor
-                            }
-                        }
+                                fontColor: config.axisColor,
+                            },
+                        },
                     ],
                     yAxes: [
                         {
@@ -27992,35 +27994,35 @@ async function getStackedAreaGraph(options) {
                             scaleLabel: {
                                 display: true,
                                 labelString: options.label,
-                                fontColor: config.axisColor
+                                fontColor: config.axisColor,
                             },
                             ticks: {
                                 fontColor: config.axisColor,
-                                beginAtZero: true
-                            }
-                        }
-                    ]
+                                beginAtZero: true,
+                            },
+                        },
+                    ],
                 },
                 legend: {
                     labels: {
-                        fontColor: config.axisColor
-                    }
-                }
-            }
+                        fontColor: config.axisColor,
+                    },
+                },
+            },
         };
         const payload = {
             width: 800,
             height: 400,
             backgroundColor: config.backgroundColor,
-            chart: chartConfig
+            chart: chartConfig,
         };
         try {
             const response = await fetch(QUICKCHART_API_URL, {
-                method: 'POST',
+                method: "POST",
                 headers: {
-                    'Content-Type': 'application/json'
+                    "Content-Type": "application/json",
                 },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(payload),
             });
             const data = await response.json();
             if (data?.success && data?.url) {

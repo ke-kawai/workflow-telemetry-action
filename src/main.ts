@@ -1,24 +1,21 @@
-import * as core from '@actions/core'
-import * as stepTracer from './stepTracer'
-import * as statCollector from './statCollector'
-import * as processTracer from './processTracer'
-import * as logger from './logger'
+import * as stepTracer from "./stepTracer";
+import * as statCollector from "./statCollector";
+import * as processTracer from "./processTracer";
+import * as logger from "./logger";
 
 async function run(): Promise<void> {
   try {
-    logger.info(`Initializing ...`)
+    logger.info(`Initializing ...`);
 
-    // Start step tracer
-    await stepTracer.start()
-    // Start stat collector
-    await statCollector.start()
-    // Start process tracer
-    await processTracer.start()
+    // Start tracers and collectors
+    await stepTracer.start();
+    await statCollector.start();
+    await processTracer.start();
 
-    logger.info(`Initialization completed`)
+    logger.info(`Initialization completed`);
   } catch (error: any) {
-    logger.error(error.message)
+    logger.error(error.message);
   }
 }
 
-run()
+run();
