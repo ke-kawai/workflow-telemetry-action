@@ -16,8 +16,8 @@ import {
   ProcessedStats,
   StackedAreaGraphOptions,
   WorkflowJobType,
-} from "../interfaces";
-import * as logger from "../utils/logger";
+} from "../../interfaces";
+import * as logger from "../../utils/logger";
 
 const STAT_SERVER_PORT = 7777;
 
@@ -326,7 +326,7 @@ async function getDiskSizeStats(): Promise<ProcessedDiskSizeStats> {
 
 async function getLineGraph(options: LineGraphOptions): Promise<string> {
   // Import chartGenerator functions dynamically
-  const chartGenerator = await import("../reporting/chartGenerator");
+  const chartGenerator = await import("./chartGenerator");
   return chartGenerator.getLineGraph(options);
 }
 
@@ -334,7 +334,7 @@ async function getStackedAreaGraph(
   options: StackedAreaGraphOptions
 ): Promise<string> {
   // Import chartGenerator functions dynamically
-  const chartGenerator = await import("../reporting/chartGenerator");
+  const chartGenerator = await import("./chartGenerator");
   return chartGenerator.getStackedAreaGraph(options);
 }
 

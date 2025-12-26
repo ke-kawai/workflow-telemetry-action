@@ -2,8 +2,8 @@ import path from "path";
 import fs from "fs";
 import * as core from "@actions/core";
 import si from "systeminformation";
-import { WorkflowJobType } from "../interfaces";
-import * as logger from "../utils/logger";
+import { WorkflowJobType } from "../../interfaces";
+import * as logger from "../../utils/logger";
 
 const PROC_TRACER_STATE_FILE = path.join(__dirname, "../.proc-tracer-started");
 const PROC_TRACER_DATA_FILE = path.join(__dirname, "../proc-tracer-data.json");

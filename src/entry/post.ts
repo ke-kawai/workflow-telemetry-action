@@ -1,8 +1,8 @@
 import * as core from "@actions/core";
 import * as github from "@actions/github";
-import * as stepTracer from "../tracers/stepTracer";
-import * as statCollector from "../collectors";
-import * as processTracer from "../tracers/processTracer";
+import * as stepTracer from "../features/step/stepTracer";
+import * as statCollector from "../features/stats/collector";
+import * as processTracer from "../features/process/processTracer";
 import * as logger from "../utils/logger";
 import { WorkflowJobType } from "../interfaces";
 

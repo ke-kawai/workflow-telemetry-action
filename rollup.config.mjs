@@ -5,7 +5,7 @@ import typescript from '@rollup/plugin-typescript'
 
 export default [
   {
-    input: 'src/core/main.ts',
+    input: 'src/entry/main.ts',
     output: {
       file: 'dist/main/index.js',
       format: 'cjs',
@@ -20,7 +20,7 @@ export default [
     ]
   },
   {
-    input: 'src/core/post.ts',
+    input: 'src/entry/post.ts',
     output: {
       file: 'dist/post/index.js',
       format: 'cjs',
@@ -35,7 +35,7 @@ export default [
     ]
   },
   {
-    input: 'src/collectors/server.ts',
+    input: 'src/features/stats/server.ts',
     output: {
       file: 'dist/scw/index.js',
       format: 'cjs',
