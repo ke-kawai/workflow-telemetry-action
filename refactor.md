@@ -107,7 +107,7 @@ export function error(msg: string | Error): void {
 }
 ```
 
-#### C. 型推論の問題
+#### C. 型推論の問題 ✅
 **ファイル**: `src/features/stats/server.ts` (34行目)
 
 **問題点**:
@@ -256,6 +256,28 @@ if (Number.isInteger(metricFrequencyVal)) {
 QuickChart APIに依存、サービスダウン時のフォールバックなし
 
 ## 完了した改善
+
+### 2025-12-27 (3): StatsCollector型の改善（項目4C）
+- `statsCollectors`配列の型を`StatsCollector<any, any>[]`からUnion型に変更
+- 新しい`AnyStatsCollector`型を作成：5つの具体的なStatsCollector型のUnion
+- `statsCollectors`配列の型安全性を向上
+- 型推論の問題を解決し、anyの使用を削減
+- ビルドで検証済み（`npm run bundle`成功）
+
+**実装内容**:
+```typescript
+type AnyStatsCollector =
+  | StatsCollector<CPUStats, si.Systeminformation.CurrentLoadData>
+  | StatsCollector<MemoryStats, si.Systeminformation.MemData>
+  | StatsCollector<NetworkStats, si.Systeminformation.NetworkStatsData[]>
+  | StatsCollector<DiskStats, si.Systeminformation.FsStatsData>
+  | StatsCollector<DiskSizeStats, si.Systeminformation.FsSizeData[]>;
+
+const statsCollectors: AnyStatsCollector[] = [...]
+```
+
+**影響範囲**:
+- `src/features/stats/server.ts` - AnyStatsCollector型の追加、statsCollectors配列の型変更
 
 ### 2025-12-27 (2): logger.error()の単純化
 - `logger.error()`をErrorオブジェクトのみを受け取るように変更

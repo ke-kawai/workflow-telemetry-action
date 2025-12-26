@@ -23,6 +23,14 @@ interface StatsCollector<T, D> {
   transform: (data: D, statTime: number, timeInterval: number) => T;
 }
 
+// Union type of all possible StatsCollector configurations
+type AnyStatsCollector =
+  | StatsCollector<CPUStats, si.Systeminformation.CurrentLoadData>
+  | StatsCollector<MemoryStats, si.Systeminformation.MemData>
+  | StatsCollector<NetworkStats, si.Systeminformation.NetworkStatsData[]>
+  | StatsCollector<DiskStats, si.Systeminformation.FsStatsData>
+  | StatsCollector<DiskSizeStats, si.Systeminformation.FsSizeData[]>;
+
 // Histograms
 const cpuStatsHistogram: CPUStats[] = [];
 const memoryStatsHistogram: MemoryStats[] = [];
@@ -31,7 +39,7 @@ const diskStatsHistogram: DiskStats[] = [];
 const diskSizeStatsHistogram: DiskSizeStats[] = [];
 
 // Stats collectors configuration
-const statsCollectors: StatsCollector<any, any>[] = [
+const statsCollectors: AnyStatsCollector[] = [
   // CPU Stats
   {
     histogram: cpuStatsHistogram,
@@ -142,7 +150,7 @@ async function collectStats(triggeredFromScheduler: boolean = true) {
     statCollectTime = currentTime;
 
     const promises: Promise<void>[] = statsCollectors.map((collector) =>
-      collectStatsForCollector(collector, statCollectTime, timeInterval)
+      collectStatsForCollector(collector as any, statCollectTime, timeInterval)
     );
 
     return promises;
