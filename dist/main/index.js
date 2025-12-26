@@ -27540,7 +27540,6 @@ const FILE_PATHS = {
     PROC_TRACER_DATA: "proc-tracer-data.json",
 };
 
-///////////////////////////
 async function start$1() {
     info(`Starting stat collector ...`);
     try {

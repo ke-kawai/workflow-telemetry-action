@@ -32318,7 +32318,7 @@ function generateTraceChartForSteps(job) {
     ];
     return postContentItems.join("\n");
 }
-async function finish$2(currentJob) {
+async function finish$2(_currentJob) {
     info(`Finishing step tracer ...`);
     try {
         info(`Finished step tracer`);
@@ -32410,9 +32410,6 @@ const FILE_PATHS = {
     PROC_TRACER_DATA: "proc-tracer-data.json",
 };
 
-///////////////////////////
-// Common fetch utility
-///////////////////////////
 async function fetchStats(endpoint) {
     debug(`Getting ${endpoint} stats ...`);
     const response = await fetch(`http://localhost:${SERVER.PORT}/${endpoint}`);
@@ -32422,7 +32419,6 @@ async function fetchStats(endpoint) {
     }
     return data;
 }
-///////////////////////////
 async function triggerStatCollect() {
     debug("Triggering stat collect ...");
     const response = await fetch(`http://localhost:${SERVER.PORT}/collect`, {
@@ -32656,7 +32652,7 @@ async function getStackedAreaGraph$1(options) {
     const chartGenerator$1 = await Promise.resolve().then(function () { return chartGenerator; });
     return chartGenerator$1.getStackedAreaGraph(options);
 }
-async function finish$1(currentJob) {
+async function finish$1(_currentJob) {
     info(`Finishing stat collector ...`);
     try {
         // Trigger stat collect, so we will have remaining stats since the latest schedule
@@ -32670,7 +32666,7 @@ async function finish$1(currentJob) {
         return false;
     }
 }
-async function report$1(currentJob) {
+async function report$1(_currentJob) {
     info(`Reporting stat collector result ...`);
     try {
         const postContent = await reportWorkflowMetrics();
@@ -52570,7 +52566,7 @@ function getExtraProcessInfo(proc) {
     }
     return null;
 }
-async function finish(currentJob) {
+async function finish(_currentJob) {
     info(`Finishing process tracer ...`);
     if (!require$$1.existsSync(PROC_TRACER_STATE_FILE)) {
         info(`Skipped finishing process tracer since process tracer didn't started`);
@@ -52586,7 +52582,7 @@ async function finish(currentJob) {
         await collectProcesses();
         // Mark any remaining tracked processes as completed
         const now = Date.now();
-        for (const [pid, tracked] of trackedProcesses.entries()) {
+        for (const [_pid, tracked] of trackedProcesses.entries()) {
             completedProcesses.push({
                 pid: tracked.pid,
                 name: tracked.name,
@@ -52818,8 +52814,6 @@ run();
  * QuickChart.io is an open-source Chart.js service that can be self-hosted
  * Free tier: https://quickchart.io
  * GitHub: https://github.com/typpo/quickchart
- *
- * Based on PR #98: https://github.com/catchpoint/workflow-telemetry-action/pull/98
  */
 const THEME_TO_CONFIG = {
     light: {
