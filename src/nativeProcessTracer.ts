@@ -76,6 +76,9 @@ export class NativeProcessTracer {
         }
       }, this.POLL_INTERVAL_MS)
 
+      // unref()でNode.jsプロセスを保持しないようにする
+      this.pollingInterval.unref()
+
       logger.info('Native process tracer started successfully')
     } catch (error) {
       logger.error(`Failed to start native process tracer: ${error}`)

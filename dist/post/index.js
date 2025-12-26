@@ -54507,6 +54507,8 @@ class NativeProcessTracer {
                         logger.error(`Error capturing process snapshot: ${error}`);
                     }
                 }), this.POLL_INTERVAL_MS);
+                // unref()でNode.jsプロセスを保持しないようにする
+                this.pollingInterval.unref();
                 logger.info('Native process tracer started successfully');
             }
             catch (error) {
