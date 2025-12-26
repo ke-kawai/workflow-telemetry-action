@@ -28201,6 +28201,233 @@ exports["default"] = _default;
 
 /***/ }),
 
+/***/ 7318:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getStackedAreaGraph = exports.getLineGraph = void 0;
+const axios_1 = __importDefault(__nccwpck_require__(8757));
+const logger = __importStar(__nccwpck_require__(4636));
+/**
+ * Chart Generator using QuickChart.io API
+ * QuickChart.io is an open-source Chart.js service that can be self-hosted
+ * Free tier: https://quickchart.io
+ * GitHub: https://github.com/typpo/quickchart
+ *
+ * Based on PR #98: https://github.com/catchpoint/workflow-telemetry-action/pull/98
+ */
+const QUICKCHART_API_URL = 'https://quickchart.io/chart/create';
+/**
+ * Generate a line chart using QuickChart API
+ */
+function getLineGraph(options) {
+    var _a, _b;
+    return __awaiter(this, void 0, void 0, function* () {
+        const chartConfig = {
+            type: 'line',
+            data: {
+                datasets: [
+                    {
+                        label: options.line.label,
+                        data: options.line.points,
+                        borderColor: options.line.color,
+                        backgroundColor: options.line.color + '33',
+                        fill: false,
+                        tension: 0.1
+                    }
+                ]
+            },
+            options: {
+                scales: {
+                    xAxes: [
+                        {
+                            type: 'time',
+                            time: {
+                                displayFormats: {
+                                    second: 'HH:mm:ss',
+                                    minute: 'HH:mm:ss',
+                                    hour: 'HH:mm'
+                                }
+                            },
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'Time',
+                                fontColor: options.axisColor
+                            },
+                            ticks: {
+                                fontColor: options.axisColor
+                            }
+                        }
+                    ],
+                    yAxes: [
+                        {
+                            scaleLabel: {
+                                display: true,
+                                labelString: options.label,
+                                fontColor: options.axisColor
+                            },
+                            ticks: {
+                                fontColor: options.axisColor,
+                                beginAtZero: true
+                            }
+                        }
+                    ]
+                },
+                legend: {
+                    labels: {
+                        fontColor: options.axisColor
+                    }
+                }
+            }
+        };
+        const payload = {
+            width: 800,
+            height: 400,
+            chart: chartConfig
+        };
+        let response = null;
+        try {
+            response = yield axios_1.default.post(QUICKCHART_API_URL, payload);
+        }
+        catch (error) {
+            logger.error(error);
+            logger.error(`getLineGraph ${JSON.stringify(payload)}`);
+        }
+        if (((_a = response === null || response === void 0 ? void 0 : response.data) === null || _a === void 0 ? void 0 : _a.success) && ((_b = response === null || response === void 0 ? void 0 : response.data) === null || _b === void 0 ? void 0 : _b.url)) {
+            const urlParts = response.data.url.split('/');
+            const id = urlParts[urlParts.length - 1] || 'line-chart';
+            return { id, url: response.data.url };
+        }
+        return response === null || response === void 0 ? void 0 : response.data;
+    });
+}
+exports.getLineGraph = getLineGraph;
+/**
+ * Generate a stacked area chart using QuickChart API
+ */
+function getStackedAreaGraph(options) {
+    var _a, _b;
+    return __awaiter(this, void 0, void 0, function* () {
+        const datasets = options.areas.map((area, index) => ({
+            label: area.label,
+            data: area.points,
+            borderColor: area.color,
+            backgroundColor: area.color,
+            fill: index === 0 ? 'origin' : '-1',
+            tension: 0.1
+        }));
+        const chartConfig = {
+            type: 'line',
+            data: {
+                datasets
+            },
+            options: {
+                scales: {
+                    xAxes: [
+                        {
+                            type: 'time',
+                            time: {
+                                displayFormats: {
+                                    second: 'HH:mm:ss',
+                                    minute: 'HH:mm:ss',
+                                    hour: 'HH:mm'
+                                }
+                            },
+                            scaleLabel: {
+                                display: true,
+                                labelString: 'Time',
+                                fontColor: options.axisColor
+                            },
+                            ticks: {
+                                fontColor: options.axisColor
+                            }
+                        }
+                    ],
+                    yAxes: [
+                        {
+                            stacked: true,
+                            scaleLabel: {
+                                display: true,
+                                labelString: options.label,
+                                fontColor: options.axisColor
+                            },
+                            ticks: {
+                                fontColor: options.axisColor,
+                                beginAtZero: true
+                            }
+                        }
+                    ]
+                },
+                legend: {
+                    labels: {
+                        fontColor: options.axisColor
+                    }
+                }
+            }
+        };
+        const payload = {
+            width: 800,
+            height: 400,
+            chart: chartConfig
+        };
+        let response = null;
+        try {
+            response = yield axios_1.default.post(QUICKCHART_API_URL, payload);
+        }
+        catch (error) {
+            logger.error(error);
+            logger.error(`getStackedAreaGraph ${JSON.stringify(payload)}`);
+        }
+        if (((_a = response === null || response === void 0 ? void 0 : response.data) === null || _a === void 0 ? void 0 : _a.success) && ((_b = response === null || response === void 0 ? void 0 : response.data) === null || _b === void 0 ? void 0 : _b.url)) {
+            const urlParts = response.data.url.split('/');
+            const id = urlParts[urlParts.length - 1] || 'stacked-area-chart';
+            return { id, url: response.data.url };
+        }
+        return response === null || response === void 0 ? void 0 : response.data;
+    });
+}
+exports.getStackedAreaGraph = getStackedAreaGraph;
+
+
+/***/ }),
+
 /***/ 4636:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -28578,60 +28805,16 @@ function getDiskSizeStats() {
 }
 function getLineGraph(options) {
     return __awaiter(this, void 0, void 0, function* () {
-        const payload = {
-            options: {
-                width: 1000,
-                height: 500,
-                xAxis: {
-                    label: 'Time'
-                },
-                yAxis: {
-                    label: options.label
-                },
-                timeTicks: {
-                    unit: 'auto'
-                }
-            },
-            lines: [options.line]
-        };
-        let response = null;
-        try {
-            response = yield axios_1.default.put('https://api.globadge.com/v1/chartgen/line/time', payload);
-        }
-        catch (error) {
-            logger.error(error);
-            logger.error(`getLineGraph ${JSON.stringify(payload)}`);
-        }
-        return response === null || response === void 0 ? void 0 : response.data;
+        // Import chartGenerator functions dynamically
+        const chartGenerator = yield Promise.resolve().then(() => __importStar(__nccwpck_require__(7318)));
+        return chartGenerator.getLineGraph(options);
     });
 }
 function getStackedAreaGraph(options) {
     return __awaiter(this, void 0, void 0, function* () {
-        const payload = {
-            options: {
-                width: 1000,
-                height: 500,
-                xAxis: {
-                    label: 'Time'
-                },
-                yAxis: {
-                    label: options.label
-                },
-                timeTicks: {
-                    unit: 'auto'
-                }
-            },
-            areas: options.areas
-        };
-        let response = null;
-        try {
-            response = yield axios_1.default.put('https://api.globadge.com/v1/chartgen/stacked-area/time', payload);
-        }
-        catch (error) {
-            logger.error(error);
-            logger.error(`getStackedAreaGraph ${JSON.stringify(payload)}`);
-        }
-        return response === null || response === void 0 ? void 0 : response.data;
+        // Import chartGenerator functions dynamically
+        const chartGenerator = yield Promise.resolve().then(() => __importStar(__nccwpck_require__(7318)));
+        return chartGenerator.getStackedAreaGraph(options);
     });
 }
 ///////////////////////////

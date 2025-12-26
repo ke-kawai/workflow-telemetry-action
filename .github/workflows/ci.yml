@@ -1,0 +1,36 @@
+name: Rust CI
+
+on:
+  push:
+    paths:
+      - 'workflow-telemetry-rust/**'
+      - 'rust-action.yml'
+  pull_request:
+    paths:
+      - 'workflow-telemetry-rust/**'
+      - 'rust-action.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      
+      - name: Run tests
+        run: |
+          cd workflow-telemetry-rust
+          cargo test --quiet
+      
+      - name: Build release
+        run: |
+          cd workflow-telemetry-rust
+          cargo build --release --quiet
+      
+      - name: Test telemetry
+        env:
+          TELEMETRY_INTERVAL: "1"
+          TELEMETRY_ITERATIONS: "3"
+        run: |
+          cd workflow-telemetry-rust
+          ./target/release/workflow-telemetry-rust

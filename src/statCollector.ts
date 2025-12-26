@@ -356,68 +356,17 @@ async function getDiskSizeStats(): Promise<ProcessedDiskSizeStats> {
 }
 
 async function getLineGraph(options: LineGraphOptions): Promise<GraphResponse> {
-  const payload = {
-    options: {
-      width: 1000,
-      height: 500,
-      xAxis: {
-        label: 'Time'
-      },
-      yAxis: {
-        label: options.label
-      },
-      timeTicks: {
-        unit: 'auto'
-      }
-    },
-    lines: [options.line]
-  }
-
-  let response = null
-  try {
-    response = await axios.put(
-      'https://api.globadge.com/v1/chartgen/line/time',
-      payload
-    )
-  } catch (error: any) {
-    logger.error(error)
-    logger.error(`getLineGraph ${JSON.stringify(payload)}`)
-  }
-
-  return response?.data
+  // Import chartGenerator functions dynamically
+  const chartGenerator = await import('./chartGenerator')
+  return chartGenerator.getLineGraph(options)
 }
 
 async function getStackedAreaGraph(
   options: StackedAreaGraphOptions
 ): Promise<GraphResponse> {
-  const payload = {
-    options: {
-      width: 1000,
-      height: 500,
-      xAxis: {
-        label: 'Time'
-      },
-      yAxis: {
-        label: options.label
-      },
-      timeTicks: {
-        unit: 'auto'
-      }
-    },
-    areas: options.areas
-  }
-
-  let response = null
-  try {
-    response = await axios.put(
-      'https://api.globadge.com/v1/chartgen/stacked-area/time',
-      payload
-    )
-  } catch (error: any) {
-    logger.error(error)
-    logger.error(`getStackedAreaGraph ${JSON.stringify(payload)}`)
-  }
-  return response?.data
+  // Import chartGenerator functions dynamically
+  const chartGenerator = await import('./chartGenerator')
+  return chartGenerator.getStackedAreaGraph(options)
 }
 
 ///////////////////////////
