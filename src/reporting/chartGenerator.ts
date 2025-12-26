@@ -1,9 +1,9 @@
-import * as logger from "./logger";
+import * as logger from "../utils/logger";
 import {
   GraphResponse,
   LineGraphOptions,
   StackedAreaGraphOptions,
-} from "./interfaces";
+} from "../interfaces";
 
 /**
  * Chart Generator using QuickChart.io API

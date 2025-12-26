@@ -5,7 +5,7 @@ import typescript from '@rollup/plugin-typescript'
 
 export default [
   {
-    input: 'src/main.ts',
+    input: 'src/core/main.ts',
     output: {
       file: 'dist/main/index.js',
       format: 'cjs',
@@ -20,7 +20,7 @@ export default [
     ]
   },
   {
-    input: 'src/post.ts',
+    input: 'src/core/post.ts',
     output: {
       file: 'dist/post/index.js',
       format: 'cjs',
@@ -35,22 +35,7 @@ export default [
     ]
   },
   {
-    input: 'src/statCollector.ts',
-    output: {
-      file: 'dist/sc/index.js',
-      format: 'cjs',
-      sourcemap: true,
-      inlineDynamicImports: true
-    },
-    plugins: [
-      typescript({ tsconfig: './tsconfig.json' }),
-      resolve({ preferBuiltins: true }),
-      commonjs(),
-      json()
-    ]
-  },
-  {
-    input: 'src/statCollectorWorker.ts',
+    input: 'src/collectors/server.ts',
     output: {
       file: 'dist/scw/index.js',
       format: 'cjs',

@@ -1,10 +1,10 @@
 import * as core from "@actions/core";
 import * as github from "@actions/github";
-import * as stepTracer from "./stepTracer";
-import * as statCollector from "./statCollector";
-import * as processTracer from "./processTracer";
-import * as logger from "./logger";
-import { WorkflowJobType } from "./interfaces";
+import * as stepTracer from "../tracers/stepTracer";
+import * as statCollector from "../collectors";
+import * as processTracer from "../tracers/processTracer";
+import * as logger from "../utils/logger";
+import { WorkflowJobType } from "../interfaces";
 
 const { pull_request } = github.context.payload;
 const { workflow, job, repo, runId, sha } = github.context;
