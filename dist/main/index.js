@@ -44661,468 +44661,6 @@ run();
 
 /***/ }),
 
-/***/ 4967:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.NativeProcessTracer = void 0;
-const child_process_1 = __nccwpck_require__(2081);
-const util_1 = __nccwpck_require__(3837);
-const fs = __importStar(__nccwpck_require__(7147));
-const path = __importStar(__nccwpck_require__(1017));
-const logger = __importStar(__nccwpck_require__(4636));
-const execAsync = (0, util_1.promisify)(child_process_1.exec);
-class NativeProcessTracer {
-    constructor(outputFilePath) {
-        this.running = false;
-        this.outputStream = null;
-        this.previousProcesses = new Map();
-        this.pollingInterval = null;
-        this.POLL_INTERVAL_MS = 1000; // 1秒ごとにポーリング
-        this.outputFilePath = outputFilePath;
-    }
-    start() {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (this.running) {
-                logger.info('Native process tracer is already running');
-                return;
-            }
-            logger.info('Starting native process tracer...');
-            try {
-                // 出力ディレクトリを作成
-                const outputDir = path.dirname(this.outputFilePath);
-                if (!fs.existsSync(outputDir)) {
-                    fs.mkdirSync(outputDir, { recursive: true });
-                }
-                // 出力ファイルを開く
-                this.outputStream = fs.createWriteStream(this.outputFilePath, {
-                    flags: 'w'
-                });
-                this.running = true;
-                // 初回スナップショット
-                yield this.captureSnapshot();
-                // 定期的にスナップショットを取得
-                this.pollingInterval = setInterval(() => __awaiter(this, void 0, void 0, function* () {
-                    try {
-                        yield this.captureSnapshot();
-                    }
-                    catch (error) {
-                        logger.error(`Error capturing process snapshot: ${error}`);
-                    }
-                }), this.POLL_INTERVAL_MS);
-                // unref()でNode.jsプロセスを保持しないようにする
-                this.pollingInterval.unref();
-                logger.info('Native process tracer started successfully');
-            }
-            catch (error) {
-                logger.error(`Failed to start native process tracer: ${error}`);
-                throw error;
-            }
-        });
-    }
-    stop() {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (!this.running) {
-                logger.info('Native process tracer is not running');
-                return;
-            }
-            logger.info('Stopping native process tracer...');
-            this.running = false;
-            // ポーリング停止
-            if (this.pollingInterval) {
-                clearInterval(this.pollingInterval);
-                this.pollingInterval = null;
-            }
-            // 最終スナップショット - すべてのプロセスを終了として記録
-            yield this.finalizeAllProcesses();
-            // 出力ストリームを閉じる
-            if (this.outputStream) {
-                this.outputStream.end();
-                this.outputStream = null;
-            }
-            logger.info('Native process tracer stopped');
-        });
-    }
-    captureSnapshot() {
-        return __awaiter(this, void 0, void 0, function* () {
-            const currentProcesses = yield this.getProcessList();
-            const currentPids = new Set(currentProcesses.keys());
-            const previousPids = new Set(this.previousProcesses.keys());
-            // 新しいプロセス（EXEC イベント）
-            for (const [pid, info] of currentProcesses) {
-                if (!previousPids.has(pid)) {
-                    this.writeEvent({
-                        event: 'EXEC',
-                        ts: new Date().toISOString(),
-                        name: info.name,
-                        pid: info.pid,
-                        ppid: info.ppid,
-                        uid: info.uid,
-                        startTime: info.startTime,
-                        fileName: info.fileName,
-                        args: info.args
-                    });
-                }
-            }
-            // 終了したプロセス（EXIT イベント）
-            for (const [pid, info] of this.previousProcesses) {
-                if (!currentPids.has(pid)) {
-                    const duration = Date.now() - info.startTime;
-                    this.writeEvent({
-                        event: 'EXIT',
-                        ts: new Date().toISOString(),
-                        name: info.name,
-                        pid: info.pid,
-                        duration,
-                        exitCode: 0 // 正確な終了コードは取得困難なため0とする
-                    });
-                }
-            }
-            this.previousProcesses = currentProcesses;
-        });
-    }
-    finalizeAllProcesses() {
-        return __awaiter(this, void 0, void 0, function* () {
-            // すべての追跡中プロセスを終了として記録
-            for (const [pid, info] of this.previousProcesses) {
-                const duration = Date.now() - info.startTime;
-                this.writeEvent({
-                    event: 'EXIT',
-                    ts: new Date().toISOString(),
-                    name: info.name,
-                    pid: info.pid,
-                    duration,
-                    exitCode: 0
-                });
-            }
-            this.previousProcesses.clear();
-        });
-    }
-    getProcessList() {
-        return __awaiter(this, void 0, void 0, function* () {
-            try {
-                // ps コマンドでプロセスリストを取得
-                // フォーマット: PID,PPID,UID,COMM,COMMAND,LSTART
-                const { stdout } = yield execAsync('ps -eo pid,ppid,uid,comm,args,lstart --no-headers', { maxBuffer: 10 * 1024 * 1024 } // 10MB buffer
-                );
-                const processes = new Map();
-                const lines = stdout.trim().split('\n');
-                for (const line of lines) {
-                    const parsed = this.parseProcessLine(line);
-                    if (parsed) {
-                        processes.set(parsed.pid, parsed);
-                    }
-                }
-                return processes;
-            }
-            catch (error) {
-                logger.error(`Failed to get process list: ${error}`);
-                return new Map();
-            }
-        });
-    }
-    parseProcessLine(line) {
-        try {
-            // ps出力をパース
-            const parts = line.trim().split(/\s+/);
-            if (parts.length < 5) {
-                return null;
-            }
-            const pid = parseInt(parts[0], 10);
-            const ppid = parseInt(parts[1], 10);
-            const uid = parseInt(parts[2], 10);
-            const comm = parts[3];
-            // コマンドライン引数の部分を抽出
-            // LSTART（開始時刻）の前まで
-            const commandParts = [];
-            let commandEndIndex = 4;
-            for (let i = 4; i < parts.length; i++) {
-                // LSTART の開始を検出（曜日名で始まる）
-                if (/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)$/.test(parts[i])) {
-                    commandEndIndex = i;
-                    break;
-                }
-                commandParts.push(parts[i]);
-            }
-            const commandLine = commandParts.join(' ');
-            const args = commandParts.length > 1 ? commandParts.slice(1) : [];
-            // 開始時刻をパース（lstartフィールド）
-            let startTime = Date.now(); // デフォルトは現在時刻
-            if (commandEndIndex < parts.length) {
-                const lstartParts = parts.slice(commandEndIndex);
-                if (lstartParts.length >= 5) {
-                    try {
-                        // "Mon Dec 26 12:00:00 2025" 形式
-                        const lstartStr = lstartParts.join(' ');
-                        const date = new Date(lstartStr);
-                        if (!isNaN(date.getTime())) {
-                            startTime = date.getTime();
-                        }
-                    }
-                    catch (e) {
-                        // パース失敗時は現在時刻を使用
-                    }
-                }
-            }
-            return {
-                pid,
-                ppid,
-                uid,
-                name: comm,
-                fileName: commandParts[0] || comm,
-                args,
-                startTime
-            };
-        }
-        catch (error) {
-            logger.debug(`Failed to parse process line ${line}: ${error}`);
-            return null;
-        }
-    }
-    writeEvent(event) {
-        if (!this.outputStream) {
-            return;
-        }
-        try {
-            const eventJson = JSON.stringify(event);
-            this.outputStream.write(eventJson + '\n');
-            if (logger.isDebugEnabled()) {
-                logger.debug(`Process event: ${eventJson}`);
-            }
-        }
-        catch (error) {
-            logger.error(`Failed to write process event: ${error}`);
-        }
-    }
-}
-exports.NativeProcessTracer = NativeProcessTracer;
-
-
-/***/ }),
-
-/***/ 9576:
-/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __asyncValues = (this && this.__asyncValues) || function (o) {
-    if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
-    var m = o[Symbol.asyncIterator], i;
-    return m ? m.call(o) : (o = typeof __values === "function" ? __values(o) : o[Symbol.iterator](), i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function () { return this; }, i);
-    function verb(n) { i[n] = o[n] && function (v) { return new Promise(function (resolve, reject) { v = o[n](v), settle(resolve, reject, v.done, v.value); }); }; }
-    function settle(resolve, reject, d, v) { Promise.resolve(v).then(function(v) { resolve({ value: v, done: d }); }, reject); }
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.parse = void 0;
-const fs = __importStar(__nccwpck_require__(7147));
-const readline = __importStar(__nccwpck_require__(4521));
-const logger = __importStar(__nccwpck_require__(4636));
-const SYS_PROCS_TO_BE_IGNORED = new Set([
-    'awk',
-    'basename',
-    'cat',
-    'cut',
-    'date',
-    'echo',
-    'envsubst',
-    'expr',
-    'dirname',
-    'grep',
-    'head',
-    'id',
-    'ip',
-    'ln',
-    'ls',
-    'lsblk',
-    'mkdir',
-    'mktemp',
-    'mv',
-    'ps',
-    'readlink',
-    'rm',
-    'sed',
-    'seq',
-    'sh',
-    'uname',
-    'whoami'
-]);
-function parse(filePath, procEventParseOptions) {
-    var _a, e_1, _b, _c;
-    return __awaiter(this, void 0, void 0, function* () {
-        const minDuration = (procEventParseOptions && procEventParseOptions.minDuration) || -1;
-        const traceSystemProcesses = (procEventParseOptions && procEventParseOptions.traceSystemProcesses) ||
-            false;
-        const fileStream = fs.createReadStream(filePath);
-        const rl = readline.createInterface({
-            input: fileStream,
-            crlfDelay: Infinity
-        });
-        // Note: we use the crlfDelay option to recognize all instances of CR LF
-        // ('\r\n') in input file as a single line break.
-        const activeCommands = new Map();
-        const replacedCommands = new Map();
-        const completedCommands = [];
-        let commandOrder = 0;
-        try {
-            for (var _d = true, rl_1 = __asyncValues(rl), rl_1_1; rl_1_1 = yield rl_1.next(), _a = rl_1_1.done, !_a; _d = true) {
-                _c = rl_1_1.value;
-                _d = false;
-                let line = _c;
-                line = line.trim();
-                if (!line || !line.length) {
-                    continue;
-                }
-                try {
-                    if (logger.isDebugEnabled()) {
-                        logger.debug(`Parsing trace process event: ${line}`);
-                    }
-                    const event = JSON.parse(line);
-                    event.order = ++commandOrder;
-                    if (!traceSystemProcesses && SYS_PROCS_TO_BE_IGNORED.has(event.name)) {
-                        continue;
-                    }
-                    if ('EXEC' === event.event) {
-                        const existingCommand = activeCommands.get(event.pid);
-                        activeCommands.set(event.pid, event);
-                        if (existingCommand) {
-                            replacedCommands.set(event.pid, existingCommand);
-                        }
-                    }
-                    else if ('EXIT' === event.event) {
-                        let activeCommandCompleted = false;
-                        let replacedCommandCompleted = false;
-                        // Process active command
-                        const activeCommand = activeCommands.get(event.pid);
-                        activeCommands.delete(event.pid);
-                        if (activeCommand) {
-                            for (let key of Object.keys(event)) {
-                                if (!activeCommand.hasOwnProperty(key)) {
-                                    activeCommand[key] = event[key];
-                                }
-                            }
-                            activeCommandCompleted = true;
-                        }
-                        // Process replaced command if there is
-                        const replacedCommand = replacedCommands.get(event.pid);
-                        replacedCommands.delete(event.pid);
-                        if (replacedCommand && activeCommandCompleted) {
-                            for (let key of Object.keys(event)) {
-                                if (!replacedCommand.hasOwnProperty(key)) {
-                                    replacedCommand[key] = event[key];
-                                }
-                            }
-                            const finishTime = activeCommand.startTime + activeCommand.duration;
-                            replacedCommand.duration = finishTime - replacedCommand.startTime;
-                            replacedCommandCompleted = true;
-                        }
-                        // Complete the replaced command first if there is
-                        if (replacedCommandCompleted &&
-                            replacedCommand.duration > minDuration) {
-                            completedCommands.push(replacedCommand);
-                        }
-                        // Then complete the actual command
-                        if (activeCommandCompleted && activeCommand.duration > minDuration) {
-                            completedCommands.push(activeCommand);
-                        }
-                    }
-                    else {
-                        if (logger.isDebugEnabled()) {
-                            logger.debug(`Unknown trace process event: ${line}`);
-                        }
-                    }
-                }
-                catch (error) {
-                    logger.debug(`Unable to parse process trace event (${error}): ${line}`);
-                }
-            }
-        }
-        catch (e_1_1) { e_1 = { error: e_1_1 }; }
-        finally {
-            try {
-                if (!_d && !_a && (_b = rl_1.return)) yield _b.call(rl_1);
-            }
-            finally { if (e_1) throw e_1.error; }
-        }
-        completedCommands.sort((a, b) => {
-            return a.startTime - b.startTime;
-        });
-        if (logger.isDebugEnabled()) {
-            logger.debug(`Completed commands: ${JSON.stringify(completedCommands)}`);
-        }
-        return completedCommands;
-    });
-}
-exports.parse = parse;
-
-
-/***/ }),
-
 /***/ 6160:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -45166,18 +44704,20 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.report = exports.finish = exports.start = void 0;
 const path_1 = __importDefault(__nccwpck_require__(1017));
+const fs_1 = __importDefault(__nccwpck_require__(7147));
 const core = __importStar(__nccwpck_require__(2186));
 const systeminformation_1 = __importDefault(__nccwpck_require__(9284));
 const sprintf_js_1 = __nccwpck_require__(3988);
-const procTraceParser_1 = __nccwpck_require__(9576);
 const logger = __importStar(__nccwpck_require__(4636));
-const nativeProcessTracer_1 = __nccwpck_require__(4967);
-const PROC_TRACER_STATE_KEY = 'PROC_TRACER_STARTED';
-const PROC_TRACER_OUTPUT_FILE_NAME = 'proc-trace.out';
+const PROC_TRACER_STATE_FILE = path_1.default.join(__dirname, '../.proc-tracer-started');
+const PROC_TRACER_DATA_FILE = path_1.default.join(__dirname, '../proc-tracer-data.json');
 const DEFAULT_PROC_TRACE_CHART_MAX_COUNT = 100;
 const GHA_FILE_NAME_PREFIX = '/home/runner/work/_actions/';
+const COLLECTION_INTERVAL_MS = 1000; // Collect process info every 1 second
+let collectionInterval = null;
+let trackedProcesses = new Map();
+let completedProcesses = [];
 let finished = false;
-let nativeTracer = null;
 function isSupportedOS() {
     return __awaiter(this, void 0, void 0, function* () {
         const osInfo = yield systeminformation_1.default.osInfo();
@@ -45192,18 +44732,93 @@ function isSupportedOS() {
         return false;
     });
 }
-function getExtraProcessInfo(command) {
+function collectProcesses() {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const processes = yield systeminformation_1.default.processes();
+            const currentPids = new Set();
+            const now = Date.now();
+            // Update tracked processes
+            for (const proc of processes.list) {
+                if (!proc.pid)
+                    continue;
+                currentPids.add(proc.pid);
+                if (trackedProcesses.has(proc.pid)) {
+                    // Update existing process
+                    const tracked = trackedProcesses.get(proc.pid);
+                    tracked.pcpu = Math.max(tracked.pcpu, proc.cpu || 0);
+                    tracked.pmem = Math.max(tracked.pmem, proc.mem || 0);
+                }
+                else {
+                    // New process
+                    trackedProcesses.set(proc.pid, {
+                        pid: proc.pid,
+                        name: proc.name || 'unknown',
+                        command: proc.command || '',
+                        params: proc.params || '',
+                        started: proc.started ? new Date(proc.started).getTime() : now,
+                        pcpu: proc.cpu || 0,
+                        pmem: proc.mem || 0
+                    });
+                }
+            }
+            // Find completed processes (no longer in current list)
+            for (const [pid, tracked] of trackedProcesses.entries()) {
+                if (!currentPids.has(pid)) {
+                    completedProcesses.push({
+                        pid: tracked.pid,
+                        name: tracked.name,
+                        command: tracked.command,
+                        params: tracked.params,
+                        started: tracked.started,
+                        ended: now,
+                        duration: now - tracked.started,
+                        maxCpu: tracked.pcpu,
+                        maxMem: tracked.pmem
+                    });
+                    trackedProcesses.delete(pid);
+                }
+            }
+        }
+        catch (error) {
+            logger.error(`Error collecting processes: ${error.message}`);
+        }
+    });
+}
+function saveData() {
+    try {
+        const data = {
+            completed: completedProcesses,
+            tracked: Array.from(trackedProcesses.values())
+        };
+        fs_1.default.writeFileSync(PROC_TRACER_DATA_FILE, JSON.stringify(data, null, 2));
+    }
+    catch (error) {
+        logger.error(`Error saving process data: ${error.message}`);
+    }
+}
+function loadData() {
+    try {
+        if (fs_1.default.existsSync(PROC_TRACER_DATA_FILE)) {
+            const data = JSON.parse(fs_1.default.readFileSync(PROC_TRACER_DATA_FILE, 'utf-8'));
+            completedProcesses = data.completed || [];
+            if (data.tracked) {
+                trackedProcesses = new Map(data.tracked.map((p) => [p.pid, p]));
+            }
+        }
+    }
+    catch (error) {
+        logger.error(`Error loading process data: ${error.message}`);
+    }
+}
+function getExtraProcessInfo(proc) {
     // Check whether this is node process with args
-    if (command.name === 'node' && command.args.length > 1) {
-        const arg1 = command.args[1];
+    if (proc.name === 'node' && proc.params) {
         // Check whether this is Node.js GHA process
-        if (arg1.startsWith(GHA_FILE_NAME_PREFIX)) {
-            const actionFile = arg1.substring(GHA_FILE_NAME_PREFIX.length);
-            const idx1 = actionFile.indexOf('/');
-            const idx2 = actionFile.indexOf('/', idx1 + 1);
-            if (idx1 >= 0 && idx2 > idx1) {
-                // If we could find a valid GHA name, use it as extra info
-                return actionFile.substring(idx1 + 1, idx2);
+        if (proc.params.includes(GHA_FILE_NAME_PREFIX)) {
+            const match = proc.params.match(new RegExp(`${GHA_FILE_NAME_PREFIX}([^/]+/[^/]+)`));
+            if (match && match[1]) {
+                return match[1];
             }
         }
     }
@@ -45218,12 +44833,17 @@ function start() {
             if (!isSupported) {
                 return false;
             }
-            const procTraceOutFilePath = path_1.default.join(__dirname, '../proc-tracer', PROC_TRACER_OUTPUT_FILE_NAME);
-            // Create native process tracer instance
-            nativeTracer = new nativeProcessTracer_1.NativeProcessTracer(procTraceOutFilePath);
-            yield nativeTracer.start();
-            core.saveState(PROC_TRACER_STATE_KEY, 'true');
-            logger.info(`Started process tracer`);
+            // Create state file to indicate tracer is started
+            fs_1.default.writeFileSync(PROC_TRACER_STATE_FILE, Date.now().toString());
+            // Start collecting processes
+            yield collectProcesses();
+            collectionInterval = setInterval(() => __awaiter(this, void 0, void 0, function* () {
+                yield collectProcesses();
+                saveData();
+            }), COLLECTION_INTERVAL_MS);
+            // Prevent the interval from keeping the process alive
+            collectionInterval.unref();
+            logger.info(`Started process tracer with ${COLLECTION_INTERVAL_MS}ms interval`);
             return true;
         }
         catch (error) {
@@ -45237,13 +44857,36 @@ exports.start = start;
 function finish(currentJob) {
     return __awaiter(this, void 0, void 0, function* () {
         logger.info(`Finishing process tracer ...`);
-        const isStarted = core.getState(PROC_TRACER_STATE_KEY);
-        if (!isStarted || !nativeTracer) {
+        if (!fs_1.default.existsSync(PROC_TRACER_STATE_FILE)) {
             logger.info(`Skipped finishing process tracer since process tracer didn't started`);
             return false;
         }
         try {
-            yield nativeTracer.stop();
+            // Stop collection interval
+            if (collectionInterval) {
+                clearInterval(collectionInterval);
+                collectionInterval = null;
+            }
+            // Final collection
+            yield collectProcesses();
+            // Mark any remaining tracked processes as completed
+            const now = Date.now();
+            for (const [pid, tracked] of trackedProcesses.entries()) {
+                completedProcesses.push({
+                    pid: tracked.pid,
+                    name: tracked.name,
+                    command: tracked.command,
+                    params: tracked.params,
+                    started: tracked.started,
+                    ended: now,
+                    duration: now - tracked.started,
+                    maxCpu: tracked.pcpu,
+                    maxMem: tracked.pmem
+                });
+            }
+            trackedProcesses.clear();
+            // Save final data
+            saveData();
             finished = true;
             logger.info(`Finished process tracer`);
             return true;
@@ -45264,8 +44907,9 @@ function report(currentJob) {
             return null;
         }
         try {
-            const procTraceOutFilePath = path_1.default.join(__dirname, '../proc-tracer', PROC_TRACER_OUTPUT_FILE_NAME);
-            logger.info(`Getting process tracer result from file ${procTraceOutFilePath} ...`);
+            // Load data from file
+            loadData();
+            logger.info(`Getting process tracer result from data file ...`);
             let procTraceMinDuration = -1;
             const procTraceMinDurationInput = core.getInput('proc_trace_min_duration');
             if (procTraceMinDurationInput) {
@@ -45274,63 +44918,56 @@ function report(currentJob) {
                     procTraceMinDuration = minProcDurationVal;
                 }
             }
-            const procTraceSysEnable = core.getInput('proc_trace_sys_enable') === 'true';
             const procTraceChartShow = core.getInput('proc_trace_chart_show') === 'true';
             const procTraceChartMaxCountInput = parseInt(core.getInput('proc_trace_chart_max_count'));
             const procTraceChartMaxCount = Number.isInteger(procTraceChartMaxCountInput)
                 ? procTraceChartMaxCountInput
                 : DEFAULT_PROC_TRACE_CHART_MAX_COUNT;
             const procTraceTableShow = core.getInput('proc_trace_table_show') === 'true';
-            const completedCommands = yield (0, procTraceParser_1.parse)(procTraceOutFilePath, {
-                minDuration: procTraceMinDuration,
-                traceSystemProcesses: procTraceSysEnable
-            });
+            // Filter processes by minimum duration
+            let filteredProcesses = completedProcesses;
+            if (procTraceMinDuration > 0) {
+                filteredProcesses = completedProcesses.filter(p => p.duration >= procTraceMinDuration);
+            }
             ///////////////////////////////////////////////////////////////////////////
             let chartContent = '';
             if (procTraceChartShow) {
+                // Adjust timestamps to display as UTC instead of local time
+                const adjustToUTC = (timestamp) => {
+                    const offset = new Date(timestamp).getTimezoneOffset() * 60 * 1000;
+                    return timestamp + offset;
+                };
                 chartContent = chartContent.concat('gantt', '\n');
                 chartContent = chartContent.concat('\t', `title ${currentJob.name}`, '\n');
                 chartContent = chartContent.concat('\t', `dateFormat x`, '\n');
                 chartContent = chartContent.concat('\t', `axisFormat %H:%M:%S`, '\n');
-                const filteredCommands = [...completedCommands]
-                    .sort((a, b) => {
-                    return -(a.duration - b.duration);
-                })
+                const processesForChart = [...filteredProcesses]
+                    .sort((a, b) => -(a.duration - b.duration))
                     .slice(0, procTraceChartMaxCount)
-                    .sort((a, b) => {
-                    let result = a.startTime - b.startTime;
-                    if (result === 0 && a.order && b.order) {
-                        result = a.order - b.order;
-                    }
-                    return result;
-                });
-                for (const command of filteredCommands) {
-                    const extraProcessInfo = getExtraProcessInfo(command);
-                    const escapedName = command.name.replace(/:/g, '#colon;');
+                    .sort((a, b) => a.started - b.started);
+                for (const proc of processesForChart) {
+                    const extraProcessInfo = getExtraProcessInfo(proc);
+                    const escapedName = proc.name.replace(/:/g, '#colon;');
                     if (extraProcessInfo) {
                         chartContent = chartContent.concat('\t', `${escapedName} (${extraProcessInfo}) : `);
                     }
                     else {
                         chartContent = chartContent.concat('\t', `${escapedName} : `);
                     }
-                    if (command.exitCode !== 0) {
-                        // to show red
-                        chartContent = chartContent.concat('crit, ');
-                    }
-                    const startTime = command.startTime;
-                    const finishTime = command.startTime + command.duration;
+                    const startTime = adjustToUTC(proc.started);
+                    const finishTime = adjustToUTC(proc.ended);
                     chartContent = chartContent.concat(`${Math.min(startTime, finishTime)}, ${finishTime}`, '\n');
                 }
             }
             ///////////////////////////////////////////////////////////////////////////
             let tableContent = '';
             if (procTraceTableShow) {
-                const commandInfos = [];
-                commandInfos.push((0, sprintf_js_1.sprintf)('%-12s %-16s %7s %7s %7s %15s %15s %10s %-20s', 'TIME', 'NAME', 'UID', 'PID', 'PPID', 'START TIME', 'DURATION (ms)', 'EXIT CODE', 'FILE NAME + ARGS'));
-                for (const command of completedCommands) {
-                    commandInfos.push((0, sprintf_js_1.sprintf)('%-12s %-16s %7d %7d %7d %15d %15d %10d %s %s', command.ts, command.name, command.uid, command.pid, command.ppid, command.startTime, command.duration, command.exitCode, command.fileName, command.args.join(' ')));
+                const processInfos = [];
+                processInfos.push((0, sprintf_js_1.sprintf)('%-16s %7s %15s %15s %10s %10s %-40s', 'NAME', 'PID', 'START TIME', 'DURATION (ms)', 'MAX CPU %', 'MAX MEM %', 'COMMAND + PARAMS'));
+                for (const proc of filteredProcesses) {
+                    processInfos.push((0, sprintf_js_1.sprintf)('%-16s %7d %15d %15d %10.2f %10.2f %s %s', proc.name, proc.pid, proc.started, proc.duration, proc.maxCpu, proc.maxMem, proc.command, proc.params));
                 }
-                tableContent = commandInfos.join('\n');
+                tableContent = processInfos.join('\n');
             }
             ///////////////////////////////////////////////////////////////////////////
             const postContentItems = ['', '### Process Trace'];
@@ -46064,14 +45701,6 @@ module.exports = require("perf_hooks");
 
 "use strict";
 module.exports = require("querystring");
-
-/***/ }),
-
-/***/ 4521:
-/***/ ((module) => {
-
-"use strict";
-module.exports = require("readline");
 
 /***/ }),
 
