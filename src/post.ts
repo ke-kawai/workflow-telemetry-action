@@ -81,11 +81,7 @@ async function reportAll(
   const commitUrl = `https://github.com/${repo.owner}/${repo.repo}/commit/${commit}`
   logger.debug(`Commit url: ${commitUrl}`)
 
-  const info =
-    `Workflow telemetry for commit [${commit}](${commitUrl})\n` +
-    `You can access workflow job details [here](${jobUrl})`
-
-  const postContent: string = [title, info, content].join('\n')
+  const postContent: string = [title, content].join('\n')
 
   const jobSummary: string = core.getInput('job_summary')
   if ('true' === jobSummary) {
