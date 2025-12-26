@@ -6,7 +6,6 @@ import {
   CPUStats,
   DiskSizeStats,
   DiskStats,
-  GraphResponse,
   LineGraphOptions,
   MemoryStats,
   NetworkStats,
@@ -24,9 +23,6 @@ import { log } from 'console'
 
 const STAT_SERVER_PORT = 7777
 
-const BLACK = '#000000'
-const WHITE = '#FFFFFF'
-
 async function triggerStatCollect(): Promise<void> {
   logger.debug('Triggering stat collect ...')
   const response = await axios.post(
@@ -38,19 +34,6 @@ async function triggerStatCollect(): Promise<void> {
 }
 
 async function reportWorkflowMetrics(): Promise<string> {
-  const theme: string = core.getInput('theme', { required: false })
-  let axisColor = BLACK
-  switch (theme) {
-    case 'light':
-      axisColor = BLACK
-      break
-    case 'dark':
-      axisColor = WHITE
-      break
-    default:
-      core.warning(`Invalid theme: ${theme}`)
-  }
-
   const { userLoadX, systemLoadX } = await getCPUStats()
   const { activeMemoryX, availableMemoryX } = await getMemoryStats()
   const { networkReadX, networkWriteX } = await getNetworkStats()
@@ -61,7 +44,6 @@ async function reportWorkflowMetrics(): Promise<string> {
     userLoadX && userLoadX.length && systemLoadX && systemLoadX.length
       ? await getStackedAreaGraph({
           label: 'CPU Load (%)',
-          axisColor,
           areas: [
             {
               label: 'User Load',
@@ -84,7 +66,6 @@ async function reportWorkflowMetrics(): Promise<string> {
     availableMemoryX.length
       ? await getStackedAreaGraph({
           label: 'Memory Usage (MB)',
-          axisColor,
           areas: [
             {
               label: 'Used',
@@ -104,7 +85,6 @@ async function reportWorkflowMetrics(): Promise<string> {
     networkReadX && networkReadX.length
       ? await getLineGraph({
           label: 'Network I/O Read (MB)',
-          axisColor,
           line: {
             label: 'Read',
             color: '#be4d25',
@@ -117,7 +97,6 @@ async function reportWorkflowMetrics(): Promise<string> {
     networkWriteX && networkWriteX.length
       ? await getLineGraph({
           label: 'Network I/O Write (MB)',
-          axisColor,
           line: {
             label: 'Write',
             color: '#6c25be',
@@ -130,7 +109,6 @@ async function reportWorkflowMetrics(): Promise<string> {
     diskReadX && diskReadX.length
       ? await getLineGraph({
           label: 'Disk I/O Read (MB)',
-          axisColor,
           line: {
             label: 'Read',
             color: '#be4d25',
@@ -143,7 +121,6 @@ async function reportWorkflowMetrics(): Promise<string> {
     diskWriteX && diskWriteX.length
       ? await getLineGraph({
           label: 'Disk I/O Write (MB)',
-          axisColor,
           line: {
             label: 'Write',
             color: '#6c25be',
@@ -156,7 +133,6 @@ async function reportWorkflowMetrics(): Promise<string> {
     diskUsedX && diskUsedX.length && diskAvailableX && diskAvailableX.length
       ? await getStackedAreaGraph({
           label: 'Disk Usage (MB)',
-          axisColor,
           areas: [
             {
               label: 'Used',
@@ -174,18 +150,10 @@ async function reportWorkflowMetrics(): Promise<string> {
 
   const postContentItems: string[] = []
   if (cpuLoad) {
-    postContentItems.push(
-      '### CPU Metrics',
-      `![${cpuLoad.id}](${cpuLoad.url})`,
-      ''
-    )
+    postContentItems.push('### CPU Metrics', cpuLoad, '')
   }
   if (memoryUsage) {
-    postContentItems.push(
-      '### Memory Metrics',
-      `![${memoryUsage.id}](${memoryUsage.url})`,
-      ''
-    )
+    postContentItems.push('### Memory Metrics', memoryUsage, '')
   }
   if ((networkIORead && networkIOWrite) || (diskIORead && diskIOWrite)) {
     postContentItems.push(
@@ -196,20 +164,16 @@ async function reportWorkflowMetrics(): Promise<string> {
   }
   if (networkIORead && networkIOWrite) {
     postContentItems.push(
-      `| Network I/O   | ![${networkIORead.id}](${networkIORead.url})        | ![${networkIOWrite.id}](${networkIOWrite.url})        |`
+      `| Network I/O   | ${networkIORead}        | ${networkIOWrite}        |`
     )
   }
   if (diskIORead && diskIOWrite) {
     postContentItems.push(
-      `| Disk I/O      | ![${diskIORead.id}](${diskIORead.url})              | ![${diskIOWrite.id}](${diskIOWrite.url})              |`
+      `| Disk I/O      | ${diskIORead}              | ${diskIOWrite}              |`
     )
   }
   if (diskSizeUsage) {
-    postContentItems.push(
-      '### Disk Size Metrics',
-      `![${diskSizeUsage.id}](${diskSizeUsage.url})`,
-      ''
-    )
+    postContentItems.push('### Disk Size Metrics', diskSizeUsage, '')
   }
 
   return postContentItems.join('\n')
@@ -355,7 +319,7 @@ async function getDiskSizeStats(): Promise<ProcessedDiskSizeStats> {
   return { diskAvailableX, diskUsedX }
 }
 
-async function getLineGraph(options: LineGraphOptions): Promise<GraphResponse> {
+async function getLineGraph(options: LineGraphOptions): Promise<string> {
   // Import chartGenerator functions dynamically
   const chartGenerator = await import('./chartGenerator')
   return chartGenerator.getLineGraph(options)
@@ -363,7 +327,7 @@ async function getLineGraph(options: LineGraphOptions): Promise<GraphResponse> {
 
 async function getStackedAreaGraph(
   options: StackedAreaGraphOptions
-): Promise<GraphResponse> {
+): Promise<string> {
   // Import chartGenerator functions dynamically
   const chartGenerator = await import('./chartGenerator')
   return chartGenerator.getStackedAreaGraph(options)

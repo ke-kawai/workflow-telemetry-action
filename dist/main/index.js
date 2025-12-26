@@ -44365,173 +44365,196 @@ const logger = __importStar(__nccwpck_require__(4636));
  * Based on PR #98: https://github.com/catchpoint/workflow-telemetry-action/pull/98
  */
 const QUICKCHART_API_URL = 'https://quickchart.io/chart/create';
+const BLACK = '#000000';
+const WHITE = '#FFFFFF';
+const THEME_TO_CONFIG = {
+    light: { axisColor: BLACK, backgroundColor: 'white' },
+    dark: { axisColor: WHITE, backgroundColor: '#0d1117' }
+};
+function generatePictureHTML(themeToURLMap, label) {
+    const sources = Array.from(themeToURLMap.entries())
+        .map(([theme, url]) => `<source media="(prefers-color-scheme: ${theme})" srcset="${url}">`)
+        .join('');
+    const fallbackUrl = themeToURLMap.get('light') || '';
+    return `<picture>${sources}<img alt="${label}" src="${fallbackUrl}"></picture>`;
+}
 /**
  * Generate a line chart using QuickChart API
+ * Time format matches Mermaid gantt chart (HH:mm:ss)
  */
 function getLineGraph(options) {
-    var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
-        const chartConfig = {
-            type: 'line',
-            data: {
-                datasets: [
-                    {
-                        label: options.line.label,
-                        data: options.line.points,
-                        borderColor: options.line.color,
-                        backgroundColor: options.line.color + '33',
-                        fill: false,
-                        tension: 0.1
-                    }
-                ]
-            },
-            options: {
-                scales: {
-                    xAxes: [
+        const themeToURLMap = new Map();
+        yield Promise.all(Object.keys(THEME_TO_CONFIG).map((theme) => __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
+            const config = THEME_TO_CONFIG[theme];
+            const chartConfig = {
+                type: 'line',
+                data: {
+                    datasets: [
                         {
-                            type: 'time',
-                            time: {
-                                displayFormats: {
-                                    second: 'HH:mm:ss',
-                                    minute: 'HH:mm:ss',
-                                    hour: 'HH:mm'
-                                }
-                            },
-                            scaleLabel: {
-                                display: true,
-                                labelString: 'Time',
-                                fontColor: options.axisColor
-                            },
-                            ticks: {
-                                fontColor: options.axisColor
-                            }
-                        }
-                    ],
-                    yAxes: [
-                        {
-                            scaleLabel: {
-                                display: true,
-                                labelString: options.label,
-                                fontColor: options.axisColor
-                            },
-                            ticks: {
-                                fontColor: options.axisColor,
-                                beginAtZero: true
-                            }
+                            label: options.line.label,
+                            data: options.line.points,
+                            borderColor: options.line.color,
+                            backgroundColor: options.line.color + '33',
+                            fill: false,
+                            tension: 0.1
                         }
                     ]
                 },
-                legend: {
-                    labels: {
-                        fontColor: options.axisColor
+                options: {
+                    scales: {
+                        xAxes: [
+                            {
+                                type: 'time',
+                                time: {
+                                    displayFormats: {
+                                        millisecond: 'HH:mm:ss',
+                                        second: 'HH:mm:ss',
+                                        minute: 'HH:mm:ss',
+                                        hour: 'HH:mm'
+                                    },
+                                    unit: 'second'
+                                },
+                                scaleLabel: {
+                                    display: true,
+                                    labelString: 'Time',
+                                    fontColor: config.axisColor
+                                },
+                                ticks: {
+                                    fontColor: config.axisColor
+                                }
+                            }
+                        ],
+                        yAxes: [
+                            {
+                                scaleLabel: {
+                                    display: true,
+                                    labelString: options.label,
+                                    fontColor: config.axisColor
+                                },
+                                ticks: {
+                                    fontColor: config.axisColor,
+                                    beginAtZero: true
+                                }
+                            }
+                        ]
+                    },
+                    legend: {
+                        labels: {
+                            fontColor: config.axisColor
+                        }
                     }
                 }
+            };
+            const payload = {
+                width: 800,
+                height: 400,
+                backgroundColor: config.backgroundColor,
+                chart: chartConfig
+            };
+            try {
+                const response = yield axios_1.default.post(QUICKCHART_API_URL, payload);
+                if (((_a = response === null || response === void 0 ? void 0 : response.data) === null || _a === void 0 ? void 0 : _a.success) && ((_b = response === null || response === void 0 ? void 0 : response.data) === null || _b === void 0 ? void 0 : _b.url)) {
+                    themeToURLMap.set(theme, response.data.url);
+                }
             }
-        };
-        const payload = {
-            width: 800,
-            height: 400,
-            chart: chartConfig
-        };
-        let response = null;
-        try {
-            response = yield axios_1.default.post(QUICKCHART_API_URL, payload);
-        }
-        catch (error) {
-            logger.error(error);
-            logger.error(`getLineGraph ${JSON.stringify(payload)}`);
-        }
-        if (((_a = response === null || response === void 0 ? void 0 : response.data) === null || _a === void 0 ? void 0 : _a.success) && ((_b = response === null || response === void 0 ? void 0 : response.data) === null || _b === void 0 ? void 0 : _b.url)) {
-            const urlParts = response.data.url.split('/');
-            const id = urlParts[urlParts.length - 1] || 'line-chart';
-            return { id, url: response.data.url };
-        }
-        return response === null || response === void 0 ? void 0 : response.data;
+            catch (error) {
+                logger.error(error);
+                logger.error(`getLineGraph ${theme} ${JSON.stringify(payload)}`);
+            }
+        })));
+        return generatePictureHTML(themeToURLMap, options.label);
     });
 }
 exports.getLineGraph = getLineGraph;
 /**
  * Generate a stacked area chart using QuickChart API
+ * Time format matches Mermaid gantt chart (HH:mm:ss)
  */
 function getStackedAreaGraph(options) {
-    var _a, _b;
     return __awaiter(this, void 0, void 0, function* () {
-        const datasets = options.areas.map((area, index) => ({
-            label: area.label,
-            data: area.points,
-            borderColor: area.color,
-            backgroundColor: area.color,
-            fill: index === 0 ? 'origin' : '-1',
-            tension: 0.1
-        }));
-        const chartConfig = {
-            type: 'line',
-            data: {
-                datasets
-            },
-            options: {
-                scales: {
-                    xAxes: [
-                        {
-                            type: 'time',
-                            time: {
-                                displayFormats: {
-                                    second: 'HH:mm:ss',
-                                    minute: 'HH:mm:ss',
-                                    hour: 'HH:mm'
-                                }
-                            },
-                            scaleLabel: {
-                                display: true,
-                                labelString: 'Time',
-                                fontColor: options.axisColor
-                            },
-                            ticks: {
-                                fontColor: options.axisColor
-                            }
-                        }
-                    ],
-                    yAxes: [
-                        {
-                            stacked: true,
-                            scaleLabel: {
-                                display: true,
-                                labelString: options.label,
-                                fontColor: options.axisColor
-                            },
-                            ticks: {
-                                fontColor: options.axisColor,
-                                beginAtZero: true
-                            }
-                        }
-                    ]
+        const themeToURLMap = new Map();
+        yield Promise.all(Object.keys(THEME_TO_CONFIG).map((theme) => __awaiter(this, void 0, void 0, function* () {
+            var _a, _b;
+            const config = THEME_TO_CONFIG[theme];
+            const datasets = options.areas.map((area, index) => ({
+                label: area.label,
+                data: area.points,
+                borderColor: area.color,
+                backgroundColor: area.color,
+                fill: index === 0 ? 'origin' : '-1',
+                tension: 0.1
+            }));
+            const chartConfig = {
+                type: 'line',
+                data: {
+                    datasets
                 },
-                legend: {
-                    labels: {
-                        fontColor: options.axisColor
+                options: {
+                    scales: {
+                        xAxes: [
+                            {
+                                type: 'time',
+                                time: {
+                                    displayFormats: {
+                                        millisecond: 'HH:mm:ss',
+                                        second: 'HH:mm:ss',
+                                        minute: 'HH:mm:ss',
+                                        hour: 'HH:mm'
+                                    },
+                                    unit: 'second'
+                                },
+                                scaleLabel: {
+                                    display: true,
+                                    labelString: 'Time',
+                                    fontColor: config.axisColor
+                                },
+                                ticks: {
+                                    fontColor: config.axisColor
+                                }
+                            }
+                        ],
+                        yAxes: [
+                            {
+                                stacked: true,
+                                scaleLabel: {
+                                    display: true,
+                                    labelString: options.label,
+                                    fontColor: config.axisColor
+                                },
+                                ticks: {
+                                    fontColor: config.axisColor,
+                                    beginAtZero: true
+                                }
+                            }
+                        ]
+                    },
+                    legend: {
+                        labels: {
+                            fontColor: config.axisColor
+                        }
                     }
                 }
+            };
+            const payload = {
+                width: 800,
+                height: 400,
+                backgroundColor: config.backgroundColor,
+                chart: chartConfig
+            };
+            try {
+                const response = yield axios_1.default.post(QUICKCHART_API_URL, payload);
+                if (((_a = response === null || response === void 0 ? void 0 : response.data) === null || _a === void 0 ? void 0 : _a.success) && ((_b = response === null || response === void 0 ? void 0 : response.data) === null || _b === void 0 ? void 0 : _b.url)) {
+                    themeToURLMap.set(theme, response.data.url);
+                }
             }
-        };
-        const payload = {
-            width: 800,
-            height: 400,
-            chart: chartConfig
-        };
-        let response = null;
-        try {
-            response = yield axios_1.default.post(QUICKCHART_API_URL, payload);
-        }
-        catch (error) {
-            logger.error(error);
-            logger.error(`getStackedAreaGraph ${JSON.stringify(payload)}`);
-        }
-        if (((_a = response === null || response === void 0 ? void 0 : response.data) === null || _a === void 0 ? void 0 : _a.success) && ((_b = response === null || response === void 0 ? void 0 : response.data) === null || _b === void 0 ? void 0 : _b.url)) {
-            const urlParts = response.data.url.split('/');
-            const id = urlParts[urlParts.length - 1] || 'stacked-area-chart';
-            return { id, url: response.data.url };
-        }
-        return response === null || response === void 0 ? void 0 : response.data;
+            catch (error) {
+                logger.error(error);
+                logger.error(`getStackedAreaGraph ${theme} ${JSON.stringify(payload)}`);
+            }
+        })));
+        return generatePictureHTML(themeToURLMap, options.label);
     });
 }
 exports.getStackedAreaGraph = getStackedAreaGraph;
@@ -45288,6 +45311,11 @@ function report(currentJob) {
             ///////////////////////////////////////////////////////////////////////////
             let chartContent = '';
             if (procTraceChartShow) {
+                // Adjust timestamps to display as UTC instead of local time
+                const adjustToUTC = (timestamp) => {
+                    const offset = new Date(timestamp).getTimezoneOffset() * 60 * 1000;
+                    return timestamp + offset;
+                };
                 chartContent = chartContent.concat('gantt', '\n');
                 chartContent = chartContent.concat('\t', `title ${currentJob.name}`, '\n');
                 chartContent = chartContent.concat('\t', `dateFormat x`, '\n');
@@ -45317,8 +45345,8 @@ function report(currentJob) {
                         // to show red
                         chartContent = chartContent.concat('crit, ');
                     }
-                    const startTime = command.startTime;
-                    const finishTime = command.startTime + command.duration;
+                    const startTime = adjustToUTC(command.startTime);
+                    const finishTime = adjustToUTC(command.startTime + command.duration);
                     chartContent = chartContent.concat(`${Math.min(startTime, finishTime)}, ${finishTime}`, '\n');
                 }
             }
@@ -45404,8 +45432,6 @@ const axios_1 = __importDefault(__nccwpck_require__(8757));
 const core = __importStar(__nccwpck_require__(2186));
 const logger = __importStar(__nccwpck_require__(4636));
 const STAT_SERVER_PORT = 7777;
-const BLACK = '#000000';
-const WHITE = '#FFFFFF';
 function triggerStatCollect() {
     return __awaiter(this, void 0, void 0, function* () {
         logger.debug('Triggering stat collect ...');
@@ -45417,18 +45443,6 @@ function triggerStatCollect() {
 }
 function reportWorkflowMetrics() {
     return __awaiter(this, void 0, void 0, function* () {
-        const theme = core.getInput('theme', { required: false });
-        let axisColor = BLACK;
-        switch (theme) {
-            case 'light':
-                axisColor = BLACK;
-                break;
-            case 'dark':
-                axisColor = WHITE;
-                break;
-            default:
-                core.warning(`Invalid theme: ${theme}`);
-        }
         const { userLoadX, systemLoadX } = yield getCPUStats();
         const { activeMemoryX, availableMemoryX } = yield getMemoryStats();
         const { networkReadX, networkWriteX } = yield getNetworkStats();
@@ -45437,7 +45451,6 @@ function reportWorkflowMetrics() {
         const cpuLoad = userLoadX && userLoadX.length && systemLoadX && systemLoadX.length
             ? yield getStackedAreaGraph({
                 label: 'CPU Load (%)',
-                axisColor,
                 areas: [
                     {
                         label: 'User Load',
@@ -45458,7 +45471,6 @@ function reportWorkflowMetrics() {
             availableMemoryX.length
             ? yield getStackedAreaGraph({
                 label: 'Memory Usage (MB)',
-                axisColor,
                 areas: [
                     {
                         label: 'Used',
@@ -45476,7 +45488,6 @@ function reportWorkflowMetrics() {
         const networkIORead = networkReadX && networkReadX.length
             ? yield getLineGraph({
                 label: 'Network I/O Read (MB)',
-                axisColor,
                 line: {
                     label: 'Read',
                     color: '#be4d25',
@@ -45487,7 +45498,6 @@ function reportWorkflowMetrics() {
         const networkIOWrite = networkWriteX && networkWriteX.length
             ? yield getLineGraph({
                 label: 'Network I/O Write (MB)',
-                axisColor,
                 line: {
                     label: 'Write',
                     color: '#6c25be',
@@ -45498,7 +45508,6 @@ function reportWorkflowMetrics() {
         const diskIORead = diskReadX && diskReadX.length
             ? yield getLineGraph({
                 label: 'Disk I/O Read (MB)',
-                axisColor,
                 line: {
                     label: 'Read',
                     color: '#be4d25',
@@ -45509,7 +45518,6 @@ function reportWorkflowMetrics() {
         const diskIOWrite = diskWriteX && diskWriteX.length
             ? yield getLineGraph({
                 label: 'Disk I/O Write (MB)',
-                axisColor,
                 line: {
                     label: 'Write',
                     color: '#6c25be',
@@ -45520,7 +45528,6 @@ function reportWorkflowMetrics() {
         const diskSizeUsage = diskUsedX && diskUsedX.length && diskAvailableX && diskAvailableX.length
             ? yield getStackedAreaGraph({
                 label: 'Disk Usage (MB)',
-                axisColor,
                 areas: [
                     {
                         label: 'Used',
@@ -45537,22 +45544,22 @@ function reportWorkflowMetrics() {
             : null;
         const postContentItems = [];
         if (cpuLoad) {
-            postContentItems.push('### CPU Metrics', `![${cpuLoad.id}](${cpuLoad.url})`, '');
+            postContentItems.push('### CPU Metrics', cpuLoad, '');
         }
         if (memoryUsage) {
-            postContentItems.push('### Memory Metrics', `![${memoryUsage.id}](${memoryUsage.url})`, '');
+            postContentItems.push('### Memory Metrics', memoryUsage, '');
         }
         if ((networkIORead && networkIOWrite) || (diskIORead && diskIOWrite)) {
             postContentItems.push('### IO Metrics', '|               | Read      | Write     |', '|---            |---        |---        |');
         }
         if (networkIORead && networkIOWrite) {
-            postContentItems.push(`| Network I/O   | ![${networkIORead.id}](${networkIORead.url})        | ![${networkIOWrite.id}](${networkIOWrite.url})        |`);
+            postContentItems.push(`| Network I/O   | ${networkIORead}        | ${networkIOWrite}        |`);
         }
         if (diskIORead && diskIOWrite) {
-            postContentItems.push(`| Disk I/O      | ![${diskIORead.id}](${diskIORead.url})              | ![${diskIOWrite.id}](${diskIOWrite.url})              |`);
+            postContentItems.push(`| Disk I/O      | ${diskIORead}              | ${diskIOWrite}              |`);
         }
         if (diskSizeUsage) {
-            postContentItems.push('### Disk Size Metrics', `![${diskSizeUsage.id}](${diskSizeUsage.url})`, '');
+            postContentItems.push('### Disk Size Metrics', diskSizeUsage, '');
         }
         return postContentItems.join('\n');
     });
@@ -45813,6 +45820,11 @@ function generateTraceChartForSteps(job) {
          Post Set up JDK 8 : 1658073655000, 1658073654000
          Post Run actions/checkout@v2 : 1658073655000, 1658073655000
     */
+    // Adjust timestamps to display as UTC instead of local time
+    const adjustToUTC = (timestamp) => {
+        const offset = new Date(timestamp).getTimezoneOffset() * 60 * 1000;
+        return timestamp + offset;
+    };
     chartContent = chartContent.concat('gantt', '\n');
     chartContent = chartContent.concat('\t', `title ${job.name}`, '\n');
     chartContent = chartContent.concat('\t', `dateFormat x`, '\n');
@@ -45833,8 +45845,8 @@ function generateTraceChartForSteps(job) {
             // to show grey
             chartContent = chartContent.concat('done, ');
         }
-        const startTime = new Date(step.started_at).getTime();
-        const finishTime = new Date(step.completed_at).getTime();
+        const startTime = adjustToUTC(new Date(step.started_at).getTime());
+        const finishTime = adjustToUTC(new Date(step.completed_at).getTime());
         chartContent = chartContent.concat(`${Math.min(startTime, finishTime)}, ${finishTime}`, '\n');
     }
     const postContentItems = [
