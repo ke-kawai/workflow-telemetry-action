@@ -86,6 +86,7 @@ export interface StackedAreaGraphOptions {
 }
 
 export interface GraphResponse {
+  readonly success: boolean
   readonly id: string
   readonly url: string
 }
