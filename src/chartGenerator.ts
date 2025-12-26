@@ -18,36 +18,19 @@ import {
 const QUICKCHART_API_URL = 'https://quickchart.io/chart/create'
 
 /**
- * Convert timestamp-based points to relative seconds from start
- */
-function convertToRelativeTime(
-  points: Array<{ x: number; y: number }>
-): Array<{ x: number; y: number }> {
-  if (points.length === 0) return points
-
-  const startTime = points[0].x
-  return points.map(p => ({
-    x: (p.x - startTime) / 1000, // Convert to seconds from start
-    y: p.y
-  }))
-}
-
-/**
  * Generate a line chart using QuickChart API
+ * Time format matches Mermaid gantt chart (HH:mm:ss)
  */
 export async function getLineGraph(
   options: LineGraphOptions
 ): Promise<GraphResponse> {
-  // Convert timestamps to relative seconds
-  const relativePoints = convertToRelativeTime(options.line.points)
-
   const chartConfig = {
     type: 'line',
     data: {
       datasets: [
         {
           label: options.line.label,
-          data: relativePoints,
+          data: options.line.points,
           borderColor: options.line.color,
           backgroundColor: options.line.color + '33',
           fill: false,
@@ -59,15 +42,23 @@ export async function getLineGraph(
       scales: {
         xAxes: [
           {
-            type: 'linear',
+            type: 'time',
+            time: {
+              displayFormats: {
+                millisecond: 'HH:mm:ss',
+                second: 'HH:mm:ss',
+                minute: 'HH:mm:ss',
+                hour: 'HH:mm'
+              },
+              unit: 'second'
+            },
             scaleLabel: {
               display: true,
-              labelString: 'Time (s)',
+              labelString: 'Time',
               fontColor: options.axisColor
             },
             ticks: {
-              fontColor: options.axisColor,
-              callback: (value: number) => `${value}s`
+              fontColor: options.axisColor
             }
           }
         ],
@@ -118,14 +109,14 @@ export async function getLineGraph(
 
 /**
  * Generate a stacked area chart using QuickChart API
+ * Time format matches Mermaid gantt chart (HH:mm:ss)
  */
 export async function getStackedAreaGraph(
   options: StackedAreaGraphOptions
 ): Promise<GraphResponse> {
-  // Convert all area datasets to relative time
   const datasets = options.areas.map((area, index) => ({
     label: area.label,
-    data: convertToRelativeTime(area.points),
+    data: area.points,
     borderColor: area.color,
     backgroundColor: area.color,
     fill: index === 0 ? 'origin' : '-1',
@@ -141,15 +132,23 @@ export async function getStackedAreaGraph(
       scales: {
         xAxes: [
           {
-            type: 'linear',
+            type: 'time',
+            time: {
+              displayFormats: {
+                millisecond: 'HH:mm:ss',
+                second: 'HH:mm:ss',
+                minute: 'HH:mm:ss',
+                hour: 'HH:mm'
+              },
+              unit: 'second'
+            },
             scaleLabel: {
               display: true,
-              labelString: 'Time (s)',
+              labelString: 'Time',
               fontColor: options.axisColor
             },
             ticks: {
-              fontColor: options.axisColor,
-              callback: (value: number) => `${value}s`
+              fontColor: options.axisColor
             }
           }
         ],
