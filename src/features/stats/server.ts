@@ -1,13 +1,13 @@
 import { createServer, IncomingMessage, Server, ServerResponse } from "http";
 import si from "systeminformation";
-import * as logger from "./logger";
+import * as logger from "../../utils/logger";
 import {
   CPUStats,
   MemoryStats,
   DiskStats,
   NetworkStats,
   DiskSizeStats,
-} from "./interfaces";
+} from "../../interfaces";
 
 const STATS_FREQ: number =
   parseInt(process.env.WORKFLOW_TELEMETRY_STAT_FREQ || "") || 5000;

@@ -16,8 +16,8 @@ import {
   ProcessedStats,
   StackedAreaGraphOptions,
   WorkflowJobType,
-} from "./interfaces";
-import * as logger from "./logger";
+} from "../../interfaces";
+import * as logger from "../../utils/logger";
 
 const STAT_SERVER_PORT = 7777;
 
