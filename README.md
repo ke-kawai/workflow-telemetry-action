@@ -58,7 +58,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Collect Workflow Telemetry
-        uses: catchpoint/workflow-telemetry-action@v2
+        uses: ke-kawai/workflow-telemetry-action@v1.0.0
 ```
 
 ## Configuration
