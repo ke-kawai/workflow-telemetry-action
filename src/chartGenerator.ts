@@ -1,4 +1,3 @@
-import axios from 'axios'
 import * as logger from './logger'
 import {
   GraphResponse,
@@ -118,9 +117,16 @@ export async function getLineGraph(options: LineGraphOptions): Promise<string> {
       }
 
       try {
-        const response = await axios.post(QUICKCHART_API_URL, payload)
-        if (response?.data?.success && response?.data?.url) {
-          themeToURLMap.set(theme, response.data.url)
+        const response = await fetch(QUICKCHART_API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        })
+        const data: GraphResponse = await response.json()
+        if (data?.success && data?.url) {
+          themeToURLMap.set(theme, data.url)
         }
       } catch (error: any) {
         logger.error(error)
@@ -213,9 +219,16 @@ export async function getStackedAreaGraph(
       }
 
       try {
-        const response = await axios.post(QUICKCHART_API_URL, payload)
-        if (response?.data?.success && response?.data?.url) {
-          themeToURLMap.set(theme, response.data.url)
+        const response = await fetch(QUICKCHART_API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        })
+        const data: GraphResponse = await response.json()
+        if (data?.success && data?.url) {
+          themeToURLMap.set(theme, data.url)
         }
       } catch (error: any) {
         logger.error(error)

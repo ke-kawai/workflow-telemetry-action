@@ -3,7 +3,7 @@
 var require$$0$1 = require('os');
 var require$$0$2 = require('crypto');
 var require$$1 = require('fs');
-var require$$1$4 = require('path');
+var require$$1$5 = require('path');
 var require$$2 = require('http');
 var require$$3 = require('https');
 var require$$0$5 = require('net');
@@ -11,23 +11,23 @@ var require$$1$1 = require('tls');
 var require$$4 = require('events');
 var require$$0$4 = require('assert');
 var require$$0$3 = require('util');
-var stream = require('stream');
+var require$$0$6 = require('stream');
 var require$$7 = require('buffer');
 var require$$8 = require('querystring');
 var require$$14 = require('stream/web');
-var require$$0$7 = require('node:stream');
+var require$$0$8 = require('node:stream');
 var require$$1$2 = require('node:util');
-var require$$0$6 = require('node:events');
-var require$$0$8 = require('worker_threads');
+var require$$0$7 = require('node:events');
+var require$$0$9 = require('worker_threads');
 var require$$2$1 = require('perf_hooks');
 var require$$5 = require('util/types');
 var require$$4$1 = require('async_hooks');
 var require$$1$3 = require('console');
-var require$$0$9 = require('url');
-var zlib = require('zlib');
+var require$$1$4 = require('url');
+var require$$3$1 = require('zlib');
 var require$$6 = require('string_decoder');
 var require$$0$a = require('diagnostics_channel');
-var require$$1$5 = require('child_process');
+var require$$1$6 = require('child_process');
 var require$$6$1 = require('timers');
 
 var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
@@ -1138,7 +1138,7 @@ function requireUtil$7 () {
 	const assert = require$$0$4;
 	const { kDestroyed, kBodyUsed } = requireSymbols$4();
 	const { IncomingMessage } = require$$2;
-	const stream$1 = stream;
+	const stream = require$$0$6;
 	const net = require$$0$5;
 	const { InvalidArgumentError } = requireErrors();
 	const { Blob } = require$$7;
@@ -1466,8 +1466,8 @@ function requireUtil$7 () {
 	// be re-used without losing state or data.
 	function isDisturbed (body) {
 	  return !!(body && (
-	    stream$1.isDisturbed
-	      ? stream$1.isDisturbed(body) || body[kBodyUsed] // TODO (fix): Why is body[kBodyUsed] needed?
+	    stream.isDisturbed
+	      ? stream.isDisturbed(body) || body[kBodyUsed] // TODO (fix): Why is body[kBodyUsed] needed?
 	      : body[kBodyUsed] ||
 	        body.readableDidRead ||
 	        (body._readableState && body._readableState.dataEmitted) ||
@@ -1477,16 +1477,16 @@ function requireUtil$7 () {
 
 	function isErrored (body) {
 	  return !!(body && (
-	    stream$1.isErrored
-	      ? stream$1.isErrored(body)
+	    stream.isErrored
+	      ? stream.isErrored(body)
 	      : /state: 'errored'/.test(nodeUtil.inspect(body)
 	      )))
 	}
 
 	function isReadable (body) {
 	  return !!(body && (
-	    stream$1.isReadable
-	      ? stream$1.isReadable(body)
+	    stream.isReadable
+	      ? stream.isReadable(body)
 	      : /state: 'readable'/.test(nodeUtil.inspect(body)
 	      )))
 	}
@@ -1798,7 +1798,7 @@ function requireSbmh () {
 	 * Based heavily on the Streaming Boyer-Moore-Horspool C++ implementation
 	 * by Hongli Lai at: https://github.com/FooBarWidget/boyer-moore-horspool
 	 */
-	const EventEmitter = require$$0$6.EventEmitter;
+	const EventEmitter = require$$0$7.EventEmitter;
 	const inherits = require$$1$2.inherits;
 
 	function SBMH (needle) {
@@ -2009,7 +2009,7 @@ function requirePartStream () {
 	hasRequiredPartStream = 1;
 
 	const inherits = require$$1$2.inherits;
-	const ReadableStream = require$$0$7.Readable;
+	const ReadableStream = require$$0$8.Readable;
 
 	function PartStream (opts) {
 	  ReadableStream.call(this, opts);
@@ -2053,7 +2053,7 @@ function requireHeaderParser () {
 	if (hasRequiredHeaderParser) return HeaderParser_1;
 	hasRequiredHeaderParser = 1;
 
-	const EventEmitter = require$$0$6.EventEmitter;
+	const EventEmitter = require$$0$7.EventEmitter;
 	const inherits = require$$1$2.inherits;
 	const getLimit = requireGetLimit();
 
@@ -2161,7 +2161,7 @@ function requireDicer () {
 	if (hasRequiredDicer) return Dicer_1;
 	hasRequiredDicer = 1;
 
-	const WritableStream = require$$0$7.Writable;
+	const WritableStream = require$$0$8.Writable;
 	const inherits = require$$1$2.inherits;
 
 	const StreamSearch = requireSbmh();
@@ -2738,7 +2738,7 @@ function requireMultipart () {
 	//  * support limits.fieldNameSize
 	//     -- this will require modifications to utils.parseParams
 
-	const { Readable } = require$$0$7;
+	const { Readable } = require$$0$8;
 	const { inherits } = require$$1$2;
 
 	const Dicer = requireDicer();
@@ -3304,7 +3304,7 @@ function requireMain () {
 	if (hasRequiredMain) return main.exports;
 	hasRequiredMain = 1;
 
-	const WritableStream = require$$0$7.Writable;
+	const WritableStream = require$$0$8.Writable;
 	const { inherits } = require$$1$2;
 	const Dicer = requireDicer();
 
@@ -3397,7 +3397,7 @@ function requireConstants$3 () {
 	if (hasRequiredConstants$3) return constants$3;
 	hasRequiredConstants$3 = 1;
 
-	const { MessageChannel, receiveMessageOnPort } = require$$0$8;
+	const { MessageChannel, receiveMessageOnPort } = require$$0$9;
 
 	const corsSafeListedMethods = ['GET', 'HEAD', 'POST'];
 	const corsSafeListedMethodsSet = new Set(corsSafeListedMethods);
@@ -8812,7 +8812,7 @@ function requireClient () {
 	const assert = require$$0$4;
 	const net = require$$0$5;
 	const http = require$$2;
-	const { pipeline } = stream;
+	const { pipeline } = require$$0$6;
 	const util = requireUtil$7();
 	const timers = requireTimers();
 	const Request = requireRequest$1();
@@ -11995,7 +11995,7 @@ function requireReadable () {
 	hasRequiredReadable = 1;
 
 	const assert = require$$0$4;
-	const { Readable } = stream;
+	const { Readable } = require$$0$6;
 	const { RequestAbortedError, NotSupportedError, InvalidArgumentError } = requireErrors();
 	const util = requireUtil$7();
 	const { ReadableStreamFrom, toUSVString } = requireUtil$7();
@@ -12627,7 +12627,7 @@ function requireApiStream () {
 	if (hasRequiredApiStream) return apiStream;
 	hasRequiredApiStream = 1;
 
-	const { finished, PassThrough } = stream;
+	const { finished, PassThrough } = require$$0$6;
 	const {
 	  InvalidArgumentError,
 	  InvalidReturnValueError,
@@ -12824,10 +12824,10 @@ function requireApiStream () {
 	  }
 	}
 
-	function stream$1 (opts, factory, callback) {
+	function stream (opts, factory, callback) {
 	  if (callback === undefined) {
 	    return new Promise((resolve, reject) => {
-	      stream$1.call(this, opts, factory, (err, data) => {
+	      stream.call(this, opts, factory, (err, data) => {
 	        return err ? reject(err) : resolve(data)
 	      });
 	    })
@@ -12844,7 +12844,7 @@ function requireApiStream () {
 	  }
 	}
 
-	apiStream = stream$1;
+	apiStream = stream;
 	return apiStream;
 }
 
@@ -12859,7 +12859,7 @@ function requireApiPipeline () {
 	  Readable,
 	  Duplex,
 	  PassThrough
-	} = stream;
+	} = require$$0$6;
 	const {
 	  InvalidArgumentError,
 	  InvalidReturnValueError,
@@ -14152,7 +14152,7 @@ function requirePendingInterceptorsFormatter () {
 	if (hasRequiredPendingInterceptorsFormatter) return pendingInterceptorsFormatter;
 	hasRequiredPendingInterceptorsFormatter = 1;
 
-	const { Transform } = stream;
+	const { Transform } = require$$0$6;
 	const { Console } = require$$1$3;
 
 	/**
@@ -14380,7 +14380,7 @@ function requireProxyAgent () {
 	hasRequiredProxyAgent = 1;
 
 	const { kProxy, kClose, kDestroy, kInterceptors } = requireSymbols$4();
-	const { URL } = require$$0$9;
+	const { URL } = require$$1$4;
 	const Agent = requireAgent();
 	const Pool = requirePool();
 	const DispatcherBase = requireDispatcherBase();
@@ -17138,7 +17138,7 @@ function requireFetch () {
 	} = requireResponse();
 	const { Headers } = requireHeaders();
 	const { Request, makeRequest } = requireRequest();
-	const zlib$1 = zlib;
+	const zlib = require$$3$1;
 	const {
 	  bytesMatch,
 	  makePolicyContainer,
@@ -17182,7 +17182,7 @@ function requireFetch () {
 	} = requireConstants$3();
 	const { kHeadersList } = requireSymbols$4();
 	const EE = require$$4;
-	const { Readable, pipeline } = stream;
+	const { Readable, pipeline } = require$$0$6;
 	const { addAbortListener, isErrored, isReadable, nodeMajor, nodeMinor } = requireUtil$7();
 	const { dataURLProcessor, serializeAMimeType } = requireDataURL();
 	const { TransformStream } = require$$14;
@@ -19089,18 +19089,18 @@ function requireFetch () {
 	            for (const coding of codings) {
 	              // https://www.rfc-editor.org/rfc/rfc9112.html#section-7.2
 	              if (coding === 'x-gzip' || coding === 'gzip') {
-	                decoders.push(zlib$1.createGunzip({
+	                decoders.push(zlib.createGunzip({
 	                  // Be less strict when decoding compressed responses, since sometimes
 	                  // servers send slightly invalid responses that are still accepted
 	                  // by common browsers.
 	                  // Always using Z_SYNC_FLUSH is what cURL does.
-	                  flush: zlib$1.constants.Z_SYNC_FLUSH,
-	                  finishFlush: zlib$1.constants.Z_SYNC_FLUSH
+	                  flush: zlib.constants.Z_SYNC_FLUSH,
+	                  finishFlush: zlib.constants.Z_SYNC_FLUSH
 	                }));
 	              } else if (coding === 'deflate') {
-	                decoders.push(zlib$1.createInflate());
+	                decoders.push(zlib.createInflate());
 	              } else if (coding === 'br') {
-	                decoders.push(zlib$1.createBrotliDecompress());
+	                decoders.push(zlib.createBrotliDecompress());
 	              } else {
 	                decoders.length = 0;
 	                break
@@ -22330,7 +22330,7 @@ function requireEvents () {
 
 	const { webidl } = requireWebidl();
 	const { kEnumerableProperty } = requireUtil$7();
-	const { MessagePort } = require$$0$8;
+	const { MessagePort } = require$$0$9;
 
 	/**
 	 * @see https://html.spec.whatwg.org/multipage/comms.html#messageevent
@@ -23227,7 +23227,7 @@ function requireReceiver () {
 	if (hasRequiredReceiver) return receiver;
 	hasRequiredReceiver = 1;
 
-	const { Writable } = stream;
+	const { Writable } = require$$0$6;
 	const diagnosticsChannel = require$$0$a;
 	const { parserStates, opcodes, states, emptyBuffer } = requireConstants();
 	const { kReadyState, kSentClose, kResponse, kReceivedClose } = requireSymbols();
@@ -25637,7 +25637,7 @@ function requirePathUtils () {
 	pathUtils.toPosixPath = toPosixPath;
 	pathUtils.toWin32Path = toWin32Path;
 	pathUtils.toPlatformPath = toPlatformPath;
-	const path = __importStar(require$$1$4);
+	const path = __importStar(require$$1$5);
 	/**
 	 * toPosixPath converts the given path to the posix form. On Windows, \\ will be
 	 * replaced with /.
@@ -25741,7 +25741,7 @@ function requireIoUtil () {
 		exports$1.tryGetExecutablePath = tryGetExecutablePath;
 		exports$1.getCmdPath = getCmdPath;
 		const fs = __importStar(require$$1);
-		const path = __importStar(require$$1$4);
+		const path = __importStar(require$$1$5);
 		_a = fs.promises
 		// export const {open} = 'fs'
 		, exports$1.chmod = _a.chmod, exports$1.copyFile = _a.copyFile, exports$1.lstat = _a.lstat, exports$1.mkdir = _a.mkdir, exports$1.open = _a.open, exports$1.readdir = _a.readdir, exports$1.rename = _a.rename, exports$1.rm = _a.rm, exports$1.rmdir = _a.rmdir, exports$1.stat = _a.stat, exports$1.symlink = _a.symlink, exports$1.unlink = _a.unlink;
@@ -25971,7 +25971,7 @@ function requireIo () {
 	io.which = which;
 	io.findInPath = findInPath;
 	const assert_1 = require$$0$4;
-	const path = __importStar(require$$1$4);
+	const path = __importStar(require$$1$5);
 	const ioUtil = __importStar(requireIoUtil());
 	/**
 	 * Copies a file or folder.
@@ -26287,8 +26287,8 @@ function requireToolrunner () {
 	toolrunner.argStringToArray = argStringToArray;
 	const os = __importStar(require$$0$1);
 	const events = __importStar(require$$4);
-	const child = __importStar(require$$1$5);
-	const path = __importStar(require$$1$4);
+	const child = __importStar(require$$1$6);
+	const path = __importStar(require$$1$5);
 	const io = __importStar(requireIo());
 	const ioUtil = __importStar(requireIoUtil());
 	const timers_1 = require$$6$1;
@@ -27178,7 +27178,7 @@ function requireCore () {
 		const file_command_1 = requireFileCommand();
 		const utils_1 = requireUtils$1();
 		const os = __importStar(require$$0$1);
-		const path = __importStar(require$$1$4);
+		const path = __importStar(require$$1$5);
 		const oidc_utils_1 = requireOidcUtils();
 		/**
 		 * The code to exit an action
@@ -27533,7 +27533,7 @@ async function start$1() {
                 metricFrequency = metricFrequencyVal * 1000;
             }
         }
-        const child = require$$1$5.spawn(process.argv[0], [require$$1$4.join(__dirname, '../scw/index.js')], {
+        const child = require$$1$6.spawn(process.argv[0], [require$$1$5.join(__dirname, '../scw/index.js')], {
             detached: true,
             stdio: 'ignore',
             env: {
@@ -27583,10 +27583,10 @@ function requireUtil () {
 
 	const os = require$$0$1;
 	const fs = require$$1;
-	const path = require$$1$4;
-	const spawn = require$$1$5.spawn;
-	const exec = require$$1$5.exec;
-	const execSync = require$$1$5.execSync;
+	const path = require$$1$5;
+	const spawn = require$$1$6.spawn;
+	const exec = require$$1$6.exec;
+	const execSync = require$$1$6.execSync;
 	const util$1 = require$$0$3;
 
 	let _platform = process.platform;
@@ -30306,8 +30306,8 @@ function requireOsinfo () {
 	const os = require$$0$1;
 	const fs = require$$1;
 	const util = requireUtil();
-	const exec = require$$1$5.exec;
-	const execSync = require$$1$5.execSync;
+	const exec = require$$1$6.exec;
+	const execSync = require$$1$6.execSync;
 
 	let _platform = process.platform;
 
@@ -31595,9 +31595,9 @@ function requireSystem () {
 	const os = require$$0$1;
 	const util = requireUtil();
 	const { uuid } = requireOsinfo();
-	const exec = require$$1$5.exec;
-	const execSync = require$$1$5.execSync;
-	const execPromise = util.promisify(require$$1$5.exec);
+	const exec = require$$1$6.exec;
+	const execSync = require$$1$6.execSync;
+	const execPromise = util.promisify(require$$1$6.exec);
 
 	const _platform = process.platform;
 
@@ -32457,8 +32457,8 @@ function requireCpu () {
 	// ----------------------------------------------------------------------------------
 
 	const os = require$$0$1;
-	const exec = require$$1$5.exec;
-	const execSync = require$$1$5.execSync;
+	const exec = require$$1$6.exec;
+	const execSync = require$$1$6.execSync;
 	const fs = require$$1;
 	const util = requireUtil();
 
@@ -34703,8 +34703,8 @@ function requireMemory () {
 	// ----------------------------------------------------------------------------------
 
 	const os = require$$0$1;
-	const exec = require$$1$5.exec;
-	const execSync = require$$1$5.execSync;
+	const exec = require$$1$6.exec;
+	const execSync = require$$1$6.execSync;
 	const util = requireUtil();
 	const fs = require$$1;
 
@@ -35275,7 +35275,7 @@ function requireBattery () {
 	// 6. Battery
 	// ----------------------------------------------------------------------------------
 
-	const exec = require$$1$5.exec;
+	const exec = require$$1$6.exec;
 	const fs = require$$1;
 	const util = requireUtil();
 
@@ -35597,8 +35597,8 @@ function requireGraphics () {
 	// ----------------------------------------------------------------------------------
 
 	const fs = require$$1;
-	const exec = require$$1$5.exec;
-	const execSync = require$$1$5.execSync;
+	const exec = require$$1$6.exec;
+	const execSync = require$$1$6.execSync;
 	const util = requireUtil();
 
 	let _platform = process.platform;
@@ -36845,9 +36845,9 @@ function requireFilesystem () {
 	const util = requireUtil();
 	const fs = require$$1;
 
-	const exec = require$$1$5.exec;
-	const execSync = require$$1$5.execSync;
-	const execPromiseSave = util.promisifySave(require$$1$5.exec);
+	const exec = require$$1$6.exec;
+	const execSync = require$$1$6.execSync;
+	const execPromiseSave = util.promisifySave(require$$1$6.exec);
 
 	const _platform = process.platform;
 
@@ -38544,8 +38544,8 @@ function requireNetwork () {
 	// ----------------------------------------------------------------------------------
 
 	const os = require$$0$1;
-	const exec = require$$1$5.exec;
-	const execSync = require$$1$5.execSync;
+	const exec = require$$1$6.exec;
+	const execSync = require$$1$6.execSync;
 	const fs = require$$1;
 	const util = requireUtil();
 
@@ -40571,8 +40571,8 @@ function requireWifi () {
 	// ----------------------------------------------------------------------------------
 
 	const os = require$$0$1;
-	const exec = require$$1$5.exec;
-	const execSync = require$$1$5.execSync;
+	const exec = require$$1$6.exec;
+	const execSync = require$$1$6.execSync;
 	const util = requireUtil();
 
 	let _platform = process.platform;
@@ -41415,9 +41415,9 @@ function requireProcesses () {
 
 	const os = require$$0$1;
 	const fs = require$$1;
-	const path = require$$1$4;
-	const exec = require$$1$5.exec;
-	const execSync = require$$1$5.execSync;
+	const path = require$$1$5;
+	const exec = require$$1$6.exec;
+	const execSync = require$$1$6.execSync;
 
 	const util = requireUtil();
 
@@ -42853,7 +42853,7 @@ function requireUsers () {
 	// 11. Users/Sessions
 	// ----------------------------------------------------------------------------------
 
-	const exec = require$$1$5.exec;
+	const exec = require$$1$6.exec;
 	const util = requireUtil();
 
 	let _platform = process.platform;
@@ -44572,7 +44572,7 @@ function requireVirtualbox () {
 	// ----------------------------------------------------------------------------------
 
 	const os = require$$0$1;
-	const exec = require$$1$5.exec;
+	const exec = require$$1$6.exec;
 	const util = requireUtil();
 
 	function vboxInfo(callback) {
@@ -44687,7 +44687,7 @@ function requirePrinter () {
 	// 15. printers
 	// ----------------------------------------------------------------------------------
 
-	const exec = require$$1$5.exec;
+	const exec = require$$1$6.exec;
 	const util = requireUtil();
 
 	let _platform = process.platform;
@@ -44906,7 +44906,7 @@ function requireUsb () {
 	// 16. usb
 	// ----------------------------------------------------------------------------------
 
-	const exec = require$$1$5.exec;
+	const exec = require$$1$6.exec;
 	const util = requireUtil();
 
 	let _platform = process.platform;
@@ -45193,8 +45193,8 @@ function requireAudio () {
 	// 16. audio
 	// ----------------------------------------------------------------------------------
 
-	const exec = require$$1$5.exec;
-	const execSync = require$$1$5.execSync;
+	const exec = require$$1$6.exec;
+	const execSync = require$$1$6.execSync;
 	const util = requireUtil();
 
 	let _platform = process.platform;
@@ -46570,9 +46570,9 @@ function requireBluetooth () {
 	// 17. bluetooth
 	// ----------------------------------------------------------------------------------
 
-	const exec = require$$1$5.exec;
-	const execSync = require$$1$5.execSync;
-	const path = require$$1$4;
+	const exec = require$$1$6.exec;
+	const execSync = require$$1$6.execSync;
+	const path = require$$1$5;
 	const util = requireUtil();
 	const bluetoothVendors = requireBluetoothVendors();
 	const fs = require$$1;
@@ -47552,8 +47552,8 @@ function requireSprintf () {
 
 requireSprintf();
 
-const PROC_TRACER_STATE_FILE = require$$1$4.join(__dirname, '../.proc-tracer-started');
-const PROC_TRACER_DATA_FILE = require$$1$4.join(__dirname, '../proc-tracer-data.json');
+const PROC_TRACER_STATE_FILE = require$$1$5.join(__dirname, '../.proc-tracer-started');
+const PROC_TRACER_DATA_FILE = require$$1$5.join(__dirname, '../proc-tracer-data.json');
 const COLLECTION_INTERVAL_MS = 1000; // Collect process info every 1 second
 let collectionInterval = null;
 let trackedProcesses = new Map();

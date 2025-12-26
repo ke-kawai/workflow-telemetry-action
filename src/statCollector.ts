@@ -1,6 +1,5 @@
 import { ChildProcess, spawn } from 'child_process'
 import path from 'path'
-import axios from 'axios'
 import * as core from '@actions/core'
 import {
   CPUStats,
@@ -25,11 +24,13 @@ const STAT_SERVER_PORT = 7777
 
 async function triggerStatCollect(): Promise<void> {
   logger.debug('Triggering stat collect ...')
-  const response = await axios.post(
-    `http://localhost:${STAT_SERVER_PORT}/collect`
+  const response = await fetch(
+    `http://localhost:${STAT_SERVER_PORT}/collect`,
+    { method: 'POST' }
   )
+  const data = await response.json()
   if (logger.isDebugEnabled()) {
-    logger.debug(`Triggered stat collect: ${JSON.stringify(response.data)}`)
+    logger.debug(`Triggered stat collect: ${JSON.stringify(data)}`)
   }
 }
 
@@ -184,12 +185,13 @@ async function getCPUStats(): Promise<ProcessedCPUStats> {
   const systemLoadX: ProcessedStats[] = []
 
   logger.debug('Getting CPU stats ...')
-  const response = await axios.get(`http://localhost:${STAT_SERVER_PORT}/cpu`)
+  const response = await fetch(`http://localhost:${STAT_SERVER_PORT}/cpu`)
+  const data = await response.json()
   if (logger.isDebugEnabled()) {
-    logger.debug(`Got CPU stats: ${JSON.stringify(response.data)}`)
+    logger.debug(`Got CPU stats: ${JSON.stringify(data)}`)
   }
 
-  response.data.forEach((element: CPUStats) => {
+  data.forEach((element: CPUStats) => {
     userLoadX.push({
       x: element.time,
       y: element.userLoad && element.userLoad > 0 ? element.userLoad : 0
@@ -209,14 +211,15 @@ async function getMemoryStats(): Promise<ProcessedMemoryStats> {
   const availableMemoryX: ProcessedStats[] = []
 
   logger.debug('Getting memory stats ...')
-  const response = await axios.get(
+  const response = await fetch(
     `http://localhost:${STAT_SERVER_PORT}/memory`
   )
+  const data = await response.json()
   if (logger.isDebugEnabled()) {
-    logger.debug(`Got memory stats: ${JSON.stringify(response.data)}`)
+    logger.debug(`Got memory stats: ${JSON.stringify(data)}`)
   }
 
-  response.data.forEach((element: MemoryStats) => {
+  data.forEach((element: MemoryStats) => {
     activeMemoryX.push({
       x: element.time,
       y:
@@ -242,14 +245,15 @@ async function getNetworkStats(): Promise<ProcessedNetworkStats> {
   const networkWriteX: ProcessedStats[] = []
 
   logger.debug('Getting network stats ...')
-  const response = await axios.get(
+  const response = await fetch(
     `http://localhost:${STAT_SERVER_PORT}/network`
   )
+  const data = await response.json()
   if (logger.isDebugEnabled()) {
-    logger.debug(`Got network stats: ${JSON.stringify(response.data)}`)
+    logger.debug(`Got network stats: ${JSON.stringify(data)}`)
   }
 
-  response.data.forEach((element: NetworkStats) => {
+  data.forEach((element: NetworkStats) => {
     networkReadX.push({
       x: element.time,
       y: element.rxMb && element.rxMb > 0 ? element.rxMb : 0
@@ -269,12 +273,13 @@ async function getDiskStats(): Promise<ProcessedDiskStats> {
   const diskWriteX: ProcessedStats[] = []
 
   logger.debug('Getting disk stats ...')
-  const response = await axios.get(`http://localhost:${STAT_SERVER_PORT}/disk`)
+  const response = await fetch(`http://localhost:${STAT_SERVER_PORT}/disk`)
+  const data = await response.json()
   if (logger.isDebugEnabled()) {
-    logger.debug(`Got disk stats: ${JSON.stringify(response.data)}`)
+    logger.debug(`Got disk stats: ${JSON.stringify(data)}`)
   }
 
-  response.data.forEach((element: DiskStats) => {
+  data.forEach((element: DiskStats) => {
     diskReadX.push({
       x: element.time,
       y: element.rxMb && element.rxMb > 0 ? element.rxMb : 0
@@ -294,14 +299,15 @@ async function getDiskSizeStats(): Promise<ProcessedDiskSizeStats> {
   const diskUsedX: ProcessedStats[] = []
 
   logger.debug('Getting disk size stats ...')
-  const response = await axios.get(
+  const response = await fetch(
     `http://localhost:${STAT_SERVER_PORT}/disk_size`
   )
+  const data = await response.json()
   if (logger.isDebugEnabled()) {
-    logger.debug(`Got disk size stats: ${JSON.stringify(response.data)}`)
+    logger.debug(`Got disk size stats: ${JSON.stringify(data)}`)
   }
 
-  response.data.forEach((element: DiskSizeStats) => {
+  data.forEach((element: DiskSizeStats) => {
     diskAvailableX.push({
       x: element.time,
       y:
