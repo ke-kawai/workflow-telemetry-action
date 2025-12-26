@@ -87,6 +87,7 @@ export async function getLineGraph(
   const payload = {
     width: 800,
     height: 400,
+    backgroundColor: 'white',
     chart: chartConfig
   }
 
@@ -178,6 +179,7 @@ export async function getStackedAreaGraph(
   const payload = {
     width: 800,
     height: 400,
+    backgroundColor: 'white',
     chart: chartConfig
   }
 
