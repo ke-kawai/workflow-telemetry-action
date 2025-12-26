@@ -28,9 +28,14 @@ async function triggerStatCollect(): Promise<void> {
     `http://localhost:${STAT_SERVER_PORT}/collect`,
     { method: 'POST' }
   )
-  const data = await response.json()
   if (logger.isDebugEnabled()) {
-    logger.debug(`Triggered stat collect: ${JSON.stringify(data)}`)
+    const text = await response.text()
+    if (text) {
+      const data = JSON.parse(text)
+      logger.debug(`Triggered stat collect: ${JSON.stringify(data)}`)
+    } else {
+      logger.debug('Triggered stat collect: no response body')
+    }
   }
 }
 

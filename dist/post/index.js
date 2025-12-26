@@ -69779,9 +69779,15 @@ const STAT_SERVER_PORT = 7777;
 async function triggerStatCollect() {
     debug('Triggering stat collect ...');
     const response = await fetch(`http://localhost:${STAT_SERVER_PORT}/collect`, { method: 'POST' });
-    const data = await response.json();
     if (isDebugEnabled()) {
-        debug(`Triggered stat collect: ${JSON.stringify(data)}`);
+        const text = await response.text();
+        if (text) {
+            const data = JSON.parse(text);
+            debug(`Triggered stat collect: ${JSON.stringify(data)}`);
+        }
+        else {
+            debug('Triggered stat collect: no response body');
+        }
     }
 }
 async function reportWorkflowMetrics() {
