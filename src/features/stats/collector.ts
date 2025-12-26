@@ -20,11 +20,19 @@ import {
 import * as logger from "../../utils/logger";
 import { SERVER } from "../../constants";
 
-const STAT_SERVER_PORT = SERVER.PORT;
+async function fetchStats<T>(endpoint: string): Promise<T[]> {
+  logger.debug(`Getting ${endpoint} stats ...`);
+  const response = await fetch(`http://localhost:${SERVER.PORT}/${endpoint}`);
+  const data = await response.json();
+  if (logger.isDebugEnabled()) {
+    logger.debug(`Got ${endpoint} stats: ${JSON.stringify(data)}`);
+  }
+  return data;
+}
 
 async function triggerStatCollect(): Promise<void> {
   logger.debug("Triggering stat collect ...");
-  const response = await fetch(`http://localhost:${STAT_SERVER_PORT}/collect`, {
+  const response = await fetch(`http://localhost:${SERVER.PORT}/collect`, {
     method: "POST",
   });
   if (logger.isDebugEnabled()) {
@@ -188,12 +196,7 @@ async function getCPUStats(): Promise<ProcessedCPUStats> {
   const userLoadX: ProcessedStats[] = [];
   const systemLoadX: ProcessedStats[] = [];
 
-  logger.debug("Getting CPU stats ...");
-  const response = await fetch(`http://localhost:${STAT_SERVER_PORT}/cpu`);
-  const data = await response.json();
-  if (logger.isDebugEnabled()) {
-    logger.debug(`Got CPU stats: ${JSON.stringify(data)}`);
-  }
+  const data = await fetchStats<CPUStats>("cpu");
 
   data.forEach((element: CPUStats) => {
     userLoadX.push({
@@ -214,12 +217,7 @@ async function getMemoryStats(): Promise<ProcessedMemoryStats> {
   const activeMemoryX: ProcessedStats[] = [];
   const availableMemoryX: ProcessedStats[] = [];
 
-  logger.debug("Getting memory stats ...");
-  const response = await fetch(`http://localhost:${STAT_SERVER_PORT}/memory`);
-  const data = await response.json();
-  if (logger.isDebugEnabled()) {
-    logger.debug(`Got memory stats: ${JSON.stringify(data)}`);
-  }
+  const data = await fetchStats<MemoryStats>("memory");
 
   data.forEach((element: MemoryStats) => {
     activeMemoryX.push({
@@ -246,12 +244,7 @@ async function getNetworkStats(): Promise<ProcessedNetworkStats> {
   const networkReadX: ProcessedStats[] = [];
   const networkWriteX: ProcessedStats[] = [];
 
-  logger.debug("Getting network stats ...");
-  const response = await fetch(`http://localhost:${STAT_SERVER_PORT}/network`);
-  const data = await response.json();
-  if (logger.isDebugEnabled()) {
-    logger.debug(`Got network stats: ${JSON.stringify(data)}`);
-  }
+  const data = await fetchStats<NetworkStats>("network");
 
   data.forEach((element: NetworkStats) => {
     networkReadX.push({
@@ -272,12 +265,7 @@ async function getDiskStats(): Promise<ProcessedDiskStats> {
   const diskReadX: ProcessedStats[] = [];
   const diskWriteX: ProcessedStats[] = [];
 
-  logger.debug("Getting disk stats ...");
-  const response = await fetch(`http://localhost:${STAT_SERVER_PORT}/disk`);
-  const data = await response.json();
-  if (logger.isDebugEnabled()) {
-    logger.debug(`Got disk stats: ${JSON.stringify(data)}`);
-  }
+  const data = await fetchStats<DiskStats>("disk");
 
   data.forEach((element: DiskStats) => {
     diskReadX.push({
@@ -298,14 +286,7 @@ async function getDiskSizeStats(): Promise<ProcessedDiskSizeStats> {
   const diskAvailableX: ProcessedStats[] = [];
   const diskUsedX: ProcessedStats[] = [];
 
-  logger.debug("Getting disk size stats ...");
-  const response = await fetch(
-    `http://localhost:${STAT_SERVER_PORT}/disk_size`
-  );
-  const data = await response.json();
-  if (logger.isDebugEnabled()) {
-    logger.debug(`Got disk size stats: ${JSON.stringify(data)}`);
-  }
+  const data = await fetchStats<DiskSizeStats>("disk_size");
 
   data.forEach((element: DiskSizeStats) => {
     diskAvailableX.push({
@@ -338,8 +319,6 @@ async function getStackedAreaGraph(
   const chartGenerator = await import("./chartGenerator");
   return chartGenerator.getStackedAreaGraph(options);
 }
-
-///////////////////////////
 
 export async function start(): Promise<boolean> {
   logger.info(`Starting stat collector ...`);

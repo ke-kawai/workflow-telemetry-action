@@ -32383,7 +32383,10 @@ const QUICKCHART = {
     /** Chart width in pixels */
     CHART_WIDTH: 800,
     /** Chart height in pixels */
-    CHART_HEIGHT: 400};
+    CHART_HEIGHT: 400,
+    /** Request timeout in milliseconds */
+    REQUEST_TIMEOUT_MS: 10000,
+};
 /**
  * Theme Configuration
  */
@@ -32407,10 +32410,22 @@ const FILE_PATHS = {
     PROC_TRACER_DATA: "proc-tracer-data.json",
 };
 
-const STAT_SERVER_PORT = SERVER.PORT;
+///////////////////////////
+// Common fetch utility
+///////////////////////////
+async function fetchStats(endpoint) {
+    debug(`Getting ${endpoint} stats ...`);
+    const response = await fetch(`http://localhost:${SERVER.PORT}/${endpoint}`);
+    const data = await response.json();
+    if (isDebugEnabled()) {
+        debug(`Got ${endpoint} stats: ${JSON.stringify(data)}`);
+    }
+    return data;
+}
+///////////////////////////
 async function triggerStatCollect() {
     debug("Triggering stat collect ...");
-    const response = await fetch(`http://localhost:${STAT_SERVER_PORT}/collect`, {
+    const response = await fetch(`http://localhost:${SERVER.PORT}/collect`, {
         method: "POST",
     });
     if (isDebugEnabled()) {
@@ -32548,12 +32563,7 @@ async function reportWorkflowMetrics() {
 async function getCPUStats() {
     const userLoadX = [];
     const systemLoadX = [];
-    debug("Getting CPU stats ...");
-    const response = await fetch(`http://localhost:${STAT_SERVER_PORT}/cpu`);
-    const data = await response.json();
-    if (isDebugEnabled()) {
-        debug(`Got CPU stats: ${JSON.stringify(data)}`);
-    }
+    const data = await fetchStats("cpu");
     data.forEach((element) => {
         userLoadX.push({
             x: element.time,
@@ -32569,12 +32579,7 @@ async function getCPUStats() {
 async function getMemoryStats() {
     const activeMemoryX = [];
     const availableMemoryX = [];
-    debug("Getting memory stats ...");
-    const response = await fetch(`http://localhost:${STAT_SERVER_PORT}/memory`);
-    const data = await response.json();
-    if (isDebugEnabled()) {
-        debug(`Got memory stats: ${JSON.stringify(data)}`);
-    }
+    const data = await fetchStats("memory");
     data.forEach((element) => {
         activeMemoryX.push({
             x: element.time,
@@ -32594,12 +32599,7 @@ async function getMemoryStats() {
 async function getNetworkStats() {
     const networkReadX = [];
     const networkWriteX = [];
-    debug("Getting network stats ...");
-    const response = await fetch(`http://localhost:${STAT_SERVER_PORT}/network`);
-    const data = await response.json();
-    if (isDebugEnabled()) {
-        debug(`Got network stats: ${JSON.stringify(data)}`);
-    }
+    const data = await fetchStats("network");
     data.forEach((element) => {
         networkReadX.push({
             x: element.time,
@@ -32615,12 +32615,7 @@ async function getNetworkStats() {
 async function getDiskStats() {
     const diskReadX = [];
     const diskWriteX = [];
-    debug("Getting disk stats ...");
-    const response = await fetch(`http://localhost:${STAT_SERVER_PORT}/disk`);
-    const data = await response.json();
-    if (isDebugEnabled()) {
-        debug(`Got disk stats: ${JSON.stringify(data)}`);
-    }
+    const data = await fetchStats("disk");
     data.forEach((element) => {
         diskReadX.push({
             x: element.time,
@@ -32636,12 +32631,7 @@ async function getDiskStats() {
 async function getDiskSizeStats() {
     const diskAvailableX = [];
     const diskUsedX = [];
-    debug("Getting disk size stats ...");
-    const response = await fetch(`http://localhost:${STAT_SERVER_PORT}/disk_size`);
-    const data = await response.json();
-    if (isDebugEnabled()) {
-        debug(`Got disk size stats: ${JSON.stringify(data)}`);
-    }
+    const data = await fetchStats("disk_size");
     data.forEach((element) => {
         diskAvailableX.push({
             x: element.time,
@@ -52460,6 +52450,28 @@ function requireLib () {
 var libExports = requireLib();
 var si = /*@__PURE__*/getDefaultExportFromCjs(libExports);
 
+/**
+ * String and number formatting utilities
+ */
+/**
+ * Pad a string or number with spaces on the left to reach a specified width
+ */
+function padStart(val, width) {
+    return String(val).padStart(width);
+}
+/**
+ * Pad a string or number with spaces on the right to reach a specified width
+ */
+function padEnd(val, width) {
+    return String(val).padEnd(width);
+}
+/**
+ * Format a number with a fixed number of decimal places and pad with spaces on the left
+ */
+function formatFloat(val, width, precision) {
+    return val.toFixed(precision).padStart(width);
+}
+
 const PROC_TRACER_STATE_FILE = require$$1$6.join(__dirname, "../", FILE_PATHS.PROC_TRACER_STATE);
 const PROC_TRACER_DATA_FILE = require$$1$6.join(__dirname, "../", FILE_PATHS.PROC_TRACER_DATA);
 const DEFAULT_PROC_TRACE_CHART_MAX_COUNT = PROCESS_TRACE.DEFAULT_CHART_MAX_COUNT;
@@ -52657,10 +52669,6 @@ async function report(currentJob) {
         ///////////////////////////////////////////////////////////////////////////
         let tableContent = "";
         if (procTraceTableShow) {
-            // Helper functions for formatting
-            const padStart = (val, width) => String(val).padStart(width);
-            const padEnd = (val, width) => String(val).padEnd(width);
-            const formatFloat = (val, width, precision) => val.toFixed(precision).padStart(width);
             const processInfos = [];
             processInfos.push(`${padEnd("NAME", 16)} ${padStart("PID", 7)} ${padStart("START TIME", 15)} ${padStart("DURATION (ms)", 15)} ${padStart("MAX CPU %", 10)} ${padStart("MAX MEM %", 10)} ${padEnd("COMMAND + PARAMS", 40)}`);
             for (const proc of filteredProcesses) {
@@ -52813,7 +52821,6 @@ run();
  *
  * Based on PR #98: https://github.com/catchpoint/workflow-telemetry-action/pull/98
  */
-const QUICKCHART_API_URL = QUICKCHART.API_URL;
 const THEME_TO_CONFIG = {
     light: {
         axisColor: THEME.LIGHT.AXIS_COLOR,
@@ -52831,6 +52838,79 @@ function generatePictureHTML(themeToURLMap, label) {
     const fallbackUrl = themeToURLMap.get("light") || "";
     return `<picture>${sources}<img alt="${label}" src="${fallbackUrl}"></picture>`;
 }
+///////////////////////////
+// Common chart configuration helpers
+///////////////////////////
+function createTimeScaleConfig(config) {
+    return {
+        type: "time",
+        time: {
+            displayFormats: {
+                millisecond: "HH:mm:ss",
+                second: "HH:mm:ss",
+                minute: "HH:mm:ss",
+                hour: "HH:mm",
+            },
+            unit: "second",
+        },
+        scaleLabel: {
+            display: true,
+            labelString: "Time",
+            fontColor: config.axisColor,
+        },
+        ticks: {
+            fontColor: config.axisColor,
+        },
+    };
+}
+function createYAxisConfig(config, label, stacked = false) {
+    return {
+        stacked,
+        scaleLabel: {
+            display: true,
+            labelString: label,
+            fontColor: config.axisColor,
+        },
+        ticks: {
+            fontColor: config.axisColor,
+            beginAtZero: true,
+        },
+    };
+}
+function createLegendConfig(config) {
+    return {
+        labels: {
+            fontColor: config.axisColor,
+        },
+    };
+}
+async function createChartFromConfig(theme, config, chartConfig, errorLabel) {
+    const payload = {
+        width: QUICKCHART.CHART_WIDTH,
+        height: QUICKCHART.CHART_HEIGHT,
+        backgroundColor: config.backgroundColor,
+        chart: chartConfig,
+    };
+    try {
+        const response = await fetch(QUICKCHART.API_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+        });
+        const data = await response.json();
+        if (data?.success && data?.url) {
+            return data.url;
+        }
+    }
+    catch (error$1) {
+        error(error$1);
+        error(`${errorLabel} ${theme} ${JSON.stringify(payload)}`);
+    }
+    return null;
+}
+///////////////////////////
 /**
  * Generate a line chart using QuickChart API
  * Time format matches Mermaid gantt chart (HH:mm:ss)
@@ -52855,71 +52935,15 @@ async function getLineGraph(options) {
             },
             options: {
                 scales: {
-                    xAxes: [
-                        {
-                            type: "time",
-                            time: {
-                                displayFormats: {
-                                    millisecond: "HH:mm:ss",
-                                    second: "HH:mm:ss",
-                                    minute: "HH:mm:ss",
-                                    hour: "HH:mm",
-                                },
-                                unit: "second",
-                            },
-                            scaleLabel: {
-                                display: true,
-                                labelString: "Time",
-                                fontColor: config.axisColor,
-                            },
-                            ticks: {
-                                fontColor: config.axisColor,
-                            },
-                        },
-                    ],
-                    yAxes: [
-                        {
-                            scaleLabel: {
-                                display: true,
-                                labelString: options.label,
-                                fontColor: config.axisColor,
-                            },
-                            ticks: {
-                                fontColor: config.axisColor,
-                                beginAtZero: true,
-                            },
-                        },
-                    ],
+                    xAxes: [createTimeScaleConfig(config)],
+                    yAxes: [createYAxisConfig(config, options.label)],
                 },
-                legend: {
-                    labels: {
-                        fontColor: config.axisColor,
-                    },
-                },
+                legend: createLegendConfig(config),
             },
         };
-        const payload = {
-            width: QUICKCHART.CHART_WIDTH,
-            height: QUICKCHART.CHART_HEIGHT,
-            backgroundColor: config.backgroundColor,
-            chart: chartConfig,
-        };
-        try {
-            const response = await fetch(QUICKCHART_API_URL, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(payload),
-            });
-            const data = await response.json();
-            if (data?.success && data?.url) {
-                themeToURLMap.set(theme, data.url);
-            }
-        }
-        catch (error$1) {
-            error(error$1);
-            error(`getLineGraph ${theme} ${JSON.stringify(payload)}`);
+        const url = await createChartFromConfig(theme, config, chartConfig, "getLineGraph");
+        if (url) {
+            themeToURLMap.set(theme, url);
         }
     }));
     return generatePictureHTML(themeToURLMap, options.label);
@@ -52947,72 +52971,15 @@ async function getStackedAreaGraph(options) {
             },
             options: {
                 scales: {
-                    xAxes: [
-                        {
-                            type: "time",
-                            time: {
-                                displayFormats: {
-                                    millisecond: "HH:mm:ss",
-                                    second: "HH:mm:ss",
-                                    minute: "HH:mm:ss",
-                                    hour: "HH:mm",
-                                },
-                                unit: "second",
-                            },
-                            scaleLabel: {
-                                display: true,
-                                labelString: "Time",
-                                fontColor: config.axisColor,
-                            },
-                            ticks: {
-                                fontColor: config.axisColor,
-                            },
-                        },
-                    ],
-                    yAxes: [
-                        {
-                            stacked: true,
-                            scaleLabel: {
-                                display: true,
-                                labelString: options.label,
-                                fontColor: config.axisColor,
-                            },
-                            ticks: {
-                                fontColor: config.axisColor,
-                                beginAtZero: true,
-                            },
-                        },
-                    ],
+                    xAxes: [createTimeScaleConfig(config)],
+                    yAxes: [createYAxisConfig(config, options.label, true)],
                 },
-                legend: {
-                    labels: {
-                        fontColor: config.axisColor,
-                    },
-                },
+                legend: createLegendConfig(config),
             },
         };
-        const payload = {
-            width: QUICKCHART.CHART_WIDTH,
-            height: QUICKCHART.CHART_HEIGHT,
-            backgroundColor: config.backgroundColor,
-            chart: chartConfig,
-        };
-        try {
-            const response = await fetch(QUICKCHART_API_URL, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify(payload),
-            });
-            const data = await response.json();
-            if (data?.success && data?.url) {
-                themeToURLMap.set(theme, data.url);
-            }
-        }
-        catch (error$1) {
-            error(error$1);
-            error(`getStackedAreaGraph ${theme} ${JSON.stringify(payload)}`);
+        const url = await createChartFromConfig(theme, config, chartConfig, "getStackedAreaGraph");
+        if (url) {
+            themeToURLMap.set(theme, url);
         }
     }));
     return generatePictureHTML(themeToURLMap, options.label);

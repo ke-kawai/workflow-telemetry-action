@@ -47289,118 +47289,99 @@ const STATS_COLLECTION = {
     /** Default stats collection frequency in milliseconds */
     DEFAULT_FREQUENCY_MS: 5000};
 
-const STATS_FREQ = parseInt(process.env.WORKFLOW_TELEMETRY_STAT_FREQ || "") || STATS_COLLECTION.DEFAULT_FREQUENCY_MS;
-const SERVER_HOST = SERVER.HOST;
-const SERVER_PORT = SERVER.PORT;
+const STATS_FREQ = parseInt(process.env.WORKFLOW_TELEMETRY_STAT_FREQ || "") ||
+    STATS_COLLECTION.DEFAULT_FREQUENCY_MS;
 let expectedScheduleTime = 0;
 let statCollectTime = 0;
-///////////////////////////
-// CPU Stats             //
-///////////////////////////
+// Histograms
 const cpuStatsHistogram = [];
-function collectCPUStats(statTime, timeInterval) {
-    return si
-        .currentLoad()
-        .then((data) => {
-        const cpuStats = {
+const memoryStatsHistogram = [];
+const networkStatsHistogram = [];
+const diskStatsHistogram = [];
+const diskSizeStatsHistogram = [];
+// Stats collectors configuration
+const statsCollectors = [
+    // CPU Stats
+    {
+        histogram: cpuStatsHistogram,
+        fetch: () => si.currentLoad(),
+        transform: (data, statTime) => ({
             time: statTime,
             totalLoad: data.currentLoad,
             userLoad: data.currentLoadUser,
             systemLoad: data.currentLoadSystem,
-        };
-        cpuStatsHistogram.push(cpuStats);
-    })
-        .catch((error$1) => {
-        error(error$1);
-    });
-}
-///////////////////////////
-// Memory Stats          //
-///////////////////////////
-const memoryStatsHistogram = [];
-function collectMemoryStats(statTime, timeInterval) {
-    return si
-        .mem()
-        .then((data) => {
-        const memoryStats = {
+        }),
+    },
+    // Memory Stats
+    {
+        histogram: memoryStatsHistogram,
+        fetch: () => si.mem(),
+        transform: (data, statTime) => ({
             time: statTime,
             totalMemoryMb: data.total / 1024 / 1024,
             activeMemoryMb: data.active / 1024 / 1024,
             availableMemoryMb: data.available / 1024 / 1024,
-        };
-        memoryStatsHistogram.push(memoryStats);
-    })
-        .catch((error$1) => {
+        }),
+    },
+    // Network Stats
+    {
+        histogram: networkStatsHistogram,
+        fetch: () => si.networkStats(),
+        transform: (data, statTime, timeInterval) => {
+            let totalRxSec = 0, totalTxSec = 0;
+            for (let nsd of data) {
+                totalRxSec += nsd.rx_sec;
+                totalTxSec += nsd.tx_sec;
+            }
+            return {
+                time: statTime,
+                rxMb: Math.floor((totalRxSec * (timeInterval / 1000)) / 1024 / 1024),
+                txMb: Math.floor((totalTxSec * (timeInterval / 1000)) / 1024 / 1024),
+            };
+        },
+    },
+    // Disk Stats
+    {
+        histogram: diskStatsHistogram,
+        fetch: () => si.fsStats(),
+        transform: (data, statTime, timeInterval) => {
+            const rxSec = data.rx_sec ?? 0;
+            const wxSec = data.wx_sec ?? 0;
+            return {
+                time: statTime,
+                rxMb: Math.floor((rxSec * (timeInterval / 1000)) / 1024 / 1024),
+                wxMb: Math.floor((wxSec * (timeInterval / 1000)) / 1024 / 1024),
+            };
+        },
+    },
+    // Disk Size Stats
+    {
+        histogram: diskSizeStatsHistogram,
+        fetch: () => si.fsSize(),
+        transform: (data, statTime) => {
+            let totalSize = 0, usedSize = 0;
+            for (let fsd of data) {
+                totalSize += fsd.size;
+                usedSize += fsd.used;
+            }
+            return {
+                time: statTime,
+                availableSizeMb: Math.floor((totalSize - usedSize) / 1024 / 1024),
+                usedSizeMb: Math.floor(usedSize / 1024 / 1024),
+            };
+        },
+    },
+];
+async function collectStatsForCollector(collector, statTime, timeInterval) {
+    try {
+        const data = await collector.fetch();
+        const stats = collector.transform(data, statTime, timeInterval);
+        collector.histogram.push(stats);
+    }
+    catch (error$1) {
         error(error$1);
-    });
+    }
 }
-///////////////////////////
-// Network Stats         //
-///////////////////////////
-const networkStatsHistogram = [];
-function collectNetworkStats(statTime, timeInterval) {
-    return si
-        .networkStats()
-        .then((data) => {
-        let totalRxSec = 0, totalTxSec = 0;
-        for (let nsd of data) {
-            totalRxSec += nsd.rx_sec;
-            totalTxSec += nsd.tx_sec;
-        }
-        const networkStats = {
-            time: statTime,
-            rxMb: Math.floor((totalRxSec * (timeInterval / 1000)) / 1024 / 1024),
-            txMb: Math.floor((totalTxSec * (timeInterval / 1000)) / 1024 / 1024),
-        };
-        networkStatsHistogram.push(networkStats);
-    })
-        .catch((error$1) => {
-        error(error$1);
-    });
-}
-///////////////////////////
-// Disk Stats            //
-///////////////////////////
-const diskStatsHistogram = [];
-function collectDiskStats(statTime, timeInterval) {
-    return si
-        .fsStats()
-        .then((data) => {
-        let rxSec = data.rx_sec ? data.rx_sec : 0;
-        let wxSec = data.wx_sec ? data.wx_sec : 0;
-        const diskStats = {
-            time: statTime,
-            rxMb: Math.floor((rxSec * (timeInterval / 1000)) / 1024 / 1024),
-            wxMb: Math.floor((wxSec * (timeInterval / 1000)) / 1024 / 1024),
-        };
-        diskStatsHistogram.push(diskStats);
-    })
-        .catch((error$1) => {
-        error(error$1);
-    });
-}
-const diskSizeStatsHistogram = [];
-function collectDiskSizeStats(statTime, timeInterval) {
-    return si
-        .fsSize()
-        .then((data) => {
-        let totalSize = 0, usedSize = 0;
-        for (let fsd of data) {
-            totalSize += fsd.size;
-            usedSize += fsd.used;
-        }
-        const diskSizeStats = {
-            time: statTime,
-            availableSizeMb: Math.floor((totalSize - usedSize) / 1024 / 1024),
-            usedSizeMb: Math.floor(usedSize / 1024 / 1024),
-        };
-        diskSizeStatsHistogram.push(diskSizeStats);
-    })
-        .catch((error$1) => {
-        error(error$1);
-    });
-}
-///////////////////////////
 async function collectStats(triggeredFromScheduler = true) {
     try {
         const currentTime = Date.now();
@@ -47408,12 +47389,7 @@ async function collectStats(triggeredFromScheduler = true) {
             ? currentTime - statCollectTime
             : 0;
         statCollectTime = currentTime;
-        const promises = [];
-        promises.push(collectCPUStats(statCollectTime, timeInterval));
-        promises.push(collectMemoryStats(statCollectTime, timeInterval));
-        promises.push(collectNetworkStats(statCollectTime, timeInterval));
-        promises.push(collectDiskStats(statCollectTime, timeInterval));
-        promises.push(collectDiskSizeStats(statCollectTime, timeInterval));
+        const promises = statsCollectors.map((collector) => collectStatsForCollector(collector, statCollectTime, timeInterval));
         return promises;
     }
     finally {
@@ -47423,76 +47399,78 @@ async function collectStats(triggeredFromScheduler = true) {
         }
     }
 }
+const routes = new Map([
+    [
+        "/cpu",
+        {
+            method: "GET",
+            handler: (_, response) => {
+                response.end(JSON.stringify(cpuStatsHistogram));
+            },
+        },
+    ],
+    [
+        "/memory",
+        {
+            method: "GET",
+            handler: (_, response) => {
+                response.end(JSON.stringify(memoryStatsHistogram));
+            },
+        },
+    ],
+    [
+        "/network",
+        {
+            method: "GET",
+            handler: (_, response) => {
+                response.end(JSON.stringify(networkStatsHistogram));
+            },
+        },
+    ],
+    [
+        "/disk",
+        {
+            method: "GET",
+            handler: (_, response) => {
+                response.end(JSON.stringify(diskStatsHistogram));
+            },
+        },
+    ],
+    [
+        "/disk_size",
+        {
+            method: "GET",
+            handler: (_, response) => {
+                response.end(JSON.stringify(diskSizeStatsHistogram));
+            },
+        },
+    ],
+    [
+        "/collect",
+        {
+            method: "POST",
+            handler: async (_, response) => {
+                await collectStats(false);
+                response.end();
+            },
+        },
+    ],
+]);
 function startHttpServer() {
     const server = require$$2.createServer(async (request, response) => {
         try {
-            switch (request.url) {
-                case "/cpu": {
-                    if (request.method === "GET") {
-                        response.end(JSON.stringify(cpuStatsHistogram));
-                    }
-                    else {
-                        response.statusCode = 405;
-                        response.end();
-                    }
-                    break;
-                }
-                case "/memory": {
-                    if (request.method === "GET") {
-                        response.end(JSON.stringify(memoryStatsHistogram));
-                    }
-                    else {
-                        response.statusCode = 405;
-                        response.end();
-                    }
-                    break;
-                }
-                case "/network": {
-                    if (request.method === "GET") {
-                        response.end(JSON.stringify(networkStatsHistogram));
-                    }
-                    else {
-                        response.statusCode = 405;
-                        response.end();
-                    }
-                    break;
-                }
-                case "/disk": {
-                    if (request.method === "GET") {
-                        response.end(JSON.stringify(diskStatsHistogram));
-                    }
-                    else {
-                        response.statusCode = 405;
-                        response.end();
-                    }
-                    break;
-                }
-                case "/disk_size": {
-                    if (request.method === "GET") {
-                        response.end(JSON.stringify(diskSizeStatsHistogram));
-                    }
-                    else {
-                        response.statusCode = 405;
-                        response.end();
-                    }
-                    break;
-                }
-                case "/collect": {
-                    if (request.method === "POST") {
-                        await collectStats(false);
-                        response.end();
-                    }
-                    else {
-                        response.statusCode = 405;
-                        response.end();
-                    }
-                    break;
-                }
-                default: {
-                    response.statusCode = 404;
-                    response.end();
-                }
+            const route = routes.get(request.url || "");
+            if (!route) {
+                response.statusCode = 404;
+                response.end();
+                return;
             }
+            if (request.method !== route.method) {
+                response.statusCode = 405;
+                response.end();
+                return;
+            }
+            await route.handler(request, response);
         }
         catch (error$1) {
             error(error$1);
@@ -47503,12 +47481,10 @@ function startHttpServer() {
             }));
         }
     });
-    server.listen(SERVER_PORT, SERVER_HOST, () => {
-        info(`Stat server listening on port ${SERVER_PORT}`);
+    server.listen(SERVER.PORT, SERVER.HOST, () => {
+        info(`Stat server listening on port ${SERVER.PORT}`);
     });
 }
-// Init                  //
-///////////////////////////
 function init() {
     expectedScheduleTime = Date.now();
     info("Starting stat collector ...");
@@ -47517,5 +47493,4 @@ function init() {
     startHttpServer();
 }
 init();
-///////////////////////////
 //# sourceMappingURL=index.js.map

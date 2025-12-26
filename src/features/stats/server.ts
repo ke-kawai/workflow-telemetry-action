@@ -11,152 +11,125 @@ import {
 import { SERVER, STATS_COLLECTION } from "../../constants";
 
 const STATS_FREQ: number =
-  parseInt(process.env.WORKFLOW_TELEMETRY_STAT_FREQ || "") || STATS_COLLECTION.DEFAULT_FREQUENCY_MS;
-const SERVER_HOST: string = SERVER.HOST;
-const SERVER_PORT: number = SERVER.PORT;
+  parseInt(process.env.WORKFLOW_TELEMETRY_STAT_FREQ || "") ||
+  STATS_COLLECTION.DEFAULT_FREQUENCY_MS;
 
 let expectedScheduleTime: number = 0;
 let statCollectTime: number = 0;
 
-///////////////////////////
+interface StatsCollector<T, D> {
+  histogram: T[];
+  fetch: () => Promise<D>;
+  transform: (data: D, statTime: number, timeInterval: number) => T;
+}
 
-// CPU Stats             //
-///////////////////////////
-
+// Histograms
 const cpuStatsHistogram: CPUStats[] = [];
-
-function collectCPUStats(statTime: number, timeInterval: number): Promise<any> {
-  return si
-    .currentLoad()
-    .then((data: si.Systeminformation.CurrentLoadData) => {
-      const cpuStats: CPUStats = {
-        time: statTime,
-        totalLoad: data.currentLoad,
-        userLoad: data.currentLoadUser,
-        systemLoad: data.currentLoadSystem,
-      };
-      cpuStatsHistogram.push(cpuStats);
-    })
-    .catch((error: any) => {
-      logger.error(error);
-    });
-}
-
-///////////////////////////
-
-// Memory Stats          //
-///////////////////////////
-
 const memoryStatsHistogram: MemoryStats[] = [];
-
-function collectMemoryStats(
-  statTime: number,
-  timeInterval: number
-): Promise<any> {
-  return si
-    .mem()
-    .then((data: si.Systeminformation.MemData) => {
-      const memoryStats: MemoryStats = {
-        time: statTime,
-        totalMemoryMb: data.total / 1024 / 1024,
-        activeMemoryMb: data.active / 1024 / 1024,
-        availableMemoryMb: data.available / 1024 / 1024,
-      };
-      memoryStatsHistogram.push(memoryStats);
-    })
-    .catch((error: any) => {
-      logger.error(error);
-    });
-}
-
-///////////////////////////
-
-// Network Stats         //
-///////////////////////////
-
 const networkStatsHistogram: NetworkStats[] = [];
+const diskStatsHistogram: DiskStats[] = [];
+const diskSizeStatsHistogram: DiskSizeStats[] = [];
 
-function collectNetworkStats(
-  statTime: number,
-  timeInterval: number
-): Promise<any> {
-  return si
-    .networkStats()
-    .then((data: si.Systeminformation.NetworkStatsData[]) => {
+// Stats collectors configuration
+const statsCollectors: StatsCollector<any, any>[] = [
+  // CPU Stats
+  {
+    histogram: cpuStatsHistogram,
+    fetch: () => si.currentLoad(),
+    transform: (
+      data: si.Systeminformation.CurrentLoadData,
+      statTime: number
+    ) => ({
+      time: statTime,
+      totalLoad: data.currentLoad,
+      userLoad: data.currentLoadUser,
+      systemLoad: data.currentLoadSystem,
+    }),
+  },
+  // Memory Stats
+  {
+    histogram: memoryStatsHistogram,
+    fetch: () => si.mem(),
+    transform: (data: si.Systeminformation.MemData, statTime: number) => ({
+      time: statTime,
+      totalMemoryMb: data.total / 1024 / 1024,
+      activeMemoryMb: data.active / 1024 / 1024,
+      availableMemoryMb: data.available / 1024 / 1024,
+    }),
+  },
+  // Network Stats
+  {
+    histogram: networkStatsHistogram,
+    fetch: () => si.networkStats(),
+    transform: (
+      data: si.Systeminformation.NetworkStatsData[],
+      statTime: number,
+      timeInterval: number
+    ) => {
       let totalRxSec = 0,
         totalTxSec = 0;
       for (let nsd of data) {
         totalRxSec += nsd.rx_sec;
         totalTxSec += nsd.tx_sec;
       }
-      const networkStats: NetworkStats = {
+      return {
         time: statTime,
         rxMb: Math.floor((totalRxSec * (timeInterval / 1000)) / 1024 / 1024),
         txMb: Math.floor((totalTxSec * (timeInterval / 1000)) / 1024 / 1024),
       };
-      networkStatsHistogram.push(networkStats);
-    })
-    .catch((error: any) => {
-      logger.error(error);
-    });
-}
-
-///////////////////////////
-
-// Disk Stats            //
-///////////////////////////
-
-const diskStatsHistogram: DiskStats[] = [];
-
-function collectDiskStats(
-  statTime: number,
-  timeInterval: number
-): Promise<any> {
-  return si
-    .fsStats()
-    .then((data: si.Systeminformation.FsStatsData) => {
-      let rxSec = data.rx_sec ? data.rx_sec : 0;
-      let wxSec = data.wx_sec ? data.wx_sec : 0;
-      const diskStats: DiskStats = {
+    },
+  },
+  // Disk Stats
+  {
+    histogram: diskStatsHistogram,
+    fetch: () => si.fsStats(),
+    transform: (
+      data: si.Systeminformation.FsStatsData,
+      statTime: number,
+      timeInterval: number
+    ) => {
+      const rxSec = data.rx_sec ?? 0;
+      const wxSec = data.wx_sec ?? 0;
+      return {
         time: statTime,
         rxMb: Math.floor((rxSec * (timeInterval / 1000)) / 1024 / 1024),
         wxMb: Math.floor((wxSec * (timeInterval / 1000)) / 1024 / 1024),
       };
-      diskStatsHistogram.push(diskStats);
-    })
-    .catch((error: any) => {
-      logger.error(error);
-    });
-}
-
-const diskSizeStatsHistogram: DiskSizeStats[] = [];
-
-function collectDiskSizeStats(
-  statTime: number,
-  timeInterval: number
-): Promise<any> {
-  return si
-    .fsSize()
-    .then((data: si.Systeminformation.FsSizeData[]) => {
+    },
+  },
+  // Disk Size Stats
+  {
+    histogram: diskSizeStatsHistogram,
+    fetch: () => si.fsSize(),
+    transform: (data: si.Systeminformation.FsSizeData[], statTime: number) => {
       let totalSize = 0,
         usedSize = 0;
       for (let fsd of data) {
         totalSize += fsd.size;
         usedSize += fsd.used;
       }
-      const diskSizeStats: DiskSizeStats = {
+      return {
         time: statTime,
         availableSizeMb: Math.floor((totalSize - usedSize) / 1024 / 1024),
         usedSizeMb: Math.floor(usedSize / 1024 / 1024),
       };
-      diskSizeStatsHistogram.push(diskSizeStats);
-    })
-    .catch((error: any) => {
-      logger.error(error);
-    });
-}
+    },
+  },
+];
 
-///////////////////////////
+async function collectStatsForCollector<T, D>(
+  collector: StatsCollector<T, D>,
+  statTime: number,
+  timeInterval: number
+): Promise<void> {
+  try {
+    const data = await collector.fetch();
+    const stats = collector.transform(data, statTime, timeInterval);
+    collector.histogram.push(stats);
+  } catch (error: any) {
+    logger.error(error);
+  }
+}
 
 async function collectStats(triggeredFromScheduler: boolean = true) {
   try {
@@ -167,13 +140,9 @@ async function collectStats(triggeredFromScheduler: boolean = true) {
 
     statCollectTime = currentTime;
 
-    const promises: Promise<any>[] = [];
-
-    promises.push(collectCPUStats(statCollectTime, timeInterval));
-    promises.push(collectMemoryStats(statCollectTime, timeInterval));
-    promises.push(collectNetworkStats(statCollectTime, timeInterval));
-    promises.push(collectDiskStats(statCollectTime, timeInterval));
-    promises.push(collectDiskSizeStats(statCollectTime, timeInterval));
+    const promises: Promise<void>[] = statsCollectors.map((collector) =>
+      collectStatsForCollector(collector, statCollectTime, timeInterval)
+    );
 
     return promises;
   } finally {
@@ -184,71 +153,93 @@ async function collectStats(triggeredFromScheduler: boolean = true) {
   }
 }
 
+///////////////////////////
+
+// HTTP Server Routes
+///////////////////////////
+
+interface Route {
+  method: "GET" | "POST";
+  handler: (request: IncomingMessage, response: ServerResponse) => Promise<void> | void;
+}
+
+const routes = new Map<string, Route>([
+  [
+    "/cpu",
+    {
+      method: "GET",
+      handler: (_, response) => {
+        response.end(JSON.stringify(cpuStatsHistogram));
+      },
+    },
+  ],
+  [
+    "/memory",
+    {
+      method: "GET",
+      handler: (_, response) => {
+        response.end(JSON.stringify(memoryStatsHistogram));
+      },
+    },
+  ],
+  [
+    "/network",
+    {
+      method: "GET",
+      handler: (_, response) => {
+        response.end(JSON.stringify(networkStatsHistogram));
+      },
+    },
+  ],
+  [
+    "/disk",
+    {
+      method: "GET",
+      handler: (_, response) => {
+        response.end(JSON.stringify(diskStatsHistogram));
+      },
+    },
+  ],
+  [
+    "/disk_size",
+    {
+      method: "GET",
+      handler: (_, response) => {
+        response.end(JSON.stringify(diskSizeStatsHistogram));
+      },
+    },
+  ],
+  [
+    "/collect",
+    {
+      method: "POST",
+      handler: async (_, response) => {
+        await collectStats(false);
+        response.end();
+      },
+    },
+  ],
+]);
+
 function startHttpServer() {
   const server: Server = createServer(
     async (request: IncomingMessage, response: ServerResponse) => {
       try {
-        switch (request.url) {
-          case "/cpu": {
-            if (request.method === "GET") {
-              response.end(JSON.stringify(cpuStatsHistogram));
-            } else {
-              response.statusCode = 405;
-              response.end();
-            }
-            break;
-          }
-          case "/memory": {
-            if (request.method === "GET") {
-              response.end(JSON.stringify(memoryStatsHistogram));
-            } else {
-              response.statusCode = 405;
-              response.end();
-            }
-            break;
-          }
-          case "/network": {
-            if (request.method === "GET") {
-              response.end(JSON.stringify(networkStatsHistogram));
-            } else {
-              response.statusCode = 405;
-              response.end();
-            }
-            break;
-          }
-          case "/disk": {
-            if (request.method === "GET") {
-              response.end(JSON.stringify(diskStatsHistogram));
-            } else {
-              response.statusCode = 405;
-              response.end();
-            }
-            break;
-          }
-          case "/disk_size": {
-            if (request.method === "GET") {
-              response.end(JSON.stringify(diskSizeStatsHistogram));
-            } else {
-              response.statusCode = 405;
-              response.end();
-            }
-            break;
-          }
-          case "/collect": {
-            if (request.method === "POST") {
-              await collectStats(false);
-              response.end();
-            } else {
-              response.statusCode = 405;
-              response.end();
-            }
-            break;
-          }
-          default: {
-            response.statusCode = 404;
-            response.end();
-          }
+        const route = routes.get(request.url || "");
+
+        if (!route) {
+          response.statusCode = 404;
+          response.end();
+          return;
         }
+
+        if (request.method !== route.method) {
+          response.statusCode = 405;
+          response.end();
+          return;
+        }
+
+        await route.handler(request, response);
       } catch (error: any) {
         logger.error(error);
         response.statusCode = 500;
@@ -262,13 +253,10 @@ function startHttpServer() {
     }
   );
 
-  server.listen(SERVER_PORT, SERVER_HOST, () => {
-    logger.info(`Stat server listening on port ${SERVER_PORT}`);
+  server.listen(SERVER.PORT, SERVER.HOST, () => {
+    logger.info(`Stat server listening on port ${SERVER.PORT}`);
   });
 }
-
-// Init                  //
-///////////////////////////
 
 function init() {
   expectedScheduleTime = Date.now();
@@ -281,5 +269,3 @@ function init() {
 }
 
 init();
-
-///////////////////////////
