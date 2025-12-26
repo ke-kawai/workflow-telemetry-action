@@ -27497,14 +27497,12 @@ const LOG_HEADER = "[Workflow Telemetry]";
 function info(msg) {
     coreExports.info(LOG_HEADER + " " + msg);
 }
-function error(msg) {
-    if (msg instanceof String || typeof msg === "string") {
-        coreExports.error(LOG_HEADER + " " + msg);
+function error(error, context) {
+    if (context) {
+        coreExports.error(`${LOG_HEADER} ${context}`);
     }
-    else {
-        coreExports.error(LOG_HEADER + " " + msg.name);
-        coreExports.error(msg);
-    }
+    coreExports.error(`${LOG_HEADER} ${error.name}: ${error.message}`);
+    coreExports.error(error);
 }
 
 ///////////////////////////
@@ -27515,8 +27513,8 @@ async function start$2() {
         return true;
     }
     catch (error$1) {
-        error("Unable to start step tracer");
-        error(error$1);
+        const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
+        error(err, "Unable to start step tracer");
         return false;
     }
 }
@@ -27551,23 +27549,22 @@ async function start$1() {
                 metricFrequency = metricFrequencyVal * 1000;
             }
         }
-        const child = require$$1$6.spawn(process.argv[0], [require$$1$5.join(__dirname, "../scw/index.js")], {
+        const env = { ...process.env };
+        if (metricFrequency) {
+            env.WORKFLOW_TELEMETRY_STAT_FREQ = `${metricFrequency}`;
+        }
+        const child = require$$1$6.spawn(process.execPath, [require$$1$5.join(__dirname, "../scw/index.js")], {
             detached: true,
             stdio: "ignore",
-            env: {
-                ...process.env,
-                WORKFLOW_TELEMETRY_STAT_FREQ: metricFrequency
-                    ? `${metricFrequency}`
-                    : undefined,
-            },
+            env,
         });
         child.unref();
         info(`Started stat collector`);
         return true;
     }
     catch (error$1) {
-        error("Unable to start stat collector");
-        error(error$1);
+        const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
+        error(err, "Unable to start stat collector");
         return false;
     }
 }
@@ -47392,7 +47389,8 @@ async function collectProcesses() {
         }
     }
     catch (error$1) {
-        error(`Error collecting processes: ${error$1.message}`);
+        const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
+        error(err, "Error collecting processes");
     }
 }
 function saveData() {
@@ -47404,7 +47402,8 @@ function saveData() {
         require$$1.writeFileSync(PROC_TRACER_DATA_FILE, JSON.stringify(data, null, 2));
     }
     catch (error$1) {
-        error(`Error saving process data: ${error$1.message}`);
+        const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
+        error(err, "Error saving process data");
     }
 }
 ///////////////////////////
@@ -47425,8 +47424,8 @@ async function start() {
         return true;
     }
     catch (error$1) {
-        error("Unable to start process tracer");
-        error(error$1);
+        const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
+        error(err, "Unable to start process tracer");
         return false;
     }
 }
@@ -47441,7 +47440,8 @@ async function run() {
         info(`Initialization completed`);
     }
     catch (error$1) {
-        error(error$1.message);
+        const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
+        error(err);
     }
 }
 run();

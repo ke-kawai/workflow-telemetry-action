@@ -88,8 +88,9 @@ async function collectProcesses(): Promise<void> {
         trackedProcesses.delete(pid);
       }
     }
-  } catch (error: any) {
-    logger.error(`Error collecting processes: ${error.message}`);
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error(err, "Error collecting processes");
   }
 }
 
@@ -100,8 +101,9 @@ function saveData(): void {
       tracked: Array.from(trackedProcesses.values()),
     };
     fs.writeFileSync(PROC_TRACER_DATA_FILE, JSON.stringify(data, null, 2));
-  } catch (error: any) {
-    logger.error(`Error saving process data: ${error.message}`);
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error(err, "Error saving process data");
   }
 }
 
@@ -116,8 +118,9 @@ function loadData(): void {
         );
       }
     }
-  } catch (error: any) {
-    logger.error(`Error loading process data: ${error.message}`);
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error(err, "Error loading process data");
   }
 }
 
@@ -162,9 +165,9 @@ export async function start(): Promise<boolean> {
     );
 
     return true;
-  } catch (error: any) {
-    logger.error("Unable to start process tracer");
-    logger.error(error);
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error(err, "Unable to start process tracer");
 
     return false;
   }
@@ -214,9 +217,9 @@ export async function finish(_currentJob: WorkflowJobType): Promise<boolean> {
     logger.info(`Finished process tracer`);
 
     return true;
-  } catch (error: any) {
-    logger.error("Unable to finish process tracer");
-    logger.error(error);
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error(err, "Unable to finish process tracer");
 
     return false;
   }
@@ -366,9 +369,9 @@ export async function report(
     logger.info(`Reported process tracer result`);
 
     return postContent;
-  } catch (error: any) {
-    logger.error("Unable to report process tracer result");
-    logger.error(error);
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error(err, "Unable to report process tracer result");
 
     return null;
   }

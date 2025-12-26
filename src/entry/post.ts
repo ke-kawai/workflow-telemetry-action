@@ -52,8 +52,10 @@ async function getCurrentJob(): Promise<WorkflowJobType | null> {
       }
       await new Promise((r) => setTimeout(r, GITHUB_API.CURRENT_JOB_RETRY_INTERVAL_MS));
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
     logger.error(
+      err,
       `Unable to get current workflow job info. ` +
         `Please sure that your workflow have "actions:read" permission!`
     );
@@ -116,7 +118,7 @@ async function run(): Promise<void> {
 
     if (!currentJob) {
       logger.error(
-        `Couldn't find current job. So action will not report any data.`
+        new Error(`Couldn't find current job. So action will not report any data.`)
       );
       return;
     }
@@ -153,8 +155,9 @@ async function run(): Promise<void> {
     await reportAll(currentJob, allContent);
 
     logger.info(`Finish completed`);
-  } catch (error: any) {
-    logger.error(error.message);
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error(err);
   }
 }
 

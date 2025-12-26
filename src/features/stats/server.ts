@@ -23,6 +23,14 @@ interface StatsCollector<T, D> {
   transform: (data: D, statTime: number, timeInterval: number) => T;
 }
 
+// Union type of all possible StatsCollector configurations
+type AnyStatsCollector =
+  | StatsCollector<CPUStats, si.Systeminformation.CurrentLoadData>
+  | StatsCollector<MemoryStats, si.Systeminformation.MemData>
+  | StatsCollector<NetworkStats, si.Systeminformation.NetworkStatsData[]>
+  | StatsCollector<DiskStats, si.Systeminformation.FsStatsData>
+  | StatsCollector<DiskSizeStats, si.Systeminformation.FsSizeData[]>;
+
 // Histograms
 const cpuStatsHistogram: CPUStats[] = [];
 const memoryStatsHistogram: MemoryStats[] = [];
@@ -31,7 +39,7 @@ const diskStatsHistogram: DiskStats[] = [];
 const diskSizeStatsHistogram: DiskSizeStats[] = [];
 
 // Stats collectors configuration
-const statsCollectors: StatsCollector<any, any>[] = [
+const statsCollectors: AnyStatsCollector[] = [
   // CPU Stats
   {
     histogram: cpuStatsHistogram,
@@ -126,8 +134,9 @@ async function collectStatsForCollector<T, D>(
     const data = await collector.fetch();
     const stats = collector.transform(data, statTime, timeInterval);
     collector.histogram.push(stats);
-  } catch (error: any) {
-    logger.error(error);
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error(err);
   }
 }
 
@@ -141,7 +150,7 @@ async function collectStats(triggeredFromScheduler: boolean = true) {
     statCollectTime = currentTime;
 
     const promises: Promise<void>[] = statsCollectors.map((collector) =>
-      collectStatsForCollector(collector, statCollectTime, timeInterval)
+      collectStatsForCollector(collector as any, statCollectTime, timeInterval)
     );
 
     return promises;
@@ -240,13 +249,14 @@ function startHttpServer() {
         }
 
         await route.handler(request, response);
-      } catch (error: any) {
-        logger.error(error);
+      } catch (error: unknown) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger.error(err);
         response.statusCode = 500;
         response.end(
           JSON.stringify({
-            type: error.type,
-            message: error.message,
+            type: 'type' in err ? (err as any).type : 'Unknown',
+            message: err.message,
           })
         );
       }

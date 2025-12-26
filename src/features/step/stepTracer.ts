@@ -72,9 +72,9 @@ export async function start(): Promise<boolean> {
     logger.info(`Started step tracer`);
 
     return true;
-  } catch (error: any) {
-    logger.error("Unable to start step tracer");
-    logger.error(error);
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error(err, "Unable to start step tracer");
 
     return false;
   }
@@ -87,9 +87,9 @@ export async function finish(_currentJob: WorkflowJobType): Promise<boolean> {
     logger.info(`Finished step tracer`);
 
     return true;
-  } catch (error: any) {
-    logger.error("Unable to finish step tracer");
-    logger.error(error);
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error(err, "Unable to finish step tracer");
 
     return false;
   }
@@ -110,9 +110,9 @@ export async function report(
     logger.info(`Reported step tracer result`);
 
     return postContent;
-  } catch (error: any) {
-    logger.error("Unable to report step tracer result");
-    logger.error(error);
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error(err, "Unable to report step tracer result");
 
     return null;
   }
