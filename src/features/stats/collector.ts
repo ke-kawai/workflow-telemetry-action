@@ -333,18 +333,18 @@ export async function start(): Promise<boolean> {
       }
     }
 
+    const env: NodeJS.ProcessEnv = { ...process.env };
+    if (metricFrequency) {
+      env.WORKFLOW_TELEMETRY_STAT_FREQ = `${metricFrequency}`;
+    }
+
     const child: ChildProcess = spawn(
-      process.argv[0],
+      process.execPath,
       [path.join(__dirname, "../scw/index.js")],
       {
         detached: true,
         stdio: "ignore",
-        env: {
-          ...process.env,
-          WORKFLOW_TELEMETRY_STAT_FREQ: metricFrequency
-            ? `${metricFrequency}`
-            : undefined,
-        },
+        env,
       }
     );
     child.unref();
@@ -360,7 +360,7 @@ export async function start(): Promise<boolean> {
   }
 }
 
-export async function finish(currentJob: WorkflowJobType): Promise<boolean> {
+export async function finish(_currentJob: WorkflowJobType): Promise<boolean> {
   logger.info(`Finishing stat collector ...`);
 
   try {
@@ -379,7 +379,7 @@ export async function finish(currentJob: WorkflowJobType): Promise<boolean> {
 }
 
 export async function report(
-  currentJob: WorkflowJobType
+  _currentJob: WorkflowJobType
 ): Promise<string | null> {
   logger.info(`Reporting stat collector result ...`);
 

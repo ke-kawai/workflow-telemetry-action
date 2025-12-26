@@ -34,7 +34,7 @@ async function getCurrentJob(): Promise<WorkflowJobType | null> {
           it.runner_name === process.env.RUNNER_NAME
       );
       if (currentJobs && currentJobs.length) {
-        return currentJobs[0];
+        return currentJobs[0] ?? null;
       }
       // Since returning job count is less than page size, this means that there are no other jobs.
       // So no need to make another request for the next page.

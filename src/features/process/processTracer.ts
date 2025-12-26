@@ -170,7 +170,7 @@ export async function start(): Promise<boolean> {
   }
 }
 
-export async function finish(currentJob: WorkflowJobType): Promise<boolean> {
+export async function finish(_currentJob: WorkflowJobType): Promise<boolean> {
   logger.info(`Finishing process tracer ...`);
 
   if (!fs.existsSync(PROC_TRACER_STATE_FILE)) {
@@ -192,7 +192,7 @@ export async function finish(currentJob: WorkflowJobType): Promise<boolean> {
 
     // Mark any remaining tracked processes as completed
     const now = Date.now();
-    for (const [pid, tracked] of trackedProcesses.entries()) {
+    for (const [_pid, tracked] of trackedProcesses.entries()) {
       completedProcesses.push({
         pid: tracked.pid,
         name: tracked.name,
