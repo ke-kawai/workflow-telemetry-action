@@ -27497,14 +27497,12 @@ const LOG_HEADER = "[Workflow Telemetry]";
 function info(msg) {
     coreExports.info(LOG_HEADER + " " + msg);
 }
-function error(msg) {
-    if (typeof msg === "string") {
-        coreExports.error(`${LOG_HEADER} ${msg}`);
+function error(error, context) {
+    if (context) {
+        coreExports.error(`${LOG_HEADER} ${context}`);
     }
-    else {
-        coreExports.error(`${LOG_HEADER} ${msg.name}`);
-        coreExports.error(msg);
-    }
+    coreExports.error(`${LOG_HEADER} ${error.name}: ${error.message}`);
+    coreExports.error(error);
 }
 
 ///////////////////////////
@@ -27515,8 +27513,8 @@ async function start$2() {
         return true;
     }
     catch (error$1) {
-        error("Unable to start step tracer");
-        error(error$1 instanceof Error ? error$1 : String(error$1));
+        const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
+        error(err, "Unable to start step tracer");
         return false;
     }
 }
@@ -27565,8 +27563,8 @@ async function start$1() {
         return true;
     }
     catch (error$1) {
-        error("Unable to start stat collector");
-        error(error$1 instanceof Error ? error$1 : String(error$1));
+        const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
+        error(err, "Unable to start stat collector");
         return false;
     }
 }
@@ -47391,8 +47389,8 @@ async function collectProcesses() {
         }
     }
     catch (error$1) {
-        const message = error$1 instanceof Error ? error$1.message : String(error$1);
-        error(`Error collecting processes: ${message}`);
+        const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
+        error(err, "Error collecting processes");
     }
 }
 function saveData() {
@@ -47404,8 +47402,8 @@ function saveData() {
         require$$1.writeFileSync(PROC_TRACER_DATA_FILE, JSON.stringify(data, null, 2));
     }
     catch (error$1) {
-        const message = error$1 instanceof Error ? error$1.message : String(error$1);
-        error(`Error saving process data: ${message}`);
+        const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
+        error(err, "Error saving process data");
     }
 }
 ///////////////////////////
@@ -47426,8 +47424,8 @@ async function start() {
         return true;
     }
     catch (error$1) {
-        error("Unable to start process tracer");
-        error(error$1 instanceof Error ? error$1 : String(error$1));
+        const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
+        error(err, "Unable to start process tracer");
         return false;
     }
 }
@@ -47442,8 +47440,8 @@ async function run() {
         info(`Initialization completed`);
     }
     catch (error$1) {
-        const message = error$1 instanceof Error ? error$1.message : String(error$1);
-        error(message);
+        const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
+        error(err);
     }
 }
 run();

@@ -127,7 +127,8 @@ async function collectStatsForCollector<T, D>(
     const stats = collector.transform(data, statTime, timeInterval);
     collector.histogram.push(stats);
   } catch (error: unknown) {
-    logger.error(error instanceof Error ? error : String(error));
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error(err);
   }
 }
 
@@ -241,12 +242,13 @@ function startHttpServer() {
 
         await route.handler(request, response);
       } catch (error: unknown) {
-        logger.error(error instanceof Error ? error : String(error));
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger.error(err);
         response.statusCode = 500;
         response.end(
           JSON.stringify({
-            type: error instanceof Error && 'type' in error ? (error as any).type : 'Unknown',
-            message: error instanceof Error ? error.message : String(error),
+            type: 'type' in err ? (err as any).type : 'Unknown',
+            message: err.message,
           })
         );
       }

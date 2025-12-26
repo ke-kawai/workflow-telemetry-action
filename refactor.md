@@ -257,7 +257,26 @@ QuickChart APIに依存、サービスダウン時のフォールバックなし
 
 ## 完了した改善
 
-### 2025-12-27: 型安全性の向上（項目4）
+### 2025-12-27 (2): logger.error()の単純化
+- `logger.error()`をErrorオブジェクトのみを受け取るように変更
+- オプションのコンテキストメッセージパラメータを追加
+- 新しいシグネチャ：`error(error: Error, context?: string): void`
+- すべてのエラーハンドラを新しいシグネチャに統一（19箇所）
+- 2行のlogger.error呼び出しを1行に統合
+- エラーメッセージの文字列補間をコンテキストパラメータに移行
+- ビルドで検証済み（`npm run bundle`成功）
+
+**影響範囲**:
+- `src/utils/logger.ts` - error関数のシグネチャ変更
+- `src/features/step/stepTracer.ts` - 3箇所
+- `src/features/stats/collector.ts` - 3箇所
+- `src/features/process/processTracer.ts` - 6箇所
+- `src/entry/post.ts` - 3箇所（うち1箇所は非catch block）
+- `src/features/stats/server.ts` - 2箇所
+- `src/features/stats/chartGenerator.ts` - 1箇所
+- `src/entry/main.ts` - 1箇所
+
+### 2025-12-27 (1): 型安全性の向上（項目4）
 - すべてのエラーハンドラで`catch (error: any)`を`catch (error: unknown)`に変更（22箇所）
 - 適切な型ガード（`error instanceof Error`）を追加
 - `logger.ts`の型チェックロジックを修正：

@@ -353,8 +353,8 @@ export async function start(): Promise<boolean> {
 
     return true;
   } catch (error: unknown) {
-    logger.error("Unable to start stat collector");
-    logger.error(error instanceof Error ? error : String(error));
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error(err, "Unable to start stat collector");
 
     return false;
   }
@@ -371,8 +371,8 @@ export async function finish(_currentJob: WorkflowJobType): Promise<boolean> {
 
     return true;
   } catch (error: unknown) {
-    logger.error("Unable to finish stat collector");
-    logger.error(error instanceof Error ? error : String(error));
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error(err, "Unable to finish stat collector");
 
     return false;
   }
@@ -390,8 +390,8 @@ export async function report(
 
     return postContent;
   } catch (error: unknown) {
-    logger.error("Unable to report stat collector result");
-    logger.error(error instanceof Error ? error : String(error));
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error(err, "Unable to report stat collector result");
 
     return null;
   }
