@@ -18,7 +18,6 @@ import {
   WorkflowJobType
 } from './interfaces'
 import * as logger from './logger'
-import { log } from 'console'
 
 const STAT_SERVER_PORT = 7777
 
