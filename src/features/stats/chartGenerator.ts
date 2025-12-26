@@ -11,11 +11,7 @@ import { QUICKCHART, THEME } from "../../constants";
  * QuickChart.io is an open-source Chart.js service that can be self-hosted
  * Free tier: https://quickchart.io
  * GitHub: https://github.com/typpo/quickchart
- *
- * Based on PR #98: https://github.com/catchpoint/workflow-telemetry-action/pull/98
  */
-
-const QUICKCHART_API_URL = QUICKCHART.API_URL;
 
 const THEME_TO_CONFIG = {
   light: {
@@ -30,6 +26,11 @@ const THEME_TO_CONFIG = {
 
 type Theme = keyof typeof THEME_TO_CONFIG;
 
+interface ThemeConfig {
+  axisColor: string;
+  backgroundColor: string;
+}
+
 function generatePictureHTML(
   themeToURLMap: Map<Theme, string>,
   label: string
@@ -43,6 +44,95 @@ function generatePictureHTML(
   const fallbackUrl = themeToURLMap.get("light") || "";
   return `<picture>${sources}<img alt="${label}" src="${fallbackUrl}"></picture>`;
 }
+
+///////////////////////////
+
+// Common chart configuration helpers
+///////////////////////////
+
+function createTimeScaleConfig(config: ThemeConfig) {
+  return {
+    type: "time",
+    time: {
+      displayFormats: {
+        millisecond: "HH:mm:ss",
+        second: "HH:mm:ss",
+        minute: "HH:mm:ss",
+        hour: "HH:mm",
+      },
+      unit: "second",
+    },
+    scaleLabel: {
+      display: true,
+      labelString: "Time",
+      fontColor: config.axisColor,
+    },
+    ticks: {
+      fontColor: config.axisColor,
+    },
+  };
+}
+
+function createYAxisConfig(
+  config: ThemeConfig,
+  label: string,
+  stacked: boolean = false
+) {
+  return {
+    stacked,
+    scaleLabel: {
+      display: true,
+      labelString: label,
+      fontColor: config.axisColor,
+    },
+    ticks: {
+      fontColor: config.axisColor,
+      beginAtZero: true,
+    },
+  };
+}
+
+function createLegendConfig(config: ThemeConfig) {
+  return {
+    labels: {
+      fontColor: config.axisColor,
+    },
+  };
+}
+
+async function createChartFromConfig(
+  theme: Theme,
+  config: ThemeConfig,
+  chartConfig: any,
+  errorLabel: string
+): Promise<string | null> {
+  const payload = {
+    width: QUICKCHART.CHART_WIDTH,
+    height: QUICKCHART.CHART_HEIGHT,
+    backgroundColor: config.backgroundColor,
+    chart: chartConfig,
+  };
+
+  try {
+    const response = await fetch(QUICKCHART.API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+    const data: GraphResponse = await response.json();
+    if (data?.success && data?.url) {
+      return data.url;
+    }
+  } catch (error: any) {
+    logger.error(error);
+    logger.error(`${errorLabel} ${theme} ${JSON.stringify(payload)}`);
+  }
+  return null;
+}
+
+///////////////////////////
 
 /**
  * Generate a line chart using QuickChart API
@@ -70,72 +160,21 @@ export async function getLineGraph(options: LineGraphOptions): Promise<string> {
         },
         options: {
           scales: {
-            xAxes: [
-              {
-                type: "time",
-                time: {
-                  displayFormats: {
-                    millisecond: "HH:mm:ss",
-                    second: "HH:mm:ss",
-                    minute: "HH:mm:ss",
-                    hour: "HH:mm",
-                  },
-                  unit: "second",
-                },
-                scaleLabel: {
-                  display: true,
-                  labelString: "Time",
-                  fontColor: config.axisColor,
-                },
-                ticks: {
-                  fontColor: config.axisColor,
-                },
-              },
-            ],
-            yAxes: [
-              {
-                scaleLabel: {
-                  display: true,
-                  labelString: options.label,
-                  fontColor: config.axisColor,
-                },
-                ticks: {
-                  fontColor: config.axisColor,
-                  beginAtZero: true,
-                },
-              },
-            ],
+            xAxes: [createTimeScaleConfig(config)],
+            yAxes: [createYAxisConfig(config, options.label)],
           },
-          legend: {
-            labels: {
-              fontColor: config.axisColor,
-            },
-          },
+          legend: createLegendConfig(config),
         },
       };
 
-      const payload = {
-        width: QUICKCHART.CHART_WIDTH,
-        height: QUICKCHART.CHART_HEIGHT,
-        backgroundColor: config.backgroundColor,
-        chart: chartConfig,
-      };
-
-      try {
-        const response = await fetch(QUICKCHART_API_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        });
-        const data: GraphResponse = await response.json();
-        if (data?.success && data?.url) {
-          themeToURLMap.set(theme, data.url);
-        }
-      } catch (error: any) {
-        logger.error(error);
-        logger.error(`getLineGraph ${theme} ${JSON.stringify(payload)}`);
+      const url = await createChartFromConfig(
+        theme,
+        config,
+        chartConfig,
+        "getLineGraph"
+      );
+      if (url) {
+        themeToURLMap.set(theme, url);
       }
     })
   );
@@ -171,73 +210,21 @@ export async function getStackedAreaGraph(
         },
         options: {
           scales: {
-            xAxes: [
-              {
-                type: "time",
-                time: {
-                  displayFormats: {
-                    millisecond: "HH:mm:ss",
-                    second: "HH:mm:ss",
-                    minute: "HH:mm:ss",
-                    hour: "HH:mm",
-                  },
-                  unit: "second",
-                },
-                scaleLabel: {
-                  display: true,
-                  labelString: "Time",
-                  fontColor: config.axisColor,
-                },
-                ticks: {
-                  fontColor: config.axisColor,
-                },
-              },
-            ],
-            yAxes: [
-              {
-                stacked: true,
-                scaleLabel: {
-                  display: true,
-                  labelString: options.label,
-                  fontColor: config.axisColor,
-                },
-                ticks: {
-                  fontColor: config.axisColor,
-                  beginAtZero: true,
-                },
-              },
-            ],
+            xAxes: [createTimeScaleConfig(config)],
+            yAxes: [createYAxisConfig(config, options.label, true)],
           },
-          legend: {
-            labels: {
-              fontColor: config.axisColor,
-            },
-          },
+          legend: createLegendConfig(config),
         },
       };
 
-      const payload = {
-        width: QUICKCHART.CHART_WIDTH,
-        height: QUICKCHART.CHART_HEIGHT,
-        backgroundColor: config.backgroundColor,
-        chart: chartConfig,
-      };
-
-      try {
-        const response = await fetch(QUICKCHART_API_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        });
-        const data: GraphResponse = await response.json();
-        if (data?.success && data?.url) {
-          themeToURLMap.set(theme, data.url);
-        }
-      } catch (error: any) {
-        logger.error(error);
-        logger.error(`getStackedAreaGraph ${theme} ${JSON.stringify(payload)}`);
+      const url = await createChartFromConfig(
+        theme,
+        config,
+        chartConfig,
+        "getStackedAreaGraph"
+      );
+      if (url) {
+        themeToURLMap.set(theme, url);
       }
     })
   );

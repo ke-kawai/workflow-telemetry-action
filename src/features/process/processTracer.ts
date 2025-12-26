@@ -4,6 +4,7 @@ import * as core from "@actions/core";
 import si from "systeminformation";
 import { WorkflowJobType } from "../../interfaces";
 import * as logger from "../../utils/logger";
+import { padStart, padEnd, formatFloat } from "../../utils/formatter";
 import { PROCESS_TRACE, FILE_PATHS } from "../../constants";
 
 const PROC_TRACER_STATE_FILE = path.join(__dirname, "../", FILE_PATHS.PROC_TRACER_STATE);
@@ -314,17 +315,6 @@ export async function report(
     let tableContent = "";
 
     if (procTraceTableShow) {
-      // Helper functions for formatting
-      const padStart = (val: string | number, width: number): string =>
-        String(val).padStart(width);
-      const padEnd = (val: string | number, width: number): string =>
-        String(val).padEnd(width);
-      const formatFloat = (
-        val: number,
-        width: number,
-        precision: number
-      ): string => val.toFixed(precision).padStart(width);
-
       const processInfos: string[] = [];
       processInfos.push(
         `${padEnd("NAME", 16)} ${padStart("PID", 7)} ${padStart(
