@@ -3,13 +3,24 @@ name: Demo
 on:
   workflow_dispatch:
 
+permissions:
+  pull-requests: write
+
 jobs:
   demo:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
-      - uses: ./workflow-telemetry-rust
+
+      - name: Collect Workflow Telemetry
+        uses: ./
         with:
           metric_frequency: "2"
-          metric_iterations: "10"
+
+      - name: Run some test commands
+        run: |
+          echo "Testing workflow telemetry..."
+          npm --version
+          node --version
+          sleep 5
+          echo "Test completed!"
