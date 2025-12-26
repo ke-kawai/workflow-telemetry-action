@@ -47462,6 +47462,7 @@ function startHttpServer() {
                         response.statusCode = 405;
                         response.end();
                     }
+                    break;
                 }
                 case '/collect': {
                     if (request.method === 'POST') {
