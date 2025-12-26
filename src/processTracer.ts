@@ -20,7 +20,9 @@ async function isSupportedOS(): Promise<boolean> {
   if (osInfo) {
     // Check whether we are running on Ubuntu (or Linux in general)
     if (osInfo.platform === 'linux') {
-      logger.info(`Process tracing enabled on ${osInfo.distro} ${osInfo.release}`)
+      logger.info(
+        `Process tracing enabled on ${osInfo.distro} ${osInfo.release}`
+      )
       return true
     }
   }
