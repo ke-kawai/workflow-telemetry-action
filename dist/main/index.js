@@ -27493,16 +27493,16 @@ function requireCore () {
 
 var coreExports = requireCore();
 
-const LOG_HEADER = '[Workflow Telemetry]';
+const LOG_HEADER = "[Workflow Telemetry]";
 function info(msg) {
-    coreExports.info(LOG_HEADER + ' ' + msg);
+    coreExports.info(LOG_HEADER + " " + msg);
 }
 function error(msg) {
-    if (msg instanceof String || typeof msg === 'string') {
-        coreExports.error(LOG_HEADER + ' ' + msg);
+    if (msg instanceof String || typeof msg === "string") {
+        coreExports.error(LOG_HEADER + " " + msg);
     }
     else {
-        coreExports.error(LOG_HEADER + ' ' + msg.name);
+        coreExports.error(LOG_HEADER + " " + msg.name);
         coreExports.error(msg);
     }
 }
@@ -27515,7 +27515,7 @@ async function start$2() {
         return true;
     }
     catch (error$1) {
-        error('Unable to start step tracer');
+        error("Unable to start step tracer");
         error(error$1);
         return false;
     }
@@ -27526,29 +27526,29 @@ async function start$1() {
     info(`Starting stat collector ...`);
     try {
         let metricFrequency = 0;
-        const metricFrequencyInput = coreExports.getInput('metric_frequency');
+        const metricFrequencyInput = coreExports.getInput("metric_frequency");
         if (metricFrequencyInput) {
             const metricFrequencyVal = parseInt(metricFrequencyInput);
             if (Number.isInteger(metricFrequencyVal)) {
                 metricFrequency = metricFrequencyVal * 1000;
             }
         }
-        const child = require$$1$6.spawn(process.argv[0], [require$$1$5.join(__dirname, '../scw/index.js')], {
+        const child = require$$1$6.spawn(process.argv[0], [require$$1$5.join(__dirname, "../scw/index.js")], {
             detached: true,
-            stdio: 'ignore',
+            stdio: "ignore",
             env: {
                 ...process.env,
                 WORKFLOW_TELEMETRY_STAT_FREQ: metricFrequency
                     ? `${metricFrequency}`
-                    : undefined
-            }
+                    : undefined,
+            },
         });
         child.unref();
         info(`Started stat collector`);
         return true;
     }
     catch (error$1) {
-        error('Unable to start stat collector');
+        error("Unable to start stat collector");
         error(error$1);
         return false;
     }
@@ -47320,24 +47320,12 @@ function requireLib () {
 var libExports = requireLib();
 var si = /*@__PURE__*/getDefaultExportFromCjs(libExports);
 
-const PROC_TRACER_STATE_FILE = require$$1$5.join(__dirname, '../.proc-tracer-started');
-const PROC_TRACER_DATA_FILE = require$$1$5.join(__dirname, '../proc-tracer-data.json');
+const PROC_TRACER_STATE_FILE = require$$1$5.join(__dirname, "../.proc-tracer-started");
+const PROC_TRACER_DATA_FILE = require$$1$5.join(__dirname, "../proc-tracer-data.json");
 const COLLECTION_INTERVAL_MS = 1000; // Collect process info every 1 second
 let collectionInterval = null;
 let trackedProcesses = new Map();
 let completedProcesses = [];
-async function isSupportedOS() {
-    const osInfo = await si.osInfo();
-    if (osInfo) {
-        // Check whether we are running on Ubuntu (or Linux in general)
-        if (osInfo.platform === 'linux') {
-            info(`Process tracing enabled on ${osInfo.distro} ${osInfo.release}`);
-            return true;
-        }
-    }
-    info(`Process tracing disabled because of unsupported OS: ${JSON.stringify(osInfo)}`);
-    return false;
-}
 async function collectProcesses() {
     try {
         const processes = await si.processes();
@@ -47358,12 +47346,12 @@ async function collectProcesses() {
                 // New process
                 trackedProcesses.set(proc.pid, {
                     pid: proc.pid,
-                    name: proc.name || 'unknown',
-                    command: proc.command || '',
-                    params: proc.params || '',
+                    name: proc.name || "unknown",
+                    command: proc.command || "",
+                    params: proc.params || "",
                     started: proc.started ? new Date(proc.started).getTime() : now,
                     pcpu: proc.cpu || 0,
-                    pmem: proc.mem || 0
+                    pmem: proc.mem || 0,
                 });
             }
         }
@@ -47379,7 +47367,7 @@ async function collectProcesses() {
                     ended: now,
                     duration: now - tracked.started,
                     maxCpu: tracked.pcpu,
-                    maxMem: tracked.pmem
+                    maxMem: tracked.pmem,
                 });
                 trackedProcesses.delete(pid);
             }
@@ -47393,7 +47381,7 @@ function saveData() {
     try {
         const data = {
             completed: completedProcesses,
-            tracked: Array.from(trackedProcesses.values())
+            tracked: Array.from(trackedProcesses.values()),
         };
         require$$1.writeFileSync(PROC_TRACER_DATA_FILE, JSON.stringify(data, null, 2));
     }
@@ -47405,10 +47393,6 @@ function saveData() {
 async function start() {
     info(`Starting process tracer ...`);
     try {
-        const isSupported = await isSupportedOS();
-        if (!isSupported) {
-            return false;
-        }
         // Create state file to indicate tracer is started
         require$$1.writeFileSync(PROC_TRACER_STATE_FILE, Date.now().toString());
         // Start collecting processes
@@ -47423,7 +47407,7 @@ async function start() {
         return true;
     }
     catch (error$1) {
-        error('Unable to start process tracer');
+        error("Unable to start process tracer");
         error(error$1);
         return false;
     }
@@ -47432,11 +47416,9 @@ async function start() {
 async function run() {
     try {
         info(`Initializing ...`);
-        // Start step tracer
+        // Start tracers and collectors
         await start$2();
-        // Start stat collector
         await start$1();
-        // Start process tracer
         await start();
         info(`Initialization completed`);
     }

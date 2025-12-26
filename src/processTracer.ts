@@ -1,92 +1,71 @@
-import path from 'path'
-import fs from 'fs'
-import * as core from '@actions/core'
-import si from 'systeminformation'
-import { WorkflowJobType } from './interfaces'
-import * as logger from './logger'
+import path from "path";
+import fs from "fs";
+import * as core from "@actions/core";
+import si from "systeminformation";
+import { WorkflowJobType } from "./interfaces";
+import * as logger from "./logger";
 
-const PROC_TRACER_STATE_FILE = path.join(__dirname, '../.proc-tracer-started')
-const PROC_TRACER_DATA_FILE = path.join(__dirname, '../proc-tracer-data.json')
-const DEFAULT_PROC_TRACE_CHART_MAX_COUNT = 100
-const GHA_FILE_NAME_PREFIX = '/home/runner/work/_actions/'
-const COLLECTION_INTERVAL_MS = 1000 // Collect process info every 1 second
+const PROC_TRACER_STATE_FILE = path.join(__dirname, "../.proc-tracer-started");
+const PROC_TRACER_DATA_FILE = path.join(__dirname, "../proc-tracer-data.json");
+const DEFAULT_PROC_TRACE_CHART_MAX_COUNT = 100;
+const GHA_FILE_NAME_PREFIX = "/home/runner/work/_actions/";
+const COLLECTION_INTERVAL_MS = 1000; // Collect process info every 1 second
 
 interface TrackedProcess {
-  pid: number
-  name: string
-  command: string
-  params: string
-  started: number
-  pcpu: number
-  pmem: number
+  pid: number;
+  name: string;
+  command: string;
+  params: string;
+  started: number;
+  pcpu: number;
+  pmem: number;
 }
 
 interface CompletedProcess {
-  pid: number
-  name: string
-  command: string
-  params: string
-  started: number
-  ended: number
-  duration: number
-  maxCpu: number
-  maxMem: number
+  pid: number;
+  name: string;
+  command: string;
+  params: string;
+  started: number;
+  ended: number;
+  duration: number;
+  maxCpu: number;
+  maxMem: number;
 }
 
-let collectionInterval: NodeJS.Timeout | null = null
-let trackedProcesses = new Map<number, TrackedProcess>()
-let completedProcesses: CompletedProcess[] = []
-let finished = false
-
-async function isSupportedOS(): Promise<boolean> {
-  const osInfo: si.Systeminformation.OsData = await si.osInfo()
-  if (osInfo) {
-    // Check whether we are running on Ubuntu (or Linux in general)
-    if (osInfo.platform === 'linux') {
-      logger.info(
-        `Process tracing enabled on ${osInfo.distro} ${osInfo.release}`
-      )
-      return true
-    }
-  }
-
-  logger.info(
-    `Process tracing disabled because of unsupported OS: ${JSON.stringify(
-      osInfo
-    )}`
-  )
-
-  return false
-}
+let collectionInterval: NodeJS.Timeout | null = null;
+let trackedProcesses = new Map<number, TrackedProcess>();
+let completedProcesses: CompletedProcess[] = [];
+let finished = false;
 
 async function collectProcesses(): Promise<void> {
   try {
-    const processes = await si.processes()
-    const currentPids = new Set<number>()
-    const now = Date.now()
+    const processes = await si.processes();
+    const currentPids = new Set<number>();
+    const now = Date.now();
 
     // Update tracked processes
     for (const proc of processes.list) {
-      if (!proc.pid) continue
+      if (!proc.pid) continue;
 
-      currentPids.add(proc.pid)
+      currentPids.add(proc.pid);
 
       if (trackedProcesses.has(proc.pid)) {
         // Update existing process
-        const tracked = trackedProcesses.get(proc.pid)!
-        tracked.pcpu = Math.max(tracked.pcpu, proc.cpu || 0)
-        tracked.pmem = Math.max(tracked.pmem, proc.mem || 0)
+        const tracked = trackedProcesses.get(proc.pid)!;
+        tracked.pcpu = Math.max(tracked.pcpu, proc.cpu || 0);
+        tracked.pmem = Math.max(tracked.pmem, proc.mem || 0);
       } else {
         // New process
         trackedProcesses.set(proc.pid, {
           pid: proc.pid,
-          name: proc.name || 'unknown',
-          command: proc.command || '',
-          params: proc.params || '',
+          name: proc.name || "unknown",
+          command: proc.command || "",
+          params: proc.params || "",
           started: proc.started ? new Date(proc.started).getTime() : now,
           pcpu: proc.cpu || 0,
-          pmem: proc.mem || 0
-        })
+          pmem: proc.mem || 0,
+        });
       }
     }
 
@@ -102,13 +81,13 @@ async function collectProcesses(): Promise<void> {
           ended: now,
           duration: now - tracked.started,
           maxCpu: tracked.pcpu,
-          maxMem: tracked.pmem
-        })
-        trackedProcesses.delete(pid)
+          maxMem: tracked.pmem,
+        });
+        trackedProcesses.delete(pid);
       }
     }
   } catch (error: any) {
-    logger.error(`Error collecting processes: ${error.message}`)
+    logger.error(`Error collecting processes: ${error.message}`);
   }
 }
 
@@ -116,106 +95,101 @@ function saveData(): void {
   try {
     const data = {
       completed: completedProcesses,
-      tracked: Array.from(trackedProcesses.values())
-    }
-    fs.writeFileSync(PROC_TRACER_DATA_FILE, JSON.stringify(data, null, 2))
+      tracked: Array.from(trackedProcesses.values()),
+    };
+    fs.writeFileSync(PROC_TRACER_DATA_FILE, JSON.stringify(data, null, 2));
   } catch (error: any) {
-    logger.error(`Error saving process data: ${error.message}`)
+    logger.error(`Error saving process data: ${error.message}`);
   }
 }
 
 function loadData(): void {
   try {
     if (fs.existsSync(PROC_TRACER_DATA_FILE)) {
-      const data = JSON.parse(fs.readFileSync(PROC_TRACER_DATA_FILE, 'utf-8'))
-      completedProcesses = data.completed || []
+      const data = JSON.parse(fs.readFileSync(PROC_TRACER_DATA_FILE, "utf-8"));
+      completedProcesses = data.completed || [];
       if (data.tracked) {
         trackedProcesses = new Map(
           data.tracked.map((p: TrackedProcess) => [p.pid, p])
-        )
+        );
       }
     }
   } catch (error: any) {
-    logger.error(`Error loading process data: ${error.message}`)
+    logger.error(`Error loading process data: ${error.message}`);
   }
 }
 
 function getExtraProcessInfo(proc: CompletedProcess): string | null {
   // Check whether this is node process with args
-  if (proc.name === 'node' && proc.params) {
+  if (proc.name === "node" && proc.params) {
     // Check whether this is Node.js GHA process
     if (proc.params.includes(GHA_FILE_NAME_PREFIX)) {
       const match = proc.params.match(
         new RegExp(`${GHA_FILE_NAME_PREFIX}([^/]+/[^/]+)`)
-      )
+      );
       if (match && match[1]) {
-        return match[1]
+        return match[1];
       }
     }
   }
-  return null
+  return null;
 }
 
 ///////////////////////////
 
 export async function start(): Promise<boolean> {
-  logger.info(`Starting process tracer ...`)
+  logger.info(`Starting process tracer ...`);
 
   try {
-    const isSupported = await isSupportedOS()
-    if (!isSupported) {
-      return false
-    }
-
     // Create state file to indicate tracer is started
-    fs.writeFileSync(PROC_TRACER_STATE_FILE, Date.now().toString())
+    fs.writeFileSync(PROC_TRACER_STATE_FILE, Date.now().toString());
 
     // Start collecting processes
-    await collectProcesses()
+    await collectProcesses();
 
     collectionInterval = setInterval(async () => {
-      await collectProcesses()
-      saveData()
-    }, COLLECTION_INTERVAL_MS)
+      await collectProcesses();
+      saveData();
+    }, COLLECTION_INTERVAL_MS);
 
     // Prevent the interval from keeping the process alive
-    collectionInterval.unref()
+    collectionInterval.unref();
 
     logger.info(
       `Started process tracer with ${COLLECTION_INTERVAL_MS}ms interval`
-    )
+    );
 
-    return true
+    return true;
   } catch (error: any) {
-    logger.error('Unable to start process tracer')
-    logger.error(error)
+    logger.error("Unable to start process tracer");
+    logger.error(error);
 
-    return false
+    return false;
   }
 }
 
 export async function finish(currentJob: WorkflowJobType): Promise<boolean> {
-  logger.info(`Finishing process tracer ...`)
+  logger.info(`Finishing process tracer ...`);
 
   if (!fs.existsSync(PROC_TRACER_STATE_FILE)) {
     logger.info(
       `Skipped finishing process tracer since process tracer didn't started`
-    )
-    return false
+    );
+    return false;
   }
 
   try {
     // Stop collection interval
     if (collectionInterval) {
-      clearInterval(collectionInterval)
-      collectionInterval = null
+      clearInterval(collectionInterval);
+      collectionInterval = null;
     }
 
     // Final collection
-    await collectProcesses()
+    await collectProcesses();
 
     // Mark any remaining tracked processes as completed
-    const now = Date.now()
+    const now = Date.now();
     for (const [pid, tracked] of trackedProcesses.entries()) {
       completedProcesses.push({
         pid: tracked.pid,
@@ -226,171 +200,185 @@ export async function finish(currentJob: WorkflowJobType): Promise<boolean> {
         ended: now,
         duration: now - tracked.started,
         maxCpu: tracked.pcpu,
-        maxMem: tracked.pmem
-      })
+        maxMem: tracked.pmem,
+      });
     }
-    trackedProcesses.clear()
+    trackedProcesses.clear();
 
     // Save final data
-    saveData()
-    finished = true
+    saveData();
+    finished = true;
 
-    logger.info(`Finished process tracer`)
+    logger.info(`Finished process tracer`);
 
-    return true
+    return true;
   } catch (error: any) {
-    logger.error('Unable to finish process tracer')
-    logger.error(error)
+    logger.error("Unable to finish process tracer");
+    logger.error(error);
 
-    return false
+    return false;
   }
 }
 
 export async function report(
   currentJob: WorkflowJobType
 ): Promise<string | null> {
-  logger.info(`Reporting process tracer result ...`)
+  logger.info(`Reporting process tracer result ...`);
 
   if (!finished) {
     logger.info(
       `Skipped reporting process tracer since process tracer didn't finished`
-    )
-    return null
+    );
+    return null;
   }
 
   try {
     // Load data from file
-    loadData()
+    loadData();
 
-    logger.info(`Getting process tracer result from data file ...`)
+    logger.info(`Getting process tracer result from data file ...`);
 
-    let procTraceMinDuration = -1
+    let procTraceMinDuration = -1;
     const procTraceMinDurationInput: string = core.getInput(
-      'proc_trace_min_duration'
-    )
+      "proc_trace_min_duration"
+    );
     if (procTraceMinDurationInput) {
-      const minProcDurationVal: number = parseInt(procTraceMinDurationInput)
+      const minProcDurationVal: number = parseInt(procTraceMinDurationInput);
       if (Number.isInteger(minProcDurationVal)) {
-        procTraceMinDuration = minProcDurationVal
+        procTraceMinDuration = minProcDurationVal;
       }
     }
 
     const procTraceChartShow: boolean =
-      core.getInput('proc_trace_chart_show') === 'true'
+      core.getInput("proc_trace_chart_show") === "true";
     const procTraceChartMaxCountInput: number = parseInt(
-      core.getInput('proc_trace_chart_max_count')
-    )
+      core.getInput("proc_trace_chart_max_count")
+    );
     const procTraceChartMaxCount = Number.isInteger(procTraceChartMaxCountInput)
       ? procTraceChartMaxCountInput
-      : DEFAULT_PROC_TRACE_CHART_MAX_COUNT
+      : DEFAULT_PROC_TRACE_CHART_MAX_COUNT;
     const procTraceTableShow: boolean =
-      core.getInput('proc_trace_table_show') === 'true'
+      core.getInput("proc_trace_table_show") === "true";
 
     // Filter processes by minimum duration
-    let filteredProcesses = completedProcesses
+    let filteredProcesses = completedProcesses;
     if (procTraceMinDuration > 0) {
       filteredProcesses = completedProcesses.filter(
-        p => p.duration >= procTraceMinDuration
-      )
+        (p) => p.duration >= procTraceMinDuration
+      );
     }
 
     ///////////////////////////////////////////////////////////////////////////
 
-    let chartContent = ''
+    let chartContent = "";
 
     if (procTraceChartShow) {
-      // Adjust timestamps to display as UTC instead of local time
-      const adjustToUTC = (timestamp: number): number => {
-        const offset = new Date(timestamp).getTimezoneOffset() * 60 * 1000
-        return timestamp + offset
-      }
-
-      chartContent = chartContent.concat('gantt', '\n')
-      chartContent = chartContent.concat('\t', `title ${currentJob.name}`, '\n')
-      chartContent = chartContent.concat('\t', `dateFormat x`, '\n')
-      chartContent = chartContent.concat('\t', `axisFormat %H:%M:%S`, '\n')
+      chartContent = chartContent.concat("gantt", "\n");
+      chartContent = chartContent.concat(
+        "\t",
+        `title ${currentJob.name}`,
+        "\n"
+      );
+      chartContent = chartContent.concat("\t", `dateFormat x`, "\n");
+      chartContent = chartContent.concat("\t", `axisFormat %H:%M:%S`, "\n");
 
       const processesForChart = [...filteredProcesses]
         .sort((a, b) => -(a.duration - b.duration))
         .slice(0, procTraceChartMaxCount)
-        .sort((a, b) => a.started - b.started)
+        .sort((a, b) => a.started - b.started);
 
       for (const proc of processesForChart) {
-        const extraProcessInfo: string | null = getExtraProcessInfo(proc)
-        const escapedName = proc.name.replace(/:/g, '#colon;')
+        const extraProcessInfo: string | null = getExtraProcessInfo(proc);
+        const escapedName = proc.name.replace(/:/g, "#colon;");
         if (extraProcessInfo) {
           chartContent = chartContent.concat(
-            '\t',
+            "\t",
             `${escapedName} (${extraProcessInfo}) : `
-          )
+          );
         } else {
-          chartContent = chartContent.concat('\t', `${escapedName} : `)
+          chartContent = chartContent.concat("\t", `${escapedName} : `);
         }
 
-        const startTime: number = adjustToUTC(proc.started)
-        const finishTime: number = adjustToUTC(proc.ended)
+        const startTime: number = proc.started;
+        const finishTime: number = proc.ended;
         chartContent = chartContent.concat(
           `${Math.min(startTime, finishTime)}, ${finishTime}`,
-          '\n'
-        )
+          "\n"
+        );
       }
     }
 
     ///////////////////////////////////////////////////////////////////////////
 
-    let tableContent = ''
+    let tableContent = "";
 
     if (procTraceTableShow) {
       // Helper functions for formatting
       const padStart = (val: string | number, width: number): string =>
-        String(val).padStart(width)
+        String(val).padStart(width);
       const padEnd = (val: string | number, width: number): string =>
-        String(val).padEnd(width)
-      const formatFloat = (val: number, width: number, precision: number): string =>
-        val.toFixed(precision).padStart(width)
+        String(val).padEnd(width);
+      const formatFloat = (
+        val: number,
+        width: number,
+        precision: number
+      ): string => val.toFixed(precision).padStart(width);
 
-      const processInfos: string[] = []
+      const processInfos: string[] = [];
       processInfos.push(
-        `${padEnd('NAME', 16)} ${padStart('PID', 7)} ${padStart('START TIME', 15)} ${padStart('DURATION (ms)', 15)} ${padStart('MAX CPU %', 10)} ${padStart('MAX MEM %', 10)} ${padEnd('COMMAND + PARAMS', 40)}`
-      )
+        `${padEnd("NAME", 16)} ${padStart("PID", 7)} ${padStart(
+          "START TIME",
+          15
+        )} ${padStart("DURATION (ms)", 15)} ${padStart(
+          "MAX CPU %",
+          10
+        )} ${padStart("MAX MEM %", 10)} ${padEnd("COMMAND + PARAMS", 40)}`
+      );
       for (const proc of filteredProcesses) {
         processInfos.push(
-          `${padEnd(proc.name, 16)} ${padStart(proc.pid, 7)} ${padStart(proc.started, 15)} ${padStart(proc.duration, 15)} ${formatFloat(proc.maxCpu, 10, 2)} ${formatFloat(proc.maxMem, 10, 2)} ${proc.command} ${proc.params}`
-        )
+          `${padEnd(proc.name, 16)} ${padStart(proc.pid, 7)} ${padStart(
+            proc.started,
+            15
+          )} ${padStart(proc.duration, 15)} ${formatFloat(
+            proc.maxCpu,
+            10,
+            2
+          )} ${formatFloat(proc.maxMem, 10, 2)} ${proc.command} ${proc.params}`
+        );
       }
 
-      tableContent = processInfos.join('\n')
+      tableContent = processInfos.join("\n");
     }
 
     ///////////////////////////////////////////////////////////////////////////
 
-    const postContentItems: string[] = ['', '### Process Trace']
+    const postContentItems: string[] = ["", "### Process Trace"];
     if (procTraceChartShow) {
       postContentItems.push(
-        '',
+        "",
         `#### Top ${procTraceChartMaxCount} processes with highest duration`,
-        '',
-        '```mermaid' + '\n' + chartContent + '\n' + '```'
-      )
+        "",
+        "```mermaid" + "\n" + chartContent + "\n" + "```"
+      );
     }
     if (procTraceTableShow) {
       postContentItems.push(
-        '',
+        "",
         `#### All processes with detail`,
-        '',
-        '```' + '\n' + tableContent + '\n' + '```'
-      )
+        "",
+        "```" + "\n" + tableContent + "\n" + "```"
+      );
     }
 
-    const postContent: string = postContentItems.join('\n')
+    const postContent: string = postContentItems.join("\n");
 
-    logger.info(`Reported process tracer result`)
+    logger.info(`Reported process tracer result`);
 
-    return postContent
+    return postContent;
   } catch (error: any) {
-    logger.error('Unable to report process tracer result')
-    logger.error(error)
+    logger.error("Unable to report process tracer result");
+    logger.error(error);
 
-    return null
+    return null;
   }
 }

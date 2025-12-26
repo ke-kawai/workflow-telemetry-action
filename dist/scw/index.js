@@ -47259,26 +47259,26 @@ function requireCore () {
 
 var coreExports = requireCore();
 
-const LOG_HEADER = '[Workflow Telemetry]';
+const LOG_HEADER = "[Workflow Telemetry]";
 function info(msg) {
-    coreExports.info(LOG_HEADER + ' ' + msg);
+    coreExports.info(LOG_HEADER + " " + msg);
 }
 function error(msg) {
-    if (msg instanceof String || typeof msg === 'string') {
-        coreExports.error(LOG_HEADER + ' ' + msg);
+    if (msg instanceof String || typeof msg === "string") {
+        coreExports.error(LOG_HEADER + " " + msg);
     }
     else {
-        coreExports.error(LOG_HEADER + ' ' + msg.name);
+        coreExports.error(LOG_HEADER + " " + msg.name);
         coreExports.error(msg);
     }
 }
 
-const STATS_FREQ = parseInt(process.env.WORKFLOW_TELEMETRY_STAT_FREQ || '') || 5000;
-const SERVER_HOST = 'localhost';
+const STATS_FREQ = parseInt(process.env.WORKFLOW_TELEMETRY_STAT_FREQ || "") || 5000;
+const SERVER_HOST = "localhost";
 // TODO
 // It is better to find an available/free port automatically and use it.
 // Then the post script (`post.ts`) needs to know the selected port.
-const SERVER_PORT = parseInt(process.env.WORKFLOW_TELEMETRY_SERVER_PORT || '') || 7777;
+const SERVER_PORT = parseInt(process.env.WORKFLOW_TELEMETRY_SERVER_PORT || "") || 7777;
 let expectedScheduleTime = 0;
 let statCollectTime = 0;
 ///////////////////////////
@@ -47293,7 +47293,7 @@ function collectCPUStats(statTime, timeInterval) {
             time: statTime,
             totalLoad: data.currentLoad,
             userLoad: data.currentLoadUser,
-            systemLoad: data.currentLoadSystem
+            systemLoad: data.currentLoadSystem,
         };
         cpuStatsHistogram.push(cpuStats);
     })
@@ -47313,7 +47313,7 @@ function collectMemoryStats(statTime, timeInterval) {
             time: statTime,
             totalMemoryMb: data.total / 1024 / 1024,
             activeMemoryMb: data.active / 1024 / 1024,
-            availableMemoryMb: data.available / 1024 / 1024
+            availableMemoryMb: data.available / 1024 / 1024,
         };
         memoryStatsHistogram.push(memoryStats);
     })
@@ -47337,7 +47337,7 @@ function collectNetworkStats(statTime, timeInterval) {
         const networkStats = {
             time: statTime,
             rxMb: Math.floor((totalRxSec * (timeInterval / 1000)) / 1024 / 1024),
-            txMb: Math.floor((totalTxSec * (timeInterval / 1000)) / 1024 / 1024)
+            txMb: Math.floor((totalTxSec * (timeInterval / 1000)) / 1024 / 1024),
         };
         networkStatsHistogram.push(networkStats);
     })
@@ -47358,7 +47358,7 @@ function collectDiskStats(statTime, timeInterval) {
         const diskStats = {
             time: statTime,
             rxMb: Math.floor((rxSec * (timeInterval / 1000)) / 1024 / 1024),
-            wxMb: Math.floor((wxSec * (timeInterval / 1000)) / 1024 / 1024)
+            wxMb: Math.floor((wxSec * (timeInterval / 1000)) / 1024 / 1024),
         };
         diskStatsHistogram.push(diskStats);
     })
@@ -47379,7 +47379,7 @@ function collectDiskSizeStats(statTime, timeInterval) {
         const diskSizeStats = {
             time: statTime,
             availableSizeMb: Math.floor((totalSize - usedSize) / 1024 / 1024),
-            usedSizeMb: Math.floor(usedSize / 1024 / 1024)
+            usedSizeMb: Math.floor(usedSize / 1024 / 1024),
         };
         diskSizeStatsHistogram.push(diskSizeStats);
     })
@@ -47414,8 +47414,8 @@ function startHttpServer() {
     const server = require$$2.createServer(async (request, response) => {
         try {
             switch (request.url) {
-                case '/cpu': {
-                    if (request.method === 'GET') {
+                case "/cpu": {
+                    if (request.method === "GET") {
                         response.end(JSON.stringify(cpuStatsHistogram));
                     }
                     else {
@@ -47424,8 +47424,8 @@ function startHttpServer() {
                     }
                     break;
                 }
-                case '/memory': {
-                    if (request.method === 'GET') {
+                case "/memory": {
+                    if (request.method === "GET") {
                         response.end(JSON.stringify(memoryStatsHistogram));
                     }
                     else {
@@ -47434,8 +47434,8 @@ function startHttpServer() {
                     }
                     break;
                 }
-                case '/network': {
-                    if (request.method === 'GET') {
+                case "/network": {
+                    if (request.method === "GET") {
                         response.end(JSON.stringify(networkStatsHistogram));
                     }
                     else {
@@ -47444,8 +47444,8 @@ function startHttpServer() {
                     }
                     break;
                 }
-                case '/disk': {
-                    if (request.method === 'GET') {
+                case "/disk": {
+                    if (request.method === "GET") {
                         response.end(JSON.stringify(diskStatsHistogram));
                     }
                     else {
@@ -47454,8 +47454,8 @@ function startHttpServer() {
                     }
                     break;
                 }
-                case '/disk_size': {
-                    if (request.method === 'GET') {
+                case "/disk_size": {
+                    if (request.method === "GET") {
                         response.end(JSON.stringify(diskSizeStatsHistogram));
                     }
                     else {
@@ -47464,8 +47464,8 @@ function startHttpServer() {
                     }
                     break;
                 }
-                case '/collect': {
-                    if (request.method === 'POST') {
+                case "/collect": {
+                    if (request.method === "POST") {
                         await collectStats(false);
                         response.end();
                     }
@@ -47486,7 +47486,7 @@ function startHttpServer() {
             response.statusCode = 500;
             response.end(JSON.stringify({
                 type: error$1.type,
-                message: error$1.message
+                message: error$1.message,
             }));
         }
     });
@@ -47498,9 +47498,9 @@ function startHttpServer() {
 ///////////////////////////
 function init() {
     expectedScheduleTime = Date.now();
-    info('Starting stat collector ...');
+    info("Starting stat collector ...");
     process.nextTick(collectStats);
-    info('Starting HTTP server ...');
+    info("Starting HTTP server ...");
     startHttpServer();
 }
 init();
