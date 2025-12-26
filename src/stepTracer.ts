@@ -20,6 +20,12 @@ function generateTraceChartForSteps(job: WorkflowJobType): string {
        Post Run actions/checkout@v2 : 1658073655000, 1658073655000
   */
 
+  // Adjust timestamps to display as UTC instead of local time
+  const adjustToUTC = (timestamp: number): number => {
+    const offset = new Date(timestamp).getTimezoneOffset() * 60 * 1000
+    return timestamp + offset
+  }
+
   chartContent = chartContent.concat('gantt', '\n')
   chartContent = chartContent.concat('\t', `title ${job.name}`, '\n')
   chartContent = chartContent.concat('\t', `dateFormat x`, '\n')
@@ -46,8 +52,10 @@ function generateTraceChartForSteps(job: WorkflowJobType): string {
       chartContent = chartContent.concat('done, ')
     }
 
-    const startTime: number = new Date(step.started_at).getTime()
-    const finishTime: number = new Date(step.completed_at).getTime()
+    const startTime: number = adjustToUTC(new Date(step.started_at).getTime())
+    const finishTime: number = adjustToUTC(
+      new Date(step.completed_at).getTime()
+    )
     chartContent = chartContent.concat(
       `${Math.min(startTime, finishTime)}, ${finishTime}`,
       '\n'
