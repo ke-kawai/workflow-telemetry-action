@@ -2,7 +2,6 @@ import path from 'path'
 import fs from 'fs'
 import * as core from '@actions/core'
 import si from 'systeminformation'
-import { sprintf } from 'sprintf-js'
 import { WorkflowJobType } from './interfaces'
 import * as logger from './logger'
 
@@ -342,32 +341,21 @@ export async function report(
     let tableContent = ''
 
     if (procTraceTableShow) {
+      // Helper functions for formatting
+      const padStart = (val: string | number, width: number): string =>
+        String(val).padStart(width)
+      const padEnd = (val: string | number, width: number): string =>
+        String(val).padEnd(width)
+      const formatFloat = (val: number, width: number, precision: number): string =>
+        val.toFixed(precision).padStart(width)
+
       const processInfos: string[] = []
       processInfos.push(
-        sprintf(
-          '%-16s %7s %15s %15s %10s %10s %-40s',
-          'NAME',
-          'PID',
-          'START TIME',
-          'DURATION (ms)',
-          'MAX CPU %',
-          'MAX MEM %',
-          'COMMAND + PARAMS'
-        )
+        `${padEnd('NAME', 16)} ${padStart('PID', 7)} ${padStart('START TIME', 15)} ${padStart('DURATION (ms)', 15)} ${padStart('MAX CPU %', 10)} ${padStart('MAX MEM %', 10)} ${padEnd('COMMAND + PARAMS', 40)}`
       )
       for (const proc of filteredProcesses) {
         processInfos.push(
-          sprintf(
-            '%-16s %7d %15d %15d %10.2f %10.2f %s %s',
-            proc.name,
-            proc.pid,
-            proc.started,
-            proc.duration,
-            proc.maxCpu,
-            proc.maxMem,
-            proc.command,
-            proc.params
-          )
+          `${padEnd(proc.name, 16)} ${padStart(proc.pid, 7)} ${padStart(proc.started, 15)} ${padStart(proc.duration, 15)} ${formatFloat(proc.maxCpu, 10, 2)} ${formatFloat(proc.maxMem, 10, 2)} ${proc.command} ${proc.params}`
         )
       }
 
