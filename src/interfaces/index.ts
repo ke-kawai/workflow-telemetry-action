@@ -36,7 +36,7 @@ export interface DiskSizeStats {
 }
 
 export interface ProcessedStats {
-  readonly x: number | string
+  readonly x: number
   readonly y: number
 }
 

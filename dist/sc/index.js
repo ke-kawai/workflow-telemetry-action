@@ -28695,21 +28695,11 @@ function reportWorkflowMetrics() {
         return postContentItems.join('\n');
     });
 }
-function toLocalISOString(timestamp) {
-    const date = new Date(timestamp);
-    const offset = -date.getTimezoneOffset();
-    const offsetHours = Math.floor(Math.abs(offset) / 60)
-        .toString()
-        .padStart(2, '0');
-    const offsetMinutes = (Math.abs(offset) % 60).toString().padStart(2, '0');
-    const offsetSign = offset >= 0 ? '+' : '-';
-    const year = date.getFullYear();
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const day = date.getDate().toString().padStart(2, '0');
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
-    const seconds = date.getSeconds().toString().padStart(2, '0');
-    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}${offsetSign}${offsetHours}:${offsetMinutes}`;
+function adjustTimestampForLocalTimezone(timestamp) {
+    // Adjust timestamp so that when rendered as UTC on server,
+    // it displays as local time
+    const offset = new Date(timestamp).getTimezoneOffset() * 60 * 1000;
+    return timestamp - offset;
 }
 function getCPUStats() {
     return __awaiter(this, void 0, void 0, function* () {
@@ -28722,11 +28712,11 @@ function getCPUStats() {
         }
         response.data.forEach((element) => {
             userLoadX.push({
-                x: toLocalISOString(element.time),
+                x: adjustTimestampForLocalTimezone(element.time),
                 y: element.userLoad && element.userLoad > 0 ? element.userLoad : 0
             });
             systemLoadX.push({
-                x: toLocalISOString(element.time),
+                x: adjustTimestampForLocalTimezone(element.time),
                 y: element.systemLoad && element.systemLoad > 0 ? element.systemLoad : 0
             });
         });
@@ -28744,13 +28734,13 @@ function getMemoryStats() {
         }
         response.data.forEach((element) => {
             activeMemoryX.push({
-                x: toLocalISOString(element.time),
+                x: adjustTimestampForLocalTimezone(element.time),
                 y: element.activeMemoryMb && element.activeMemoryMb > 0
                     ? element.activeMemoryMb
                     : 0
             });
             availableMemoryX.push({
-                x: toLocalISOString(element.time),
+                x: adjustTimestampForLocalTimezone(element.time),
                 y: element.availableMemoryMb && element.availableMemoryMb > 0
                     ? element.availableMemoryMb
                     : 0
@@ -28770,11 +28760,11 @@ function getNetworkStats() {
         }
         response.data.forEach((element) => {
             networkReadX.push({
-                x: toLocalISOString(element.time),
+                x: adjustTimestampForLocalTimezone(element.time),
                 y: element.rxMb && element.rxMb > 0 ? element.rxMb : 0
             });
             networkWriteX.push({
-                x: toLocalISOString(element.time),
+                x: adjustTimestampForLocalTimezone(element.time),
                 y: element.txMb && element.txMb > 0 ? element.txMb : 0
             });
         });
@@ -28792,11 +28782,11 @@ function getDiskStats() {
         }
         response.data.forEach((element) => {
             diskReadX.push({
-                x: toLocalISOString(element.time),
+                x: adjustTimestampForLocalTimezone(element.time),
                 y: element.rxMb && element.rxMb > 0 ? element.rxMb : 0
             });
             diskWriteX.push({
-                x: toLocalISOString(element.time),
+                x: adjustTimestampForLocalTimezone(element.time),
                 y: element.wxMb && element.wxMb > 0 ? element.wxMb : 0
             });
         });
@@ -28814,13 +28804,13 @@ function getDiskSizeStats() {
         }
         response.data.forEach((element) => {
             diskAvailableX.push({
-                x: toLocalISOString(element.time),
+                x: adjustTimestampForLocalTimezone(element.time),
                 y: element.availableSizeMb && element.availableSizeMb > 0
                     ? element.availableSizeMb
                     : 0
             });
             diskUsedX.push({
-                x: toLocalISOString(element.time),
+                x: adjustTimestampForLocalTimezone(element.time),
                 y: element.usedSizeMb && element.usedSizeMb > 0 ? element.usedSizeMb : 0
             });
         });
