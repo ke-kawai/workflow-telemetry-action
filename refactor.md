@@ -290,6 +290,37 @@ async function transformStats<T extends { time: number }>(
 - `src/features/stats/collector.ts` - transformStats関数追加、5つの統計関数を簡素化
 - `dist/` - ビルド成果物の更新
 
+### 2025-12-27 (4): 複雑な関数の分割（項目5） ✅
+- 長大な関数を小さな責務ごとの関数に分割
+- 3つの主要な関数をリファクタリング
+- 各ファイルごとに個別のコミットに分割してPRの可読性を向上
+- ビルドで検証済み（`npm run bundle`成功）
+
+**A. `getCurrentJob()` in post.ts (47行 → 3関数)**
+- `fetchJobPage()`: 単一ページのAPIリクエストを処理
+- `findCurrentJob()`: ページネーションロジックを処理
+- `getCurrentJob()`: リトライロジックに専念
+- 各関数が単一責務を持ち、テストが容易に
+
+**B. `reportWorkflowMetrics()` in collector.ts (144行 → 3関数)**
+- `fetchAllStats()`: すべてのメトリクスデータを収集
+- `createMetricCharts()`: 統計データからチャートを生成
+- `formatMetricsReport()`: 最終的な出力をフォーマット
+- `AllStats`と`MetricCharts`インターフェースを追加して型安全性を向上
+
+**C. `report()` in processTracer.ts (150行 → 4関数)**
+- `parseConfiguration()`: 入力設定をパース
+- `generateProcessChart()`: Ganttチャートコンテンツを生成
+- `generateProcessTable()`: プロセステーブルを生成
+- `formatProcessReport()`: 最終的な出力をフォーマット
+- `ProcessTracerConfig`インターフェースを追加して型安全性を向上
+
+**影響範囲**:
+- `src/entry/post.ts` - getCurrentJob関連の3関数
+- `src/features/stats/collector.ts` - reportWorkflowMetrics関連の3関数と2つのインターフェース
+- `src/features/process/processTracer.ts` - report関連の4関数と1つのインターフェース
+- `dist/` - ビルド成果物の更新
+
 ### 2025-12-27 (3): StatsCollector型の改善（項目4C）
 - `statsCollectors`配列の型を`StatsCollector<any, any>[]`からUnion型に変更
 - 新しい`AnyStatsCollector`型を作成：5つの具体的なStatsCollector型のUnion
