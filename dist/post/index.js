@@ -32433,12 +32433,20 @@ async function triggerStatCollect() {
         }
     }
 }
-async function reportWorkflowMetrics() {
-    const { userLoadX, systemLoadX } = await getCPUStats();
-    const { activeMemoryX, availableMemoryX } = await getMemoryStats();
-    const { networkReadX, networkWriteX } = await getNetworkStats();
-    const { diskReadX, diskWriteX } = await getDiskStats();
-    const { diskAvailableX, diskUsedX } = await getDiskSizeStats();
+async function fetchAllStats() {
+    const cpu = await getCPUStats();
+    const memory = await getMemoryStats();
+    const network = await getNetworkStats();
+    const disk = await getDiskStats();
+    const diskSize = await getDiskSizeStats();
+    return { cpu, memory, network, disk, diskSize };
+}
+async function createMetricCharts(stats) {
+    const { userLoadX, systemLoadX } = stats.cpu;
+    const { activeMemoryX, availableMemoryX } = stats.memory;
+    const { networkReadX, networkWriteX } = stats.network;
+    const { diskReadX, diskWriteX } = stats.disk;
+    const { diskAvailableX, diskUsedX } = stats.diskSize;
     const cpuLoad = userLoadX && userLoadX.length && systemLoadX && systemLoadX.length
         ? await getStackedAreaGraph$1({
             label: "CPU Load (%)",
@@ -32533,29 +32541,46 @@ async function reportWorkflowMetrics() {
             ],
         })
         : null;
+    return {
+        cpuLoad,
+        memoryUsage,
+        networkIORead,
+        networkIOWrite,
+        diskIORead,
+        diskIOWrite,
+        diskSizeUsage,
+    };
+}
+function formatMetricsReport(charts) {
     const postContentItems = [];
-    if (cpuLoad) {
-        postContentItems.push("### CPU Metrics", cpuLoad, "");
+    if (charts.cpuLoad) {
+        postContentItems.push("### CPU Metrics", charts.cpuLoad, "");
     }
-    if (memoryUsage) {
-        postContentItems.push("### Memory Metrics", memoryUsage, "");
+    if (charts.memoryUsage) {
+        postContentItems.push("### Memory Metrics", charts.memoryUsage, "");
     }
-    if ((networkIORead && networkIOWrite) || (diskIORead && diskIOWrite)) {
+    if ((charts.networkIORead && charts.networkIOWrite) ||
+        (charts.diskIORead && charts.diskIOWrite)) {
         postContentItems.push("### IO Metrics", "|               | Read      | Write     |", "|---            |---        |---        |");
     }
-    if (networkIORead && networkIOWrite) {
-        postContentItems.push(`| Network I/O   | ${networkIORead}        | ${networkIOWrite}        |`);
+    if (charts.networkIORead && charts.networkIOWrite) {
+        postContentItems.push(`| Network I/O   | ${charts.networkIORead}        | ${charts.networkIOWrite}        |`);
     }
-    if (diskIORead && diskIOWrite) {
-        postContentItems.push(`| Disk I/O      | ${diskIORead}              | ${diskIOWrite}              |`);
+    if (charts.diskIORead && charts.diskIOWrite) {
+        postContentItems.push(`| Disk I/O      | ${charts.diskIORead}              | ${charts.diskIOWrite}              |`);
     }
-    if (diskSizeUsage) {
-        postContentItems.push("### Disk Size Metrics", diskSizeUsage, "");
+    if (charts.diskSizeUsage) {
+        postContentItems.push("### Disk Size Metrics", charts.diskSizeUsage, "");
     }
     return postContentItems.join("\n");
 }
 function normalizeValue(value) {
     return value && value > 0 ? value : 0;
+}
+async function reportWorkflowMetrics() {
+    const stats = await fetchAllStats();
+    const charts = await createMetricCharts(stats);
+    return formatMetricsReport(charts);
 }
 async function getCPUStats() {
     const userLoadX = [];

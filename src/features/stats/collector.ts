@@ -46,12 +46,40 @@ async function triggerStatCollect(): Promise<void> {
   }
 }
 
-async function reportWorkflowMetrics(): Promise<string> {
-  const { userLoadX, systemLoadX } = await getCPUStats();
-  const { activeMemoryX, availableMemoryX } = await getMemoryStats();
-  const { networkReadX, networkWriteX } = await getNetworkStats();
-  const { diskReadX, diskWriteX } = await getDiskStats();
-  const { diskAvailableX, diskUsedX } = await getDiskSizeStats();
+interface AllStats {
+  cpu: ProcessedCPUStats;
+  memory: ProcessedMemoryStats;
+  network: ProcessedNetworkStats;
+  disk: ProcessedDiskStats;
+  diskSize: ProcessedDiskSizeStats;
+}
+
+interface MetricCharts {
+  cpuLoad: string | null;
+  memoryUsage: string | null;
+  networkIORead: string | null;
+  networkIOWrite: string | null;
+  diskIORead: string | null;
+  diskIOWrite: string | null;
+  diskSizeUsage: string | null;
+}
+
+async function fetchAllStats(): Promise<AllStats> {
+  const cpu = await getCPUStats();
+  const memory = await getMemoryStats();
+  const network = await getNetworkStats();
+  const disk = await getDiskStats();
+  const diskSize = await getDiskSizeStats();
+
+  return { cpu, memory, network, disk, diskSize };
+}
+
+async function createMetricCharts(stats: AllStats): Promise<MetricCharts> {
+  const { userLoadX, systemLoadX } = stats.cpu;
+  const { activeMemoryX, availableMemoryX } = stats.memory;
+  const { networkReadX, networkWriteX } = stats.network;
+  const { diskReadX, diskWriteX } = stats.disk;
+  const { diskAvailableX, diskUsedX } = stats.diskSize;
 
   const cpuLoad =
     userLoadX && userLoadX.length && systemLoadX && systemLoadX.length
@@ -161,32 +189,48 @@ async function reportWorkflowMetrics(): Promise<string> {
         })
       : null;
 
+  return {
+    cpuLoad,
+    memoryUsage,
+    networkIORead,
+    networkIOWrite,
+    diskIORead,
+    diskIOWrite,
+    diskSizeUsage,
+  };
+}
+
+function formatMetricsReport(charts: MetricCharts): string {
   const postContentItems: string[] = [];
-  if (cpuLoad) {
-    postContentItems.push("### CPU Metrics", cpuLoad, "");
+
+  if (charts.cpuLoad) {
+    postContentItems.push("### CPU Metrics", charts.cpuLoad, "");
   }
-  if (memoryUsage) {
-    postContentItems.push("### Memory Metrics", memoryUsage, "");
+  if (charts.memoryUsage) {
+    postContentItems.push("### Memory Metrics", charts.memoryUsage, "");
   }
-  if ((networkIORead && networkIOWrite) || (diskIORead && diskIOWrite)) {
+  if (
+    (charts.networkIORead && charts.networkIOWrite) ||
+    (charts.diskIORead && charts.diskIOWrite)
+  ) {
     postContentItems.push(
       "### IO Metrics",
       "|               | Read      | Write     |",
       "|---            |---        |---        |"
     );
   }
-  if (networkIORead && networkIOWrite) {
+  if (charts.networkIORead && charts.networkIOWrite) {
     postContentItems.push(
-      `| Network I/O   | ${networkIORead}        | ${networkIOWrite}        |`
+      `| Network I/O   | ${charts.networkIORead}        | ${charts.networkIOWrite}        |`
     );
   }
-  if (diskIORead && diskIOWrite) {
+  if (charts.diskIORead && charts.diskIOWrite) {
     postContentItems.push(
-      `| Disk I/O      | ${diskIORead}              | ${diskIOWrite}              |`
+      `| Disk I/O      | ${charts.diskIORead}              | ${charts.diskIOWrite}              |`
     );
   }
-  if (diskSizeUsage) {
-    postContentItems.push("### Disk Size Metrics", diskSizeUsage, "");
+  if (charts.diskSizeUsage) {
+    postContentItems.push("### Disk Size Metrics", charts.diskSizeUsage, "");
   }
 
   return postContentItems.join("\n");
@@ -194,6 +238,12 @@ async function reportWorkflowMetrics(): Promise<string> {
 
 function normalizeValue(value: number | undefined): number {
   return value && value > 0 ? value : 0;
+}
+
+async function reportWorkflowMetrics(): Promise<string> {
+  const stats = await fetchAllStats();
+  const charts = await createMetricCharts(stats);
+  return formatMetricsReport(charts);
 }
 
 async function getCPUStats(): Promise<ProcessedCPUStats> {
