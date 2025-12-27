@@ -118,7 +118,7 @@ const statsCollectors: StatsCollector<any, any>[] = [...]
 **提案**:
 Union型またはベース型を作成して型安全性を向上
 
-### 5. 複雑な関数の分割
+### 5. 複雑な関数の分割 ✅ 完了
 
 #### A. `getCurrentJob()`
 **ファイル**: `src/entry/post.ts` (16-62行目)
@@ -256,6 +256,37 @@ if (Number.isInteger(metricFrequencyVal)) {
 QuickChart APIに依存、サービスダウン時のフォールバックなし
 
 ## 完了した改善
+
+### 2025-12-27 (4): 複雑な関数の分割（項目5） ✅
+- 長大な関数を小さな責務ごとの関数に分割
+- 3つの主要な関数をリファクタリング
+- 各ファイルごとに個別のコミットに分割してPRの可読性を向上
+- ビルドで検証済み（`npm run bundle`成功）
+
+**A. `getCurrentJob()` in post.ts (47行 → 3関数)**
+- `fetchJobPage()`: 単一ページのAPIリクエストを処理
+- `findCurrentJob()`: ページネーションロジックを処理
+- `getCurrentJob()`: リトライロジックに専念
+- 各関数が単一責務を持ち、テストが容易に
+
+**B. `reportWorkflowMetrics()` in collector.ts (144行 → 3関数)**
+- `fetchAllStats()`: すべてのメトリクスデータを収集
+- `createMetricCharts()`: 統計データからチャートを生成
+- `formatMetricsReport()`: 最終的な出力をフォーマット
+- `AllStats`と`MetricCharts`インターフェースを追加して型安全性を向上
+
+**C. `report()` in processTracer.ts (150行 → 4関数)**
+- `parseConfiguration()`: 入力設定をパース
+- `generateProcessChart()`: Ganttチャートコンテンツを生成
+- `generateProcessTable()`: プロセステーブルを生成
+- `formatProcessReport()`: 最終的な出力をフォーマット
+- `ProcessTracerConfig`インターフェースを追加して型安全性を向上
+
+**影響範囲**:
+- `src/entry/post.ts` - getCurrentJob関連の3関数
+- `src/features/stats/collector.ts` - reportWorkflowMetrics関連の3関数と2つのインターフェース
+- `src/features/process/processTracer.ts` - report関連の4関数と1つのインターフェース
+- `dist/` - ビルド成果物の更新
 
 ### 2025-12-27 (3): StatsCollector型の改善（項目4C）
 - `statsCollectors`配列の型を`StatsCollector<any, any>[]`からUnion型に変更
