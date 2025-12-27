@@ -225,6 +225,131 @@ export async function finish(_currentJob: WorkflowJobType): Promise<boolean> {
   }
 }
 
+interface ProcessTracerConfig {
+  minDuration: number;
+  chartShow: boolean;
+  chartMaxCount: number;
+  tableShow: boolean;
+}
+
+function parseConfiguration(): ProcessTracerConfig {
+  let minDuration = -1;
+  const procTraceMinDurationInput: string = core.getInput(
+    "proc_trace_min_duration"
+  );
+  if (procTraceMinDurationInput) {
+    const minProcDurationVal: number = parseInt(procTraceMinDurationInput);
+    if (Number.isInteger(minProcDurationVal)) {
+      minDuration = minProcDurationVal;
+    }
+  }
+
+  const chartShow: boolean = core.getInput("proc_trace_chart_show") === "true";
+  const procTraceChartMaxCountInput: number = parseInt(
+    core.getInput("proc_trace_chart_max_count")
+  );
+  const chartMaxCount = Number.isInteger(procTraceChartMaxCountInput)
+    ? procTraceChartMaxCountInput
+    : DEFAULT_PROC_TRACE_CHART_MAX_COUNT;
+  const tableShow: boolean = core.getInput("proc_trace_table_show") === "true";
+
+  return { minDuration, chartShow, chartMaxCount, tableShow };
+}
+
+function generateProcessChart(
+  processes: CompletedProcess[],
+  config: ProcessTracerConfig,
+  jobName: string
+): string {
+  let chartContent = "";
+
+  chartContent = chartContent.concat("gantt", "\n");
+  chartContent = chartContent.concat("\t", `title ${jobName}`, "\n");
+  chartContent = chartContent.concat("\t", `dateFormat x`, "\n");
+  chartContent = chartContent.concat("\t", `axisFormat %H:%M:%S`, "\n");
+
+  const processesForChart = [...processes]
+    .sort((a, b) => -(a.duration - b.duration))
+    .slice(0, config.chartMaxCount)
+    .sort((a, b) => a.started - b.started);
+
+  for (const proc of processesForChart) {
+    const extraProcessInfo: string | null = getExtraProcessInfo(proc);
+    const escapedName = proc.name.replace(/:/g, "#colon;");
+    if (extraProcessInfo) {
+      chartContent = chartContent.concat(
+        "\t",
+        `${escapedName} (${extraProcessInfo}) : `
+      );
+    } else {
+      chartContent = chartContent.concat("\t", `${escapedName} : `);
+    }
+
+    const startTime: number = proc.started;
+    const finishTime: number = proc.ended;
+    chartContent = chartContent.concat(
+      `${Math.min(startTime, finishTime)}, ${finishTime}`,
+      "\n"
+    );
+  }
+
+  return chartContent;
+}
+
+function generateProcessTable(processes: CompletedProcess[]): string {
+  const processInfos: string[] = [];
+  processInfos.push(
+    `${padEnd("NAME", 16)} ${padStart("PID", 7)} ${padStart(
+      "START TIME",
+      15
+    )} ${padStart("DURATION (ms)", 15)} ${padStart(
+      "MAX CPU %",
+      10
+    )} ${padStart("MAX MEM %", 10)} ${padEnd("COMMAND + PARAMS", 40)}`
+  );
+  for (const proc of processes) {
+    processInfos.push(
+      `${padEnd(proc.name, 16)} ${padStart(proc.pid, 7)} ${padStart(
+        proc.started,
+        15
+      )} ${padStart(proc.duration, 15)} ${formatFloat(
+        proc.maxCpu,
+        10,
+        2
+      )} ${formatFloat(proc.maxMem, 10, 2)} ${proc.command} ${proc.params}`
+    );
+  }
+
+  return processInfos.join("\n");
+}
+
+function formatProcessReport(
+  chartContent: string,
+  tableContent: string,
+  config: ProcessTracerConfig
+): string {
+  const postContentItems: string[] = ["", "### Process Trace"];
+
+  if (config.chartShow) {
+    postContentItems.push(
+      "",
+      `#### Top ${config.chartMaxCount} processes with highest duration`,
+      "",
+      "```mermaid" + "\n" + chartContent + "\n" + "```"
+    );
+  }
+  if (config.tableShow) {
+    postContentItems.push(
+      "",
+      `#### All processes with detail`,
+      "",
+      "```" + "\n" + tableContent + "\n" + "```"
+    );
+  }
+
+  return postContentItems.join("\n");
+}
+
 export async function report(
   currentJob: WorkflowJobType
 ): Promise<string | null> {
@@ -243,128 +368,24 @@ export async function report(
 
     logger.info(`Getting process tracer result from data file ...`);
 
-    let procTraceMinDuration = -1;
-    const procTraceMinDurationInput: string = core.getInput(
-      "proc_trace_min_duration"
-    );
-    if (procTraceMinDurationInput) {
-      const minProcDurationVal: number = parseInt(procTraceMinDurationInput);
-      if (Number.isInteger(minProcDurationVal)) {
-        procTraceMinDuration = minProcDurationVal;
-      }
-    }
-
-    const procTraceChartShow: boolean =
-      core.getInput("proc_trace_chart_show") === "true";
-    const procTraceChartMaxCountInput: number = parseInt(
-      core.getInput("proc_trace_chart_max_count")
-    );
-    const procTraceChartMaxCount = Number.isInteger(procTraceChartMaxCountInput)
-      ? procTraceChartMaxCountInput
-      : DEFAULT_PROC_TRACE_CHART_MAX_COUNT;
-    const procTraceTableShow: boolean =
-      core.getInput("proc_trace_table_show") === "true";
+    const config = parseConfiguration();
 
     // Filter processes by minimum duration
     let filteredProcesses = completedProcesses;
-    if (procTraceMinDuration > 0) {
+    if (config.minDuration > 0) {
       filteredProcesses = completedProcesses.filter(
-        (p) => p.duration >= procTraceMinDuration
+        (p) => p.duration >= config.minDuration
       );
     }
 
-    ///////////////////////////////////////////////////////////////////////////
+    const chartContent = config.chartShow
+      ? generateProcessChart(filteredProcesses, config, currentJob.name)
+      : "";
+    const tableContent = config.tableShow
+      ? generateProcessTable(filteredProcesses)
+      : "";
 
-    let chartContent = "";
-
-    if (procTraceChartShow) {
-      chartContent = chartContent.concat("gantt", "\n");
-      chartContent = chartContent.concat(
-        "\t",
-        `title ${currentJob.name}`,
-        "\n"
-      );
-      chartContent = chartContent.concat("\t", `dateFormat x`, "\n");
-      chartContent = chartContent.concat("\t", `axisFormat %H:%M:%S`, "\n");
-
-      const processesForChart = [...filteredProcesses]
-        .sort((a, b) => -(a.duration - b.duration))
-        .slice(0, procTraceChartMaxCount)
-        .sort((a, b) => a.started - b.started);
-
-      for (const proc of processesForChart) {
-        const extraProcessInfo: string | null = getExtraProcessInfo(proc);
-        const escapedName = proc.name.replace(/:/g, "#colon;");
-        if (extraProcessInfo) {
-          chartContent = chartContent.concat(
-            "\t",
-            `${escapedName} (${extraProcessInfo}) : `
-          );
-        } else {
-          chartContent = chartContent.concat("\t", `${escapedName} : `);
-        }
-
-        const startTime: number = proc.started;
-        const finishTime: number = proc.ended;
-        chartContent = chartContent.concat(
-          `${Math.min(startTime, finishTime)}, ${finishTime}`,
-          "\n"
-        );
-      }
-    }
-
-    ///////////////////////////////////////////////////////////////////////////
-
-    let tableContent = "";
-
-    if (procTraceTableShow) {
-      const processInfos: string[] = [];
-      processInfos.push(
-        `${padEnd("NAME", 16)} ${padStart("PID", 7)} ${padStart(
-          "START TIME",
-          15
-        )} ${padStart("DURATION (ms)", 15)} ${padStart(
-          "MAX CPU %",
-          10
-        )} ${padStart("MAX MEM %", 10)} ${padEnd("COMMAND + PARAMS", 40)}`
-      );
-      for (const proc of filteredProcesses) {
-        processInfos.push(
-          `${padEnd(proc.name, 16)} ${padStart(proc.pid, 7)} ${padStart(
-            proc.started,
-            15
-          )} ${padStart(proc.duration, 15)} ${formatFloat(
-            proc.maxCpu,
-            10,
-            2
-          )} ${formatFloat(proc.maxMem, 10, 2)} ${proc.command} ${proc.params}`
-        );
-      }
-
-      tableContent = processInfos.join("\n");
-    }
-
-    ///////////////////////////////////////////////////////////////////////////
-
-    const postContentItems: string[] = ["", "### Process Trace"];
-    if (procTraceChartShow) {
-      postContentItems.push(
-        "",
-        `#### Top ${procTraceChartMaxCount} processes with highest duration`,
-        "",
-        "```mermaid" + "\n" + chartContent + "\n" + "```"
-      );
-    }
-    if (procTraceTableShow) {
-      postContentItems.push(
-        "",
-        `#### All processes with detail`,
-        "",
-        "```" + "\n" + tableContent + "\n" + "```"
-      );
-    }
-
-    const postContent: string = postContentItems.join("\n");
+    const postContent = formatProcessReport(chartContent, tableContent, config);
 
     logger.info(`Reported process tracer result`);
 
