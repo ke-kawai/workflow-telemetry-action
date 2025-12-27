@@ -32554,89 +32554,71 @@ async function reportWorkflowMetrics() {
     }
     return postContentItems.join("\n");
 }
-async function getCPUStats() {
-    const userLoadX = [];
-    const systemLoadX = [];
-    const data = await fetchStats("cpu");
+async function transformStats(config) {
+    const firstArray = [];
+    const secondArray = [];
+    const data = await fetchStats(config.endpoint);
     data.forEach((element) => {
-        userLoadX.push({
+        const firstValue = config.fields.first(element);
+        firstArray.push({
             x: element.time,
-            y: element.userLoad && element.userLoad > 0 ? element.userLoad : 0,
+            y: firstValue && firstValue > 0 ? firstValue : 0,
         });
-        systemLoadX.push({
+        const secondValue = config.fields.second(element);
+        secondArray.push({
             x: element.time,
-            y: element.systemLoad && element.systemLoad > 0 ? element.systemLoad : 0,
+            y: secondValue && secondValue > 0 ? secondValue : 0,
         });
+    });
+    return [firstArray, secondArray];
+}
+async function getCPUStats() {
+    const [userLoadX, systemLoadX] = await transformStats({
+        endpoint: "cpu",
+        fields: {
+            first: (data) => data.userLoad,
+            second: (data) => data.systemLoad,
+        },
     });
     return { userLoadX, systemLoadX };
 }
 async function getMemoryStats() {
-    const activeMemoryX = [];
-    const availableMemoryX = [];
-    const data = await fetchStats("memory");
-    data.forEach((element) => {
-        activeMemoryX.push({
-            x: element.time,
-            y: element.activeMemoryMb && element.activeMemoryMb > 0
-                ? element.activeMemoryMb
-                : 0,
-        });
-        availableMemoryX.push({
-            x: element.time,
-            y: element.availableMemoryMb && element.availableMemoryMb > 0
-                ? element.availableMemoryMb
-                : 0,
-        });
+    const [activeMemoryX, availableMemoryX] = await transformStats({
+        endpoint: "memory",
+        fields: {
+            first: (data) => data.activeMemoryMb,
+            second: (data) => data.availableMemoryMb,
+        },
     });
     return { activeMemoryX, availableMemoryX };
 }
 async function getNetworkStats() {
-    const networkReadX = [];
-    const networkWriteX = [];
-    const data = await fetchStats("network");
-    data.forEach((element) => {
-        networkReadX.push({
-            x: element.time,
-            y: element.rxMb && element.rxMb > 0 ? element.rxMb : 0,
-        });
-        networkWriteX.push({
-            x: element.time,
-            y: element.txMb && element.txMb > 0 ? element.txMb : 0,
-        });
+    const [networkReadX, networkWriteX] = await transformStats({
+        endpoint: "network",
+        fields: {
+            first: (data) => data.rxMb,
+            second: (data) => data.txMb,
+        },
     });
     return { networkReadX, networkWriteX };
 }
 async function getDiskStats() {
-    const diskReadX = [];
-    const diskWriteX = [];
-    const data = await fetchStats("disk");
-    data.forEach((element) => {
-        diskReadX.push({
-            x: element.time,
-            y: element.rxMb && element.rxMb > 0 ? element.rxMb : 0,
-        });
-        diskWriteX.push({
-            x: element.time,
-            y: element.wxMb && element.wxMb > 0 ? element.wxMb : 0,
-        });
+    const [diskReadX, diskWriteX] = await transformStats({
+        endpoint: "disk",
+        fields: {
+            first: (data) => data.rxMb,
+            second: (data) => data.wxMb,
+        },
     });
     return { diskReadX, diskWriteX };
 }
 async function getDiskSizeStats() {
-    const diskAvailableX = [];
-    const diskUsedX = [];
-    const data = await fetchStats("disk_size");
-    data.forEach((element) => {
-        diskAvailableX.push({
-            x: element.time,
-            y: element.availableSizeMb && element.availableSizeMb > 0
-                ? element.availableSizeMb
-                : 0,
-        });
-        diskUsedX.push({
-            x: element.time,
-            y: element.usedSizeMb && element.usedSizeMb > 0 ? element.usedSizeMb : 0,
-        });
+    const [diskAvailableX, diskUsedX] = await transformStats({
+        endpoint: "disk_size",
+        fields: {
+            first: (data) => data.availableSizeMb,
+            second: (data) => data.usedSizeMb,
+        },
     });
     return { diskAvailableX, diskUsedX };
 }
