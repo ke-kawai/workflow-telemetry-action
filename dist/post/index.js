@@ -32433,12 +32433,20 @@ async function triggerStatCollect() {
         }
     }
 }
-async function reportWorkflowMetrics() {
-    const { userLoadX, systemLoadX } = await getCPUStats();
-    const { activeMemoryX, availableMemoryX } = await getMemoryStats();
-    const { networkReadX, networkWriteX } = await getNetworkStats();
-    const { diskReadX, diskWriteX } = await getDiskStats();
-    const { diskAvailableX, diskUsedX } = await getDiskSizeStats();
+async function fetchAllStats() {
+    const cpu = await getCPUStats();
+    const memory = await getMemoryStats();
+    const network = await getNetworkStats();
+    const disk = await getDiskStats();
+    const diskSize = await getDiskSizeStats();
+    return { cpu, memory, network, disk, diskSize };
+}
+async function createMetricCharts(stats) {
+    const { userLoadX, systemLoadX } = stats.cpu;
+    const { activeMemoryX, availableMemoryX } = stats.memory;
+    const { networkReadX, networkWriteX } = stats.network;
+    const { diskReadX, diskWriteX } = stats.disk;
+    const { diskAvailableX, diskUsedX } = stats.diskSize;
     const cpuLoad = userLoadX && userLoadX.length && systemLoadX && systemLoadX.length
         ? await getStackedAreaGraph$1({
             label: "CPU Load (%)",
@@ -32533,26 +32541,43 @@ async function reportWorkflowMetrics() {
             ],
         })
         : null;
+    return {
+        cpuLoad,
+        memoryUsage,
+        networkIORead,
+        networkIOWrite,
+        diskIORead,
+        diskIOWrite,
+        diskSizeUsage,
+    };
+}
+function formatMetricsReport(charts) {
     const postContentItems = [];
-    if (cpuLoad) {
-        postContentItems.push("### CPU Metrics", cpuLoad, "");
+    if (charts.cpuLoad) {
+        postContentItems.push("### CPU Metrics", charts.cpuLoad, "");
     }
-    if (memoryUsage) {
-        postContentItems.push("### Memory Metrics", memoryUsage, "");
+    if (charts.memoryUsage) {
+        postContentItems.push("### Memory Metrics", charts.memoryUsage, "");
     }
-    if ((networkIORead && networkIOWrite) || (diskIORead && diskIOWrite)) {
+    if ((charts.networkIORead && charts.networkIOWrite) ||
+        (charts.diskIORead && charts.diskIOWrite)) {
         postContentItems.push("### IO Metrics", "|               | Read      | Write     |", "|---            |---        |---        |");
     }
-    if (networkIORead && networkIOWrite) {
-        postContentItems.push(`| Network I/O   | ${networkIORead}        | ${networkIOWrite}        |`);
+    if (charts.networkIORead && charts.networkIOWrite) {
+        postContentItems.push(`| Network I/O   | ${charts.networkIORead}        | ${charts.networkIOWrite}        |`);
     }
-    if (diskIORead && diskIOWrite) {
-        postContentItems.push(`| Disk I/O      | ${diskIORead}              | ${diskIOWrite}              |`);
+    if (charts.diskIORead && charts.diskIOWrite) {
+        postContentItems.push(`| Disk I/O      | ${charts.diskIORead}              | ${charts.diskIOWrite}              |`);
     }
-    if (diskSizeUsage) {
-        postContentItems.push("### Disk Size Metrics", diskSizeUsage, "");
+    if (charts.diskSizeUsage) {
+        postContentItems.push("### Disk Size Metrics", charts.diskSizeUsage, "");
     }
     return postContentItems.join("\n");
+}
+async function reportWorkflowMetrics() {
+    const stats = await fetchAllStats();
+    const charts = await createMetricCharts(stats);
+    return formatMetricsReport(charts);
 }
 async function getCPUStats() {
     const userLoadX = [];
@@ -52609,6 +52634,66 @@ async function finish(_currentJob) {
         return false;
     }
 }
+function parseConfiguration() {
+    let minDuration = -1;
+    const procTraceMinDurationInput = coreExports.getInput("proc_trace_min_duration");
+    if (procTraceMinDurationInput) {
+        const minProcDurationVal = parseInt(procTraceMinDurationInput);
+        if (Number.isInteger(minProcDurationVal)) {
+            minDuration = minProcDurationVal;
+        }
+    }
+    const chartShow = coreExports.getInput("proc_trace_chart_show") === "true";
+    const procTraceChartMaxCountInput = parseInt(coreExports.getInput("proc_trace_chart_max_count"));
+    const chartMaxCount = Number.isInteger(procTraceChartMaxCountInput)
+        ? procTraceChartMaxCountInput
+        : DEFAULT_PROC_TRACE_CHART_MAX_COUNT;
+    const tableShow = coreExports.getInput("proc_trace_table_show") === "true";
+    return { minDuration, chartShow, chartMaxCount, tableShow };
+}
+function generateProcessChart(processes, config, jobName) {
+    let chartContent = "";
+    chartContent = chartContent.concat("gantt", "\n");
+    chartContent = chartContent.concat("\t", `title ${jobName}`, "\n");
+    chartContent = chartContent.concat("\t", `dateFormat x`, "\n");
+    chartContent = chartContent.concat("\t", `axisFormat %H:%M:%S`, "\n");
+    const processesForChart = [...processes]
+        .sort((a, b) => -(a.duration - b.duration))
+        .slice(0, config.chartMaxCount)
+        .sort((a, b) => a.started - b.started);
+    for (const proc of processesForChart) {
+        const extraProcessInfo = getExtraProcessInfo(proc);
+        const escapedName = proc.name.replace(/:/g, "#colon;");
+        if (extraProcessInfo) {
+            chartContent = chartContent.concat("\t", `${escapedName} (${extraProcessInfo}) : `);
+        }
+        else {
+            chartContent = chartContent.concat("\t", `${escapedName} : `);
+        }
+        const startTime = proc.started;
+        const finishTime = proc.ended;
+        chartContent = chartContent.concat(`${Math.min(startTime, finishTime)}, ${finishTime}`, "\n");
+    }
+    return chartContent;
+}
+function generateProcessTable(processes) {
+    const processInfos = [];
+    processInfos.push(`${padEnd("NAME", 16)} ${padStart("PID", 7)} ${padStart("START TIME", 15)} ${padStart("DURATION (ms)", 15)} ${padStart("MAX CPU %", 10)} ${padStart("MAX MEM %", 10)} ${padEnd("COMMAND + PARAMS", 40)}`);
+    for (const proc of processes) {
+        processInfos.push(`${padEnd(proc.name, 16)} ${padStart(proc.pid, 7)} ${padStart(proc.started, 15)} ${padStart(proc.duration, 15)} ${formatFloat(proc.maxCpu, 10, 2)} ${formatFloat(proc.maxMem, 10, 2)} ${proc.command} ${proc.params}`);
+    }
+    return processInfos.join("\n");
+}
+function formatProcessReport(chartContent, tableContent, config) {
+    const postContentItems = ["", "### Process Trace"];
+    if (config.chartShow) {
+        postContentItems.push("", `#### Top ${config.chartMaxCount} processes with highest duration`, "", "```mermaid" + "\n" + chartContent + "\n" + "```");
+    }
+    if (config.tableShow) {
+        postContentItems.push("", `#### All processes with detail`, "", "```" + "\n" + tableContent + "\n" + "```");
+    }
+    return postContentItems.join("\n");
+}
 async function report(currentJob) {
     info(`Reporting process tracer result ...`);
     if (!finished) {
@@ -52619,69 +52704,19 @@ async function report(currentJob) {
         // Load data from file
         loadData();
         info(`Getting process tracer result from data file ...`);
-        let procTraceMinDuration = -1;
-        const procTraceMinDurationInput = coreExports.getInput("proc_trace_min_duration");
-        if (procTraceMinDurationInput) {
-            const minProcDurationVal = parseInt(procTraceMinDurationInput);
-            if (Number.isInteger(minProcDurationVal)) {
-                procTraceMinDuration = minProcDurationVal;
-            }
-        }
-        const procTraceChartShow = coreExports.getInput("proc_trace_chart_show") === "true";
-        const procTraceChartMaxCountInput = parseInt(coreExports.getInput("proc_trace_chart_max_count"));
-        const procTraceChartMaxCount = Number.isInteger(procTraceChartMaxCountInput)
-            ? procTraceChartMaxCountInput
-            : DEFAULT_PROC_TRACE_CHART_MAX_COUNT;
-        const procTraceTableShow = coreExports.getInput("proc_trace_table_show") === "true";
+        const config = parseConfiguration();
         // Filter processes by minimum duration
         let filteredProcesses = completedProcesses;
-        if (procTraceMinDuration > 0) {
-            filteredProcesses = completedProcesses.filter((p) => p.duration >= procTraceMinDuration);
+        if (config.minDuration > 0) {
+            filteredProcesses = completedProcesses.filter((p) => p.duration >= config.minDuration);
         }
-        ///////////////////////////////////////////////////////////////////////////
-        let chartContent = "";
-        if (procTraceChartShow) {
-            chartContent = chartContent.concat("gantt", "\n");
-            chartContent = chartContent.concat("\t", `title ${currentJob.name}`, "\n");
-            chartContent = chartContent.concat("\t", `dateFormat x`, "\n");
-            chartContent = chartContent.concat("\t", `axisFormat %H:%M:%S`, "\n");
-            const processesForChart = [...filteredProcesses]
-                .sort((a, b) => -(a.duration - b.duration))
-                .slice(0, procTraceChartMaxCount)
-                .sort((a, b) => a.started - b.started);
-            for (const proc of processesForChart) {
-                const extraProcessInfo = getExtraProcessInfo(proc);
-                const escapedName = proc.name.replace(/:/g, "#colon;");
-                if (extraProcessInfo) {
-                    chartContent = chartContent.concat("\t", `${escapedName} (${extraProcessInfo}) : `);
-                }
-                else {
-                    chartContent = chartContent.concat("\t", `${escapedName} : `);
-                }
-                const startTime = proc.started;
-                const finishTime = proc.ended;
-                chartContent = chartContent.concat(`${Math.min(startTime, finishTime)}, ${finishTime}`, "\n");
-            }
-        }
-        ///////////////////////////////////////////////////////////////////////////
-        let tableContent = "";
-        if (procTraceTableShow) {
-            const processInfos = [];
-            processInfos.push(`${padEnd("NAME", 16)} ${padStart("PID", 7)} ${padStart("START TIME", 15)} ${padStart("DURATION (ms)", 15)} ${padStart("MAX CPU %", 10)} ${padStart("MAX MEM %", 10)} ${padEnd("COMMAND + PARAMS", 40)}`);
-            for (const proc of filteredProcesses) {
-                processInfos.push(`${padEnd(proc.name, 16)} ${padStart(proc.pid, 7)} ${padStart(proc.started, 15)} ${padStart(proc.duration, 15)} ${formatFloat(proc.maxCpu, 10, 2)} ${formatFloat(proc.maxMem, 10, 2)} ${proc.command} ${proc.params}`);
-            }
-            tableContent = processInfos.join("\n");
-        }
-        ///////////////////////////////////////////////////////////////////////////
-        const postContentItems = ["", "### Process Trace"];
-        if (procTraceChartShow) {
-            postContentItems.push("", `#### Top ${procTraceChartMaxCount} processes with highest duration`, "", "```mermaid" + "\n" + chartContent + "\n" + "```");
-        }
-        if (procTraceTableShow) {
-            postContentItems.push("", `#### All processes with detail`, "", "```" + "\n" + tableContent + "\n" + "```");
-        }
-        const postContent = postContentItems.join("\n");
+        const chartContent = config.chartShow
+            ? generateProcessChart(filteredProcesses, config, currentJob.name)
+            : "";
+        const tableContent = config.tableShow
+            ? generateProcessTable(filteredProcesses)
+            : "";
+        const postContent = formatProcessReport(chartContent, tableContent, config);
         info(`Reported process tracer result`);
         return postContent;
     }
@@ -52697,37 +52732,40 @@ const { workflow, job, repo, runId, sha } = githubExports.context;
 const PAGE_SIZE = GITHUB_API.PAGE_SIZE;
 const token = coreExports.getInput("github_token");
 const octokit = githubExports.getOctokit(token);
-async function getCurrentJob() {
-    const _getCurrentJob = async () => {
-        for (let page = 0;; page++) {
-            const result = await octokit.rest.actions.listJobsForWorkflowRun({
-                owner: repo.owner,
-                repo: repo.repo,
-                run_id: runId,
-                per_page: PAGE_SIZE,
-                page,
-            });
-            const jobs = result.data.jobs;
-            // If there are no jobs, stop here
-            if (!jobs || !jobs.length) {
-                break;
-            }
-            const currentJobs = jobs.filter((it) => it.status === "in_progress" &&
-                it.runner_name === process.env.RUNNER_NAME);
-            if (currentJobs && currentJobs.length) {
-                return currentJobs[0] ?? null;
-            }
-            // Since returning job count is less than page size, this means that there are no other jobs.
-            // So no need to make another request for the next page.
-            if (jobs.length < PAGE_SIZE) {
-                break;
-            }
+async function fetchJobPage(page) {
+    const result = await octokit.rest.actions.listJobsForWorkflowRun({
+        owner: repo.owner,
+        repo: repo.repo,
+        run_id: runId,
+        per_page: PAGE_SIZE,
+        page,
+    });
+    return result.data.jobs;
+}
+async function findCurrentJob() {
+    for (let page = 0;; page++) {
+        const jobs = await fetchJobPage(page);
+        // If there are no jobs, stop here
+        if (!jobs || !jobs.length) {
+            break;
         }
-        return null;
-    };
+        const currentJobs = jobs.filter((it) => it.status === "in_progress" &&
+            it.runner_name === process.env.RUNNER_NAME);
+        if (currentJobs && currentJobs.length) {
+            return currentJobs[0] ?? null;
+        }
+        // Since returning job count is less than page size, this means that there are no other jobs.
+        // So no need to make another request for the next page.
+        if (jobs.length < PAGE_SIZE) {
+            break;
+        }
+    }
+    return null;
+}
+async function getCurrentJob() {
     try {
         for (let i = 0; i < GITHUB_API.CURRENT_JOB_RETRY_COUNT; i++) {
-            const currentJob = await _getCurrentJob();
+            const currentJob = await findCurrentJob();
             if (currentJob && currentJob.id) {
                 return currentJob;
             }
