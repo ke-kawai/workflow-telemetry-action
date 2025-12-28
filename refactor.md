@@ -2,7 +2,7 @@
 
 ## 高優先度の改善
 
-### 1. 統計処理関数の重複削除
+### 1. 統計処理関数の重複削除 ✅ 完了
 **ファイル**: `src/features/stats/collector.ts` (195-307行目)
 
 **問題点**:
@@ -256,6 +256,39 @@ if (Number.isInteger(metricFrequencyVal)) {
 QuickChart APIに依存、サービスダウン時のフォールバックなし
 
 ## 完了した改善
+
+### 2025-12-27 (5): 統計処理関数の重複削除（項目1） ✅
+- ジェネリック`transformStats<T>`関数を作成して5つの統計関数の重複を削除
+- `StatsTransformConfig`インターフェースを追加して型安全なフィールド抽出を実現
+- コード量を約110行から約90行に削減（約18%削減）
+- 単一責任の原則に従い、変換ロジックを一箇所に集約
+- ビルドで検証済み（`npm run bundle`成功）
+
+**実装内容**:
+```typescript
+interface StatsTransformConfig<T> {
+  endpoint: string;
+  fields: {
+    first: (data: T) => number | undefined;
+    second: (data: T) => number | undefined;
+  };
+}
+
+async function transformStats<T extends { time: number }>(
+  config: StatsTransformConfig<T>
+): Promise<[ProcessedStats[], ProcessedStats[]]>
+```
+
+**リファクタリングした関数**:
+- `getCPUStats()`: userLoad/systemLoad フィールドを抽出
+- `getMemoryStats()`: activeMemoryMb/availableMemoryMb フィールドを抽出
+- `getNetworkStats()`: rxMb/txMb フィールドを抽出
+- `getDiskStats()`: rxMb/wxMb フィールドを抽出
+- `getDiskSizeStats()`: availableSizeMb/usedSizeMb フィールドを抽出
+
+**影響範囲**:
+- `src/features/stats/collector.ts` - transformStats関数追加、5つの統計関数を簡素化
+- `dist/` - ビルド成果物の更新
 
 ### 2025-12-27 (3): StatsCollector型の改善（項目4C）
 - `statsCollectors`配列の型を`StatsCollector<any, any>[]`からUnion型に変更

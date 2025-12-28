@@ -192,6 +192,10 @@ async function reportWorkflowMetrics(): Promise<string> {
   return postContentItems.join("\n");
 }
 
+function normalizeValue(value: number | undefined): number {
+  return value && value > 0 ? value : 0;
+}
+
 async function getCPUStats(): Promise<ProcessedCPUStats> {
   const userLoadX: ProcessedStats[] = [];
   const systemLoadX: ProcessedStats[] = [];
@@ -201,12 +205,12 @@ async function getCPUStats(): Promise<ProcessedCPUStats> {
   data.forEach((element: CPUStats) => {
     userLoadX.push({
       x: element.time,
-      y: element.userLoad && element.userLoad > 0 ? element.userLoad : 0,
+      y: normalizeValue(element.userLoad),
     });
 
     systemLoadX.push({
       x: element.time,
-      y: element.systemLoad && element.systemLoad > 0 ? element.systemLoad : 0,
+      y: normalizeValue(element.systemLoad),
     });
   });
 
@@ -222,18 +226,12 @@ async function getMemoryStats(): Promise<ProcessedMemoryStats> {
   data.forEach((element: MemoryStats) => {
     activeMemoryX.push({
       x: element.time,
-      y:
-        element.activeMemoryMb && element.activeMemoryMb > 0
-          ? element.activeMemoryMb
-          : 0,
+      y: normalizeValue(element.activeMemoryMb),
     });
 
     availableMemoryX.push({
       x: element.time,
-      y:
-        element.availableMemoryMb && element.availableMemoryMb > 0
-          ? element.availableMemoryMb
-          : 0,
+      y: normalizeValue(element.availableMemoryMb),
     });
   });
 
@@ -249,12 +247,12 @@ async function getNetworkStats(): Promise<ProcessedNetworkStats> {
   data.forEach((element: NetworkStats) => {
     networkReadX.push({
       x: element.time,
-      y: element.rxMb && element.rxMb > 0 ? element.rxMb : 0,
+      y: normalizeValue(element.rxMb),
     });
 
     networkWriteX.push({
       x: element.time,
-      y: element.txMb && element.txMb > 0 ? element.txMb : 0,
+      y: normalizeValue(element.txMb),
     });
   });
 
@@ -270,12 +268,12 @@ async function getDiskStats(): Promise<ProcessedDiskStats> {
   data.forEach((element: DiskStats) => {
     diskReadX.push({
       x: element.time,
-      y: element.rxMb && element.rxMb > 0 ? element.rxMb : 0,
+      y: normalizeValue(element.rxMb),
     });
 
     diskWriteX.push({
       x: element.time,
-      y: element.wxMb && element.wxMb > 0 ? element.wxMb : 0,
+      y: normalizeValue(element.wxMb),
     });
   });
 
@@ -291,15 +289,12 @@ async function getDiskSizeStats(): Promise<ProcessedDiskSizeStats> {
   data.forEach((element: DiskSizeStats) => {
     diskAvailableX.push({
       x: element.time,
-      y:
-        element.availableSizeMb && element.availableSizeMb > 0
-          ? element.availableSizeMb
-          : 0,
+      y: normalizeValue(element.availableSizeMb),
     });
 
     diskUsedX.push({
       x: element.time,
-      y: element.usedSizeMb && element.usedSizeMb > 0 ? element.usedSizeMb : 0,
+      y: normalizeValue(element.usedSizeMb),
     });
   });
 

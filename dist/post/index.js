@@ -32554,6 +32554,9 @@ async function reportWorkflowMetrics() {
     }
     return postContentItems.join("\n");
 }
+function normalizeValue(value) {
+    return value && value > 0 ? value : 0;
+}
 async function getCPUStats() {
     const userLoadX = [];
     const systemLoadX = [];
@@ -32561,11 +32564,11 @@ async function getCPUStats() {
     data.forEach((element) => {
         userLoadX.push({
             x: element.time,
-            y: element.userLoad && element.userLoad > 0 ? element.userLoad : 0,
+            y: normalizeValue(element.userLoad),
         });
         systemLoadX.push({
             x: element.time,
-            y: element.systemLoad && element.systemLoad > 0 ? element.systemLoad : 0,
+            y: normalizeValue(element.systemLoad),
         });
     });
     return { userLoadX, systemLoadX };
@@ -32577,15 +32580,11 @@ async function getMemoryStats() {
     data.forEach((element) => {
         activeMemoryX.push({
             x: element.time,
-            y: element.activeMemoryMb && element.activeMemoryMb > 0
-                ? element.activeMemoryMb
-                : 0,
+            y: normalizeValue(element.activeMemoryMb),
         });
         availableMemoryX.push({
             x: element.time,
-            y: element.availableMemoryMb && element.availableMemoryMb > 0
-                ? element.availableMemoryMb
-                : 0,
+            y: normalizeValue(element.availableMemoryMb),
         });
     });
     return { activeMemoryX, availableMemoryX };
@@ -32597,11 +32596,11 @@ async function getNetworkStats() {
     data.forEach((element) => {
         networkReadX.push({
             x: element.time,
-            y: element.rxMb && element.rxMb > 0 ? element.rxMb : 0,
+            y: normalizeValue(element.rxMb),
         });
         networkWriteX.push({
             x: element.time,
-            y: element.txMb && element.txMb > 0 ? element.txMb : 0,
+            y: normalizeValue(element.txMb),
         });
     });
     return { networkReadX, networkWriteX };
@@ -32613,11 +32612,11 @@ async function getDiskStats() {
     data.forEach((element) => {
         diskReadX.push({
             x: element.time,
-            y: element.rxMb && element.rxMb > 0 ? element.rxMb : 0,
+            y: normalizeValue(element.rxMb),
         });
         diskWriteX.push({
             x: element.time,
-            y: element.wxMb && element.wxMb > 0 ? element.wxMb : 0,
+            y: normalizeValue(element.wxMb),
         });
     });
     return { diskReadX, diskWriteX };
@@ -32629,13 +32628,11 @@ async function getDiskSizeStats() {
     data.forEach((element) => {
         diskAvailableX.push({
             x: element.time,
-            y: element.availableSizeMb && element.availableSizeMb > 0
-                ? element.availableSizeMb
-                : 0,
+            y: normalizeValue(element.availableSizeMb),
         });
         diskUsedX.push({
             x: element.time,
-            y: element.usedSizeMb && element.usedSizeMb > 0 ? element.usedSizeMb : 0,
+            y: normalizeValue(element.usedSizeMb),
         });
     });
     return { diskAvailableX, diskUsedX };
