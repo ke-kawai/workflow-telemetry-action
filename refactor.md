@@ -46,7 +46,7 @@ async function fetchStats<T>(endpoint: string): Promise<T[]> {
 }
 ```
 
-### 3. グローバル可変状態のカプセル化
+### 3. グローバル可変状態のカプセル化 ✅ 完了
 **ファイル**:
 - `src/features/process/processTracer.ts` (38-42行目)
 - `src/features/stats/server.ts` (17-31行目)
@@ -256,6 +256,29 @@ if (Number.isInteger(metricFrequencyVal)) {
 QuickChart APIに依存、サービスダウン時のフォールバックなし
 
 ## 完了した改善
+
+### 2025-12-28 (6): グローバル可変状態のカプセル化（項目3） ✅
+- モジュールレベルの可変状態をクラスインスタンスにカプセル化
+- テスト容易性の向上（状態の分離とリセットが可能に）
+- 状態破損のリスクを低減
+- ビルドで検証済み（`npm run bundle`成功）
+
+**A. `ProcessTracer` クラス化**
+- グローバル変数4つをクラスのprivateプロパティに移行
+  - `collectionInterval`, `trackedProcesses`, `completedProcesses`, `finished`
+- すべてのヘルパー関数をprivateメソッドに変更
+- シングルトンパターンで公開API（start, finish, report）を維持
+
+**B. `StatsCollectorServer` クラス化**
+- グローバル変数2つと5つのヒストグラム配列をクラスのprivateプロパティに移行
+  - `expectedScheduleTime`, `statCollectTime`, `cpuStatsHistogram`, 他
+- HTTPルートハンドラをクラスメソッドに変更
+- シングルトンパターンで自動初期化を維持
+
+**影響範囲**:
+- `src/features/process/processTracer.ts` - ProcessTracerクラス化、singleton exportパターン
+- `src/features/stats/server.ts` - StatsCollectorServerクラス化、singleton自動初期化
+- `dist/` - ビルド成果物の更新
 
 ### 2025-12-27 (5): 統計処理関数の重複削除（項目1） ✅
 - ジェネリック`transformStats<T>`関数を作成して5つの統計関数の重複を削除
