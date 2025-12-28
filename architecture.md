@@ -22,8 +22,8 @@ src/
 │   ├── process/        # Process Trace機能
 │   │   └── processTracer.ts      # プロセス実行の追跡
 │   └── stats/          # System Metrics機能
-│       ├── collector.ts          # メトリクス収集クライアント
-│       ├── server.ts             # メトリクス収集サーバー（HTTPサーバー）
+│       ├── collector.ts          # メトリクス収集（メインプロセス）
+│       ├── backgroundCollector.ts # バックグラウンドメトリクス収集（別プロセス）
 │       └── chartGenerator.ts     # QuickChart.io APIでグラフ生成
 ├── utils/              # 共通ユーティリティ
 │   └── logger.ts       # ログ出力ラッパー
@@ -44,7 +44,7 @@ src/
 └────────┬────────┘
          │
          ├─→ stepTracer.start()      - 準備のみ（実データはGitHub APIから取得）
-         ├─→ statCollector.start()   - 子プロセス起動（server.ts）
+         ├─→ statCollector.start()   - 子プロセス起動（backgroundCollector.ts）
          └─→ processTracer.start()   - プロセス監視開始（1秒間隔）
 
          ... ワークフロー実行中 ...
@@ -55,8 +55,8 @@ src/
 └────────┬────────┘
          │
          ├─→ stepTracer.finish() + report()    - GitHub APIからステップ情報取得
-         ├─→ statCollector.finish() + report() - HTTPサーバーからメトリクス取得
-         ├─→ processTracer.finish() + report() - プロセスデータをファイルから読込
+         ├─→ statCollector.finish() + report() - ファイルからメトリクス読み込み
+         ├─→ processTracer.finish() + report() - ファイルからプロセスデータ読み込み
          │
          └─→ reportAll()  - PR コメント / Job Summary に出力
 ```
@@ -88,38 +88,43 @@ src/
 - **出力**: Mermaid Gantt chart + ASCIIテーブル
 - **プラットフォーム**: Linux/Ubuntu のみ
 
-### 3. Stat Collector (`features/stats/collector.ts` + `features/stats/server.ts`)
+### 3. Stat Collector (`features/stats/collector.ts` + `features/stats/backgroundCollector.ts`)
 
 **役割**: システムメトリクスをリアルタイム収集
 
-#### アーキテクチャ: Client-Server モデル
+#### アーキテクチャ: ファイルベースモデル
 
 ```
 ┌──────────────────────────────┐
-│ features/stats/collector.ts │  ← クライアント（親プロセス）
+│ features/stats/collector.ts │  ← メインプロセス
 │                              │
-│ - spawn server.ts            │  子プロセスとしてHTTPサーバー起動
-│ - HTTPリクエスト             │  /cpu, /memory, /network, /disk, /disk_size
+│ - spawn backgroundCollector  │  子プロセスとしてバックグラウンド収集起動
+│ - ファイルからデータ読み込み  │  stats-data.json
 │ - グラフ生成依頼             │  chartGenerator経由でQuickChart API呼び出し
 └──────────┬───────────────────┘
            │
-           │ HTTP (localhost:7777)
+           │ File I/O (stats-data.json)
            ▼
-┌──────────────────────────────┐
-│ features/stats/server.ts    │  ← サーバー（子プロセス）
-│                              │
-│ - HTTPサーバー起動           │  ポート7777でリスニング
-│ - 定期収集 (5秒)             │  systeminformationでメトリクス取得
-│ - データ蓄積                 │  配列に保存
-│ - HTTPで返却                 │  GET /cpu, /memory, etc.
-└──────────────────────────────┘
+┌──────────────────────────────────────┐
+│ features/stats/backgroundCollector.ts│  ← バックグラウンドプロセス
+│                                      │
+│ - 定期収集 (5秒)                      │  systeminformationでメトリクス取得
+│ - データ蓄積                          │  配列に保存
+│ - ファイルに保存                      │  stats-data.json へ書き込み
+└──────────────────────────────────────┘
 ```
 
 #### なぜ別プロセス？
 
 - **detached プロセス**: main.tsが終了してもバックグラウンドで動作継続
 - **独立性**: ワークフロー実行中もメトリクスを収集し続ける
-- **post.ts で回収**: 終了時にHTTP経由でデータ取得
+- **post.ts で回収**: 終了時にファイルからデータ読み込み
+
+#### なぜファイルベース？
+
+- **シンプル**: HTTPサーバー不要、ポート管理不要
+- **一貫性**: processTracerと同じパターン
+- **安定性**: ポート競合のリスクなし
 
 #### 収集するメトリクス
 
@@ -152,9 +157,9 @@ src/
 |---|---|---|
 | `src/entry/main.ts` | `dist/main/index.js` | アクション起動時（pre） |
 | `src/entry/post.ts` | `dist/post/index.js` | アクション終了時（post） |
-| `src/features/stats/server.ts` | `dist/scw/index.js` | メトリクス収集サーバー（子プロセス） |
+| `src/features/stats/backgroundCollector.ts` | `dist/scw/index.js` | メトリクス収集バックグラウンドプロセス |
 
-**重要**: `server.ts`は`collector.ts`で`spawn()`により別プロセスとして起動されるため、独立したバンドルが必要。
+**重要**: `backgroundCollector.ts`は`collector.ts`で`spawn()`により別プロセスとして起動されるため、独立したバンドルが必要。
 
 ## データフロー
 
@@ -163,7 +168,7 @@ src/
 ```
 main.ts
   ├─→ stepTracer.start()       準備のみ
-  ├─→ statCollector.start()    spawn("dist/scw/index.js") → HTTPサーバー起動
+  ├─→ statCollector.start()    spawn("dist/scw/index.js") → バックグラウンド収集開始
   └─→ processTracer.start()    setInterval(1000ms) → プロセス監視開始
 ```
 
@@ -178,15 +183,11 @@ post.ts
   │     └─→ Mermaid Ganttチャート生成
   │
   ├─→ statCollector.report(currentJob)
-  │     ├─→ HTTP GET localhost:7777/cpu
-  │     ├─→ HTTP GET localhost:7777/memory
-  │     ├─→ HTTP GET localhost:7777/network
-  │     ├─→ HTTP GET localhost:7777/disk
-  │     ├─→ HTTP GET localhost:7777/disk_size
+  │     ├─→ stats-data.json読み込み
   │     └─→ chartGenerator → QuickChart API → グラフURL
   │
   ├─→ processTracer.report(currentJob)
-  │     ├─→ proc-tracer-data.json読込
+  │     ├─→ proc-tracer-data.json読み込み
   │     └─→ Gantt + テーブル生成
   │
   └─→ reportAll(content)
@@ -222,13 +223,20 @@ post.ts
 
 1. **Process Trace**: Linux/Ubuntu環境のみ対応
    - `/home/runner/work/_actions/` パスに依存
-2. **Port 7777**: ハードコード（将来的には自動検出が望ましい）
-3. **QuickChart.io**: 外部APIへの依存（障害時はグラフが表示されない）
+2. **QuickChart.io**: 外部APIへの依存（障害時はグラフが表示されない）
+
+## 完了した改善
+
+1. ✅ **HTTPサーバーからファイルベースへの移行** (2025-12-28)
+   - ポート管理の複雑さを削減
+   - processTracerと一貫したアーキテクチャ
+2. ✅ **グローバル状態のカプセル化** (2025-12-28)
+   - ProcessTracerクラス化
+   - StatsBackgroundCollectorクラス化
 
 ## 今後の改善案
 
-1. ポート番号の自動検出
-2. グローバル状態のカプセル化（テスタビリティ向上）
-3. エラーハンドリングの強化（HTTPタイムアウト、リトライ）
-4. 設定管理の一元化（ActionConfigクラス）
-5. マジックナンバーの定数化
+1. エラーハンドリングの強化（fetchStats のタイムアウト、リトライ）
+2. 設定管理の一元化（ActionConfigクラス）
+3. マジックナンバーの定数化
+4. Ganttチャート生成の重複削除（stepTracer, processTracer）
