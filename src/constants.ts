@@ -82,4 +82,6 @@ export const FILE_PATHS = {
   PROC_TRACER_STATE: ".proc-tracer-started",
   /** Process tracer data file */
   PROC_TRACER_DATA: "proc-tracer-data.json",
+  /** Stats collector data file */
+  STATS_DATA: "stats-data.json",
 } as const;
