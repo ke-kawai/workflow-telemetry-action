@@ -192,94 +192,110 @@ async function reportWorkflowMetrics(): Promise<string> {
   return postContentItems.join("\n");
 }
 
-interface StatsTransformConfig<T> {
-  endpoint: string;
-  fields: {
-    first: (data: T) => number | undefined;
-    second: (data: T) => number | undefined;
-  };
-}
-
-async function transformStats<T extends { time: number }>(
-  config: StatsTransformConfig<T>
-): Promise<[ProcessedStats[], ProcessedStats[]]> {
-  const firstArray: ProcessedStats[] = [];
-  const secondArray: ProcessedStats[] = [];
-
-  const data = await fetchStats<T>(config.endpoint);
-
-  data.forEach((element: T) => {
-    const firstValue = config.fields.first(element);
-    firstArray.push({
-      x: element.time,
-      y: firstValue && firstValue > 0 ? firstValue : 0,
-    });
-
-    const secondValue = config.fields.second(element);
-    secondArray.push({
-      x: element.time,
-      y: secondValue && secondValue > 0 ? secondValue : 0,
-    });
-  });
-
-  return [firstArray, secondArray];
+function normalizeValue(value: number | undefined): number {
+  return value && value > 0 ? value : 0;
 }
 
 async function getCPUStats(): Promise<ProcessedCPUStats> {
-  const [userLoadX, systemLoadX] = await transformStats<CPUStats>({
-    endpoint: "cpu",
-    fields: {
-      first: (data) => data.userLoad,
-      second: (data) => data.systemLoad,
-    },
+  const userLoadX: ProcessedStats[] = [];
+  const systemLoadX: ProcessedStats[] = [];
+
+  const data = await fetchStats<CPUStats>("cpu");
+
+  data.forEach((element: CPUStats) => {
+    userLoadX.push({
+      x: element.time,
+      y: normalizeValue(element.userLoad),
+    });
+
+    systemLoadX.push({
+      x: element.time,
+      y: normalizeValue(element.systemLoad),
+    });
   });
 
   return { userLoadX, systemLoadX };
 }
 
 async function getMemoryStats(): Promise<ProcessedMemoryStats> {
-  const [activeMemoryX, availableMemoryX] = await transformStats<MemoryStats>({
-    endpoint: "memory",
-    fields: {
-      first: (data) => data.activeMemoryMb,
-      second: (data) => data.availableMemoryMb,
-    },
+  const activeMemoryX: ProcessedStats[] = [];
+  const availableMemoryX: ProcessedStats[] = [];
+
+  const data = await fetchStats<MemoryStats>("memory");
+
+  data.forEach((element: MemoryStats) => {
+    activeMemoryX.push({
+      x: element.time,
+      y: normalizeValue(element.activeMemoryMb),
+    });
+
+    availableMemoryX.push({
+      x: element.time,
+      y: normalizeValue(element.availableMemoryMb),
+    });
   });
 
   return { activeMemoryX, availableMemoryX };
 }
 
 async function getNetworkStats(): Promise<ProcessedNetworkStats> {
-  const [networkReadX, networkWriteX] = await transformStats<NetworkStats>({
-    endpoint: "network",
-    fields: {
-      first: (data) => data.rxMb,
-      second: (data) => data.txMb,
-    },
+  const networkReadX: ProcessedStats[] = [];
+  const networkWriteX: ProcessedStats[] = [];
+
+  const data = await fetchStats<NetworkStats>("network");
+
+  data.forEach((element: NetworkStats) => {
+    networkReadX.push({
+      x: element.time,
+      y: normalizeValue(element.rxMb),
+    });
+
+    networkWriteX.push({
+      x: element.time,
+      y: normalizeValue(element.txMb),
+    });
   });
 
   return { networkReadX, networkWriteX };
 }
 
 async function getDiskStats(): Promise<ProcessedDiskStats> {
-  const [diskReadX, diskWriteX] = await transformStats<DiskStats>({
-    endpoint: "disk",
-    fields: {
-      first: (data) => data.rxMb,
-      second: (data) => data.wxMb,
-    },
+  const diskReadX: ProcessedStats[] = [];
+  const diskWriteX: ProcessedStats[] = [];
+
+  const data = await fetchStats<DiskStats>("disk");
+
+  data.forEach((element: DiskStats) => {
+    diskReadX.push({
+      x: element.time,
+      y: normalizeValue(element.rxMb),
+    });
+
+    diskWriteX.push({
+      x: element.time,
+      y: normalizeValue(element.wxMb),
+    });
   });
 
   return { diskReadX, diskWriteX };
 }
 
 async function getDiskSizeStats(): Promise<ProcessedDiskSizeStats> {
-  const [diskAvailableX, diskUsedX] = await transformStats<DiskSizeStats>({
-    endpoint: "disk_size",
-    fields: {
-      first: (data) => data.availableSizeMb,
-      second: (data) => data.usedSizeMb,
-    },
+  const diskAvailableX: ProcessedStats[] = [];
+  const diskUsedX: ProcessedStats[] = [];
+
+  const data = await fetchStats<DiskSizeStats>("disk_size");
+
+  data.forEach((element: DiskSizeStats) => {
+    diskAvailableX.push({
+      x: element.time,
+      y: normalizeValue(element.availableSizeMb),
+    });
+
+    diskUsedX.push({
+      x: element.time,
+      y: normalizeValue(element.usedSizeMb),
+    });
   });
 
   return { diskAvailableX, diskUsedX };
