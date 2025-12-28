@@ -1,12 +1,12 @@
 'use strict';
 
-var require$$2 = require('http');
-var require$$0$1 = require('os');
-var require$$1$1 = require('fs');
 var require$$1$2 = require('path');
+var require$$1$1 = require('fs');
+var require$$0$1 = require('os');
 var require$$1 = require('child_process');
 var require$$0$2 = require('util');
 var require$$5 = require('https');
+var require$$2 = require('http');
 var require$$0$3 = require('net');
 var require$$0$4 = require('crypto');
 var require$$1$3 = require('tls');
@@ -47264,6 +47264,9 @@ function info(msg) {
     coreExports.info(LOG_HEADER + " " + msg);
 }
 function error(error, context) {
+    if (context) {
+        coreExports.error(`${LOG_HEADER} ${context}`);
+    }
     coreExports.error(`${LOG_HEADER} ${error.name}: ${error.message}`);
     coreExports.error(error);
 }
@@ -47271,26 +47274,27 @@ function error(error, context) {
 /**
  * HTTP Server Configuration
  */
-const SERVER = {
-    /** HTTP server host (localhost only for security) */
-    HOST: "localhost",
-    /** HTTP server port for stats collection */
-    PORT: 7777,
-};
 /**
  * Stats Collection Configuration
  */
 const STATS_COLLECTION = {
     /** Default stats collection frequency in milliseconds */
     DEFAULT_FREQUENCY_MS: 5000};
+/**
+ * File Paths
+ */
+const FILE_PATHS = {
+    /** Stats collector data file */
+    STATS_DATA: "stats-data.json",
+};
 
 const STATS_FREQ = parseInt(process.env.WORKFLOW_TELEMETRY_STAT_FREQ || "") ||
     STATS_COLLECTION.DEFAULT_FREQUENCY_MS;
-class StatsCollectorServer {
+const STATS_DATA_FILE = require$$1$2.join(__dirname, "../", FILE_PATHS.STATS_DATA);
+class StatsBackgroundCollector {
     constructor() {
         this.expectedScheduleTime = 0;
         this.statCollectTime = 0;
-        this.server = null;
         // Histograms
         this.cpuStatsHistogram = [];
         this.memoryStatsHistogram = [];
@@ -47382,6 +47386,22 @@ class StatsCollectorServer {
             error(err);
         }
     }
+    saveData() {
+        try {
+            const data = {
+                cpu: this.cpuStatsHistogram,
+                memory: this.memoryStatsHistogram,
+                network: this.networkStatsHistogram,
+                disk: this.diskStatsHistogram,
+                diskSize: this.diskSizeStatsHistogram,
+            };
+            require$$1$1.writeFileSync(STATS_DATA_FILE, JSON.stringify(data, null, 2));
+        }
+        catch (error$1) {
+            const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
+            error(err, "Error saving stats data");
+        }
+    }
     async collectStats(triggeredFromScheduler = true) {
         try {
             const currentTime = Date.now();
@@ -47390,7 +47410,9 @@ class StatsCollectorServer {
                 : 0;
             this.statCollectTime = currentTime;
             const promises = this.statsCollectors.map((collector) => this.collectStatsForCollector(collector, this.statCollectTime, timeInterval));
-            return promises;
+            await Promise.all(promises);
+            // Save to file after collection
+            this.saveData();
         }
         finally {
             if (triggeredFromScheduler) {
@@ -47399,105 +47421,14 @@ class StatsCollectorServer {
             }
         }
     }
-    getRoutes() {
-        return new Map([
-            [
-                "/cpu",
-                {
-                    method: "GET",
-                    handler: (_, response) => {
-                        response.end(JSON.stringify(this.cpuStatsHistogram));
-                    },
-                },
-            ],
-            [
-                "/memory",
-                {
-                    method: "GET",
-                    handler: (_, response) => {
-                        response.end(JSON.stringify(this.memoryStatsHistogram));
-                    },
-                },
-            ],
-            [
-                "/network",
-                {
-                    method: "GET",
-                    handler: (_, response) => {
-                        response.end(JSON.stringify(this.networkStatsHistogram));
-                    },
-                },
-            ],
-            [
-                "/disk",
-                {
-                    method: "GET",
-                    handler: (_, response) => {
-                        response.end(JSON.stringify(this.diskStatsHistogram));
-                    },
-                },
-            ],
-            [
-                "/disk_size",
-                {
-                    method: "GET",
-                    handler: (_, response) => {
-                        response.end(JSON.stringify(this.diskSizeStatsHistogram));
-                    },
-                },
-            ],
-            [
-                "/collect",
-                {
-                    method: "POST",
-                    handler: async (_, response) => {
-                        await this.collectStats(false);
-                        response.end();
-                    },
-                },
-            ],
-        ]);
-    }
-    startHttpServer() {
-        const routes = this.getRoutes();
-        this.server = require$$2.createServer(async (request, response) => {
-            try {
-                const route = routes.get(request.url || "");
-                if (!route) {
-                    response.statusCode = 404;
-                    response.end();
-                    return;
-                }
-                if (request.method !== route.method) {
-                    response.statusCode = 405;
-                    response.end();
-                    return;
-                }
-                await route.handler(request, response);
-            }
-            catch (error$1) {
-                const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
-                error(err);
-                response.statusCode = 500;
-                response.end(JSON.stringify({
-                    type: 'type' in err ? err.type : 'Unknown',
-                    message: err.message,
-                }));
-            }
-        });
-        this.server.listen(SERVER.PORT, SERVER.HOST, () => {
-            info(`Stat server listening on port ${SERVER.PORT}`);
-        });
-    }
     init() {
         this.expectedScheduleTime = Date.now();
-        info("Starting stat collector ...");
+        info("Starting stats background collector ...");
         process.nextTick(() => this.collectStats());
-        info("Starting HTTP server ...");
-        this.startHttpServer();
+        info(`Stats collector started with ${STATS_FREQ}ms interval`);
     }
 }
 // Create and initialize singleton instance
-const server = new StatsCollectorServer();
-server.init();
+const collector = new StatsBackgroundCollector();
+collector.init();
 //# sourceMappingURL=index.js.map

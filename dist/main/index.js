@@ -3,7 +3,7 @@
 var require$$0$1 = require('os');
 var require$$0$2 = require('crypto');
 var require$$1 = require('fs');
-var require$$1$5 = require('path');
+var path = require('path');
 var require$$2 = require('http');
 var require$$3 = require('https');
 var require$$0$5 = require('net');
@@ -27,7 +27,7 @@ var require$$1$4 = require('url');
 var require$$3$1 = require('zlib');
 var require$$6 = require('string_decoder');
 var require$$0$a = require('diagnostics_channel');
-var require$$1$6 = require('child_process');
+var require$$1$5 = require('child_process');
 var require$$6$1 = require('timers');
 
 var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
@@ -25637,7 +25637,7 @@ function requirePathUtils () {
 	pathUtils.toPosixPath = toPosixPath;
 	pathUtils.toWin32Path = toWin32Path;
 	pathUtils.toPlatformPath = toPlatformPath;
-	const path = __importStar(require$$1$5);
+	const path$1 = __importStar(path);
 	/**
 	 * toPosixPath converts the given path to the posix form. On Windows, \\ will be
 	 * replaced with /.
@@ -25667,7 +25667,7 @@ function requirePathUtils () {
 	 * @return string The platform-specific path.
 	 */
 	function toPlatformPath(pth) {
-	    return pth.replace(/[/\\]/g, path.sep);
+	    return pth.replace(/[/\\]/g, path$1.sep);
 	}
 	
 	return pathUtils;
@@ -25741,7 +25741,7 @@ function requireIoUtil () {
 		exports$1.tryGetExecutablePath = tryGetExecutablePath;
 		exports$1.getCmdPath = getCmdPath;
 		const fs = __importStar(require$$1);
-		const path = __importStar(require$$1$5);
+		const path$1 = __importStar(path);
 		_a = fs.promises
 		// export const {open} = 'fs'
 		, exports$1.chmod = _a.chmod, exports$1.copyFile = _a.copyFile, exports$1.lstat = _a.lstat, exports$1.mkdir = _a.mkdir, exports$1.open = _a.open, exports$1.readdir = _a.readdir, exports$1.rename = _a.rename, exports$1.rm = _a.rm, exports$1.rmdir = _a.rmdir, exports$1.stat = _a.stat, exports$1.symlink = _a.symlink, exports$1.unlink = _a.unlink;
@@ -25829,7 +25829,7 @@ function requireIoUtil () {
 		        if (stats && stats.isFile()) {
 		            if (exports$1.IS_WINDOWS) {
 		                // on Windows, test for valid extension
-		                const upperExt = path.extname(filePath).toUpperCase();
+		                const upperExt = path$1.extname(filePath).toUpperCase();
 		                if (extensions.some(validExt => validExt.toUpperCase() === upperExt)) {
 		                    return filePath;
 		                }
@@ -25858,11 +25858,11 @@ function requireIoUtil () {
 		                if (exports$1.IS_WINDOWS) {
 		                    // preserve the case of the actual file (since an extension was appended)
 		                    try {
-		                        const directory = path.dirname(filePath);
-		                        const upperName = path.basename(filePath).toUpperCase();
+		                        const directory = path$1.dirname(filePath);
+		                        const upperName = path$1.basename(filePath).toUpperCase();
 		                        for (const actualName of yield (0, exports$1.readdir)(directory)) {
 		                            if (upperName === actualName.toUpperCase()) {
-		                                filePath = path.join(directory, actualName);
+		                                filePath = path$1.join(directory, actualName);
 		                                break;
 		                            }
 		                        }
@@ -25971,7 +25971,7 @@ function requireIo () {
 	io.which = which;
 	io.findInPath = findInPath;
 	const assert_1 = require$$0$4;
-	const path = __importStar(require$$1$5);
+	const path$1 = __importStar(path);
 	const ioUtil = __importStar(requireIoUtil());
 	/**
 	 * Copies a file or folder.
@@ -25991,7 +25991,7 @@ function requireIo () {
 	        }
 	        // If dest is an existing directory, should copy inside.
 	        const newDest = destStat && destStat.isDirectory() && copySourceDirectory
-	            ? path.join(dest, path.basename(source))
+	            ? path$1.join(dest, path$1.basename(source))
 	            : dest;
 	        if (!(yield ioUtil.exists(source))) {
 	            throw new Error(`no such file or directory: ${source}`);
@@ -26006,7 +26006,7 @@ function requireIo () {
 	            }
 	        }
 	        else {
-	            if (path.relative(source, newDest) === '') {
+	            if (path$1.relative(source, newDest) === '') {
 	                // a file cannot be copied to itself
 	                throw new Error(`'${newDest}' and '${source}' are the same file`);
 	            }
@@ -26027,7 +26027,7 @@ function requireIo () {
 	            let destExists = true;
 	            if (yield ioUtil.isDirectory(dest)) {
 	                // If dest is directory copy src into dest
-	                dest = path.join(dest, path.basename(source));
+	                dest = path$1.join(dest, path$1.basename(source));
 	                destExists = yield ioUtil.exists(dest);
 	            }
 	            if (destExists) {
@@ -26039,7 +26039,7 @@ function requireIo () {
 	                }
 	            }
 	        }
-	        yield mkdirP(path.dirname(dest));
+	        yield mkdirP(path$1.dirname(dest));
 	        yield ioUtil.rename(source, dest);
 	    });
 	}
@@ -26130,7 +26130,7 @@ function requireIo () {
 	        // build the list of extensions to try
 	        const extensions = [];
 	        if (ioUtil.IS_WINDOWS && process.env['PATHEXT']) {
-	            for (const extension of process.env['PATHEXT'].split(path.delimiter)) {
+	            for (const extension of process.env['PATHEXT'].split(path$1.delimiter)) {
 	                if (extension) {
 	                    extensions.push(extension);
 	                }
@@ -26145,7 +26145,7 @@ function requireIo () {
 	            return [];
 	        }
 	        // if any path separators, return empty
-	        if (tool.includes(path.sep)) {
+	        if (tool.includes(path$1.sep)) {
 	            return [];
 	        }
 	        // build the list of directories
@@ -26156,7 +26156,7 @@ function requireIo () {
 	        // across platforms.
 	        const directories = [];
 	        if (process.env.PATH) {
-	            for (const p of process.env.PATH.split(path.delimiter)) {
+	            for (const p of process.env.PATH.split(path$1.delimiter)) {
 	                if (p) {
 	                    directories.push(p);
 	                }
@@ -26165,7 +26165,7 @@ function requireIo () {
 	        // find all matches
 	        const matches = [];
 	        for (const directory of directories) {
-	            const filePath = yield ioUtil.tryGetExecutablePath(path.join(directory, tool), extensions);
+	            const filePath = yield ioUtil.tryGetExecutablePath(path$1.join(directory, tool), extensions);
 	            if (filePath) {
 	                matches.push(filePath);
 	            }
@@ -26287,8 +26287,8 @@ function requireToolrunner () {
 	toolrunner.argStringToArray = argStringToArray;
 	const os = __importStar(require$$0$1);
 	const events = __importStar(require$$4);
-	const child = __importStar(require$$1$6);
-	const path = __importStar(require$$1$5);
+	const child = __importStar(require$$1$5);
+	const path$1 = __importStar(path);
 	const io = __importStar(requireIo());
 	const ioUtil = __importStar(requireIoUtil());
 	const timers_1 = require$$6$1;
@@ -26637,7 +26637,7 @@ function requireToolrunner () {
 	                (this.toolPath.includes('/') ||
 	                    (IS_WINDOWS && this.toolPath.includes('\\')))) {
 	                // prefer options.cwd if it is specified, however options.cwd may also need to be rooted
-	                this.toolPath = path.resolve(process.cwd(), this.options.cwd || process.cwd(), this.toolPath);
+	                this.toolPath = path$1.resolve(process.cwd(), this.options.cwd || process.cwd(), this.toolPath);
 	            }
 	            // if the tool is only a file name, then resolve it from the PATH
 	            // otherwise verify it exists (add extension on Windows if necessary)
@@ -27178,7 +27178,7 @@ function requireCore () {
 		const file_command_1 = requireFileCommand();
 		const utils_1 = requireUtils$1();
 		const os = __importStar(require$$0$1);
-		const path = __importStar(require$$1$5);
+		const path$1 = __importStar(path);
 		const oidc_utils_1 = requireOidcUtils();
 		/**
 		 * The code to exit an action
@@ -27256,7 +27256,7 @@ function requireCore () {
 		    else {
 		        (0, command_1.issueCommand)('add-path', {}, inputPath);
 		    }
-		    process.env['PATH'] = `${inputPath}${path.delimiter}${process.env['PATH']}`;
+		    process.env['PATH'] = `${inputPath}${path$1.delimiter}${process.env['PATH']}`;
 		}
 		/**
 		 * Gets the value of an input.
@@ -27541,8 +27541,11 @@ const FILE_PATHS = {
     PROC_TRACER_STATE: ".proc-tracer-started",
     /** Process tracer data file */
     PROC_TRACER_DATA: "proc-tracer-data.json",
+    /** Stats collector data file */
+    STATS_DATA: "stats-data.json",
 };
 
+path.join(__dirname, "../", FILE_PATHS.STATS_DATA);
 async function start$1() {
     info(`Starting stat collector ...`);
     try {
@@ -27558,7 +27561,7 @@ async function start$1() {
         if (metricFrequency) {
             env.WORKFLOW_TELEMETRY_STAT_FREQ = `${metricFrequency}`;
         }
-        const child = require$$1$6.spawn(process.execPath, [require$$1$5.join(__dirname, "../scw/index.js")], {
+        const child = require$$1$5.spawn(process.execPath, [path.join(__dirname, "../scw/index.js")], {
             detached: true,
             stdio: "ignore",
             env,
@@ -27603,10 +27606,10 @@ function requireUtil () {
 
 	const os = require$$0$1;
 	const fs = require$$1;
-	const path = require$$1$5;
-	const spawn = require$$1$6.spawn;
-	const exec = require$$1$6.exec;
-	const execSync = require$$1$6.execSync;
+	const path$1 = path;
+	const spawn = require$$1$5.spawn;
+	const exec = require$$1$5.exec;
+	const execSync = require$$1$5.execSync;
 	const util$1 = require$$0$3;
 
 	let _platform = process.platform;
@@ -28456,7 +28459,7 @@ function requireUtil () {
 	function getFilesInPath(source) {
 	  const lstatSync = fs.lstatSync;
 	  const readdirSync = fs.readdirSync;
-	  const join = path.join;
+	  const join = path$1.join;
 
 	  function isDirectory(source) {
 	    return lstatSync(source).isDirectory();
@@ -30326,8 +30329,8 @@ function requireOsinfo () {
 	const os = require$$0$1;
 	const fs = require$$1;
 	const util = requireUtil();
-	const exec = require$$1$6.exec;
-	const execSync = require$$1$6.execSync;
+	const exec = require$$1$5.exec;
+	const execSync = require$$1$5.execSync;
 
 	let _platform = process.platform;
 
@@ -31615,9 +31618,9 @@ function requireSystem () {
 	const os = require$$0$1;
 	const util = requireUtil();
 	const { uuid } = requireOsinfo();
-	const exec = require$$1$6.exec;
-	const execSync = require$$1$6.execSync;
-	const execPromise = util.promisify(require$$1$6.exec);
+	const exec = require$$1$5.exec;
+	const execSync = require$$1$5.execSync;
+	const execPromise = util.promisify(require$$1$5.exec);
 
 	const _platform = process.platform;
 
@@ -32477,8 +32480,8 @@ function requireCpu () {
 	// ----------------------------------------------------------------------------------
 
 	const os = require$$0$1;
-	const exec = require$$1$6.exec;
-	const execSync = require$$1$6.execSync;
+	const exec = require$$1$5.exec;
+	const execSync = require$$1$5.execSync;
 	const fs = require$$1;
 	const util = requireUtil();
 
@@ -34723,8 +34726,8 @@ function requireMemory () {
 	// ----------------------------------------------------------------------------------
 
 	const os = require$$0$1;
-	const exec = require$$1$6.exec;
-	const execSync = require$$1$6.execSync;
+	const exec = require$$1$5.exec;
+	const execSync = require$$1$5.execSync;
 	const util = requireUtil();
 	const fs = require$$1;
 
@@ -35295,7 +35298,7 @@ function requireBattery () {
 	// 6. Battery
 	// ----------------------------------------------------------------------------------
 
-	const exec = require$$1$6.exec;
+	const exec = require$$1$5.exec;
 	const fs = require$$1;
 	const util = requireUtil();
 
@@ -35617,8 +35620,8 @@ function requireGraphics () {
 	// ----------------------------------------------------------------------------------
 
 	const fs = require$$1;
-	const exec = require$$1$6.exec;
-	const execSync = require$$1$6.execSync;
+	const exec = require$$1$5.exec;
+	const execSync = require$$1$5.execSync;
 	const util = requireUtil();
 
 	let _platform = process.platform;
@@ -36865,9 +36868,9 @@ function requireFilesystem () {
 	const util = requireUtil();
 	const fs = require$$1;
 
-	const exec = require$$1$6.exec;
-	const execSync = require$$1$6.execSync;
-	const execPromiseSave = util.promisifySave(require$$1$6.exec);
+	const exec = require$$1$5.exec;
+	const execSync = require$$1$5.execSync;
+	const execPromiseSave = util.promisifySave(require$$1$5.exec);
 
 	const _platform = process.platform;
 
@@ -38564,8 +38567,8 @@ function requireNetwork () {
 	// ----------------------------------------------------------------------------------
 
 	const os = require$$0$1;
-	const exec = require$$1$6.exec;
-	const execSync = require$$1$6.execSync;
+	const exec = require$$1$5.exec;
+	const execSync = require$$1$5.execSync;
 	const fs = require$$1;
 	const util = requireUtil();
 
@@ -40591,8 +40594,8 @@ function requireWifi () {
 	// ----------------------------------------------------------------------------------
 
 	const os = require$$0$1;
-	const exec = require$$1$6.exec;
-	const execSync = require$$1$6.execSync;
+	const exec = require$$1$5.exec;
+	const execSync = require$$1$5.execSync;
 	const util = requireUtil();
 
 	let _platform = process.platform;
@@ -41435,9 +41438,9 @@ function requireProcesses () {
 
 	const os = require$$0$1;
 	const fs = require$$1;
-	const path = require$$1$5;
-	const exec = require$$1$6.exec;
-	const execSync = require$$1$6.execSync;
+	const path$1 = path;
+	const exec = require$$1$5.exec;
+	const execSync = require$$1$5.execSync;
 
 	const util = requireUtil();
 
@@ -42082,7 +42085,7 @@ function requireProcesses () {
 
 	          if (firstPos === 10000 && tmpCommand.indexOf(' ') > -1) {
 	            const parts = tmpCommand.split(' ');
-	            if (fs.existsSync(path.join(cmdPath, parts[0]))) {
+	            if (fs.existsSync(path$1.join(cmdPath, parts[0]))) {
 	              command = parts.shift();
 	              params = (parts.join(' ') + ' ' + tmpParams).trim();
 	            } else {
@@ -42873,7 +42876,7 @@ function requireUsers () {
 	// 11. Users/Sessions
 	// ----------------------------------------------------------------------------------
 
-	const exec = require$$1$6.exec;
+	const exec = require$$1$5.exec;
 	const util = requireUtil();
 
 	let _platform = process.platform;
@@ -44592,7 +44595,7 @@ function requireVirtualbox () {
 	// ----------------------------------------------------------------------------------
 
 	const os = require$$0$1;
-	const exec = require$$1$6.exec;
+	const exec = require$$1$5.exec;
 	const util = requireUtil();
 
 	function vboxInfo(callback) {
@@ -44707,7 +44710,7 @@ function requirePrinter () {
 	// 15. printers
 	// ----------------------------------------------------------------------------------
 
-	const exec = require$$1$6.exec;
+	const exec = require$$1$5.exec;
 	const util = requireUtil();
 
 	let _platform = process.platform;
@@ -44926,7 +44929,7 @@ function requireUsb () {
 	// 16. usb
 	// ----------------------------------------------------------------------------------
 
-	const exec = require$$1$6.exec;
+	const exec = require$$1$5.exec;
 	const util = requireUtil();
 
 	let _platform = process.platform;
@@ -45213,8 +45216,8 @@ function requireAudio () {
 	// 16. audio
 	// ----------------------------------------------------------------------------------
 
-	const exec = require$$1$6.exec;
-	const execSync = require$$1$6.execSync;
+	const exec = require$$1$5.exec;
+	const execSync = require$$1$5.execSync;
 	const util = requireUtil();
 
 	let _platform = process.platform;
@@ -46590,9 +46593,9 @@ function requireBluetooth () {
 	// 17. bluetooth
 	// ----------------------------------------------------------------------------------
 
-	const exec = require$$1$6.exec;
-	const execSync = require$$1$6.execSync;
-	const path = require$$1$5;
+	const exec = require$$1$5.exec;
+	const execSync = require$$1$5.execSync;
+	const path$1 = path;
 	const util = requireUtil();
 	const bluetoothVendors = requireBluetoothVendors();
 	const fs = require$$1;
@@ -46701,7 +46704,7 @@ function requireBluetooth () {
 	        // get files in /var/lib/bluetooth/ recursive
 	        const btFiles = util.getFilesInPath('/var/lib/bluetooth/');
 	        btFiles.forEach((element) => {
-	          const filename = path.basename(element);
+	          const filename = path$1.basename(element);
 	          const pathParts = element.split('/');
 	          const macAddr1 = pathParts.length >= 6 ? pathParts[pathParts.length - 2] : null;
 	          const macAddr2 = pathParts.length >= 7 ? pathParts[pathParts.length - 3] : null;
@@ -47362,8 +47365,8 @@ function formatFloat(val, width, precision) {
     return val.toFixed(precision).padStart(width);
 }
 
-const PROC_TRACER_STATE_FILE = require$$1$5.join(__dirname, "../", FILE_PATHS.PROC_TRACER_STATE);
-const PROC_TRACER_DATA_FILE = require$$1$5.join(__dirname, "../", FILE_PATHS.PROC_TRACER_DATA);
+const PROC_TRACER_STATE_FILE = path.join(__dirname, "../", FILE_PATHS.PROC_TRACER_STATE);
+const PROC_TRACER_DATA_FILE = path.join(__dirname, "../", FILE_PATHS.PROC_TRACER_DATA);
 const DEFAULT_PROC_TRACE_CHART_MAX_COUNT = PROCESS_TRACE.DEFAULT_CHART_MAX_COUNT;
 const GHA_FILE_NAME_PREFIX = PROCESS_TRACE.GHA_FILE_PREFIX;
 const COLLECTION_INTERVAL_MS = PROCESS_TRACE.COLLECTION_INTERVAL_MS;
