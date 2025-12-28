@@ -1,4 +1,5 @@
-import { createServer, IncomingMessage, Server, ServerResponse } from "http";
+import path from "path";
+import fs from "fs";
 import si from "systeminformation";
 import * as logger from "../../utils/logger";
 import {
@@ -8,11 +9,13 @@ import {
   NetworkStats,
   DiskSizeStats,
 } from "../../interfaces";
-import { SERVER, STATS_COLLECTION } from "../../constants";
+import { STATS_COLLECTION, FILE_PATHS } from "../../constants";
 
 const STATS_FREQ: number =
   parseInt(process.env.WORKFLOW_TELEMETRY_STAT_FREQ || "") ||
   STATS_COLLECTION.DEFAULT_FREQUENCY_MS;
+
+const STATS_DATA_FILE = path.join(__dirname, "../", FILE_PATHS.STATS_DATA);
 
 interface StatsCollector<T, D> {
   histogram: T[];
@@ -28,15 +31,17 @@ type AnyStatsCollector =
   | StatsCollector<DiskStats, si.Systeminformation.FsStatsData>
   | StatsCollector<DiskSizeStats, si.Systeminformation.FsSizeData[]>;
 
-interface Route {
-  method: "GET" | "POST";
-  handler: (request: IncomingMessage, response: ServerResponse) => Promise<void> | void;
+interface StatsData {
+  cpu: CPUStats[];
+  memory: MemoryStats[];
+  network: NetworkStats[];
+  disk: DiskStats[];
+  diskSize: DiskSizeStats[];
 }
 
-class StatsCollectorServer {
+class StatsBackgroundCollector {
   private expectedScheduleTime: number = 0;
   private statCollectTime: number = 0;
-  private server: Server | null = null;
 
   // Histograms
   private cpuStatsHistogram: CPUStats[] = [];
@@ -147,7 +152,23 @@ class StatsCollectorServer {
     }
   }
 
-  private async collectStats(triggeredFromScheduler: boolean = true) {
+  private saveData(): void {
+    try {
+      const data: StatsData = {
+        cpu: this.cpuStatsHistogram,
+        memory: this.memoryStatsHistogram,
+        network: this.networkStatsHistogram,
+        disk: this.diskStatsHistogram,
+        diskSize: this.diskSizeStatsHistogram,
+      };
+      fs.writeFileSync(STATS_DATA_FILE, JSON.stringify(data, null, 2));
+    } catch (error: unknown) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      logger.error(err, "Error saving stats data");
+    }
+  }
+
+  private async collectStats(triggeredFromScheduler: boolean = true): Promise<void> {
     try {
       const currentTime: number = Date.now();
       const timeInterval: number = this.statCollectTime
@@ -160,7 +181,10 @@ class StatsCollectorServer {
         this.collectStatsForCollector(collector as any, this.statCollectTime, timeInterval)
       );
 
-      return promises;
+      await Promise.all(promises);
+
+      // Save to file after collection
+      this.saveData();
     } finally {
       if (triggeredFromScheduler) {
         this.expectedScheduleTime += STATS_FREQ;
@@ -169,117 +193,16 @@ class StatsCollectorServer {
     }
   }
 
-  private getRoutes(): Map<string, Route> {
-    return new Map<string, Route>([
-      [
-        "/cpu",
-        {
-          method: "GET",
-          handler: (_, response) => {
-            response.end(JSON.stringify(this.cpuStatsHistogram));
-          },
-        },
-      ],
-      [
-        "/memory",
-        {
-          method: "GET",
-          handler: (_, response) => {
-            response.end(JSON.stringify(this.memoryStatsHistogram));
-          },
-        },
-      ],
-      [
-        "/network",
-        {
-          method: "GET",
-          handler: (_, response) => {
-            response.end(JSON.stringify(this.networkStatsHistogram));
-          },
-        },
-      ],
-      [
-        "/disk",
-        {
-          method: "GET",
-          handler: (_, response) => {
-            response.end(JSON.stringify(this.diskStatsHistogram));
-          },
-        },
-      ],
-      [
-        "/disk_size",
-        {
-          method: "GET",
-          handler: (_, response) => {
-            response.end(JSON.stringify(this.diskSizeStatsHistogram));
-          },
-        },
-      ],
-      [
-        "/collect",
-        {
-          method: "POST",
-          handler: async (_, response) => {
-            await this.collectStats(false);
-            response.end();
-          },
-        },
-      ],
-    ]);
-  }
-
-  private startHttpServer(): void {
-    const routes = this.getRoutes();
-
-    this.server = createServer(
-      async (request: IncomingMessage, response: ServerResponse) => {
-        try {
-          const route = routes.get(request.url || "");
-
-          if (!route) {
-            response.statusCode = 404;
-            response.end();
-            return;
-          }
-
-          if (request.method !== route.method) {
-            response.statusCode = 405;
-            response.end();
-            return;
-          }
-
-          await route.handler(request, response);
-        } catch (error: unknown) {
-          const err = error instanceof Error ? error : new Error(String(error));
-          logger.error(err);
-          response.statusCode = 500;
-          response.end(
-            JSON.stringify({
-              type: 'type' in err ? (err as any).type : 'Unknown',
-              message: err.message,
-            })
-          );
-        }
-      }
-    );
-
-    this.server.listen(SERVER.PORT, SERVER.HOST, () => {
-      logger.info(`Stat server listening on port ${SERVER.PORT}`);
-    });
-  }
-
   init(): void {
     this.expectedScheduleTime = Date.now();
 
-    logger.info("Starting stat collector ...");
+    logger.info("Starting stats background collector ...");
     process.nextTick(() => this.collectStats());
 
-    logger.info("Starting HTTP server ...");
-    this.startHttpServer();
+    logger.info(`Stats collector started with ${STATS_FREQ}ms interval`);
   }
 }
 
 // Create and initialize singleton instance
-const server = new StatsCollectorServer();
-server.init();
+const collector = new StatsBackgroundCollector();
+collector.init();

@@ -1,5 +1,6 @@
 import { ChildProcess, spawn } from "child_process";
 import path from "path";
+import fs from "fs";
 import * as core from "@actions/core";
 import {
   CPUStats,
@@ -18,31 +19,31 @@ import {
   WorkflowJobType,
 } from "../../interfaces";
 import * as logger from "../../utils/logger";
-import { SERVER } from "../../constants";
+import { FILE_PATHS } from "../../constants";
 
-async function fetchStats<T>(endpoint: string): Promise<T[]> {
-  logger.debug(`Getting ${endpoint} stats ...`);
-  const response = await fetch(`http://localhost:${SERVER.PORT}/${endpoint}`);
-  const data = await response.json();
-  if (logger.isDebugEnabled()) {
-    logger.debug(`Got ${endpoint} stats: ${JSON.stringify(data)}`);
-  }
-  return data;
+const STATS_DATA_FILE = path.join(__dirname, "../", FILE_PATHS.STATS_DATA);
+
+interface StatsData {
+  cpu: CPUStats[];
+  memory: MemoryStats[];
+  network: NetworkStats[];
+  disk: DiskStats[];
+  diskSize: DiskSizeStats[];
 }
 
-async function triggerStatCollect(): Promise<void> {
-  logger.debug("Triggering stat collect ...");
-  const response = await fetch(`http://localhost:${SERVER.PORT}/collect`, {
-    method: "POST",
-  });
-  if (logger.isDebugEnabled()) {
-    const text = await response.text();
-    if (text) {
-      const data = JSON.parse(text);
-      logger.debug(`Triggered stat collect: ${JSON.stringify(data)}`);
-    } else {
-      logger.debug("Triggered stat collect: no response body");
+function loadStatsData(): StatsData | null {
+  try {
+    if (fs.existsSync(STATS_DATA_FILE)) {
+      const data = JSON.parse(fs.readFileSync(STATS_DATA_FILE, "utf-8"));
+      logger.debug("Loaded stats data from file");
+      return data;
     }
+    logger.debug("Stats data file does not exist");
+    return null;
+  } catch (error: unknown) {
+    const err = error instanceof Error ? error : new Error(String(error));
+    logger.error(err, "Error loading stats data");
+    return null;
   }
 }
 
@@ -250,7 +251,8 @@ async function getCPUStats(): Promise<ProcessedCPUStats> {
   const userLoadX: ProcessedStats[] = [];
   const systemLoadX: ProcessedStats[] = [];
 
-  const data = await fetchStats<CPUStats>("cpu");
+  const statsData = loadStatsData();
+  const data = statsData?.cpu || [];
 
   data.forEach((element: CPUStats) => {
     userLoadX.push({
@@ -271,7 +273,8 @@ async function getMemoryStats(): Promise<ProcessedMemoryStats> {
   const activeMemoryX: ProcessedStats[] = [];
   const availableMemoryX: ProcessedStats[] = [];
 
-  const data = await fetchStats<MemoryStats>("memory");
+  const statsData = loadStatsData();
+  const data = statsData?.memory || [];
 
   data.forEach((element: MemoryStats) => {
     activeMemoryX.push({
@@ -292,7 +295,8 @@ async function getNetworkStats(): Promise<ProcessedNetworkStats> {
   const networkReadX: ProcessedStats[] = [];
   const networkWriteX: ProcessedStats[] = [];
 
-  const data = await fetchStats<NetworkStats>("network");
+  const statsData = loadStatsData();
+  const data = statsData?.network || [];
 
   data.forEach((element: NetworkStats) => {
     networkReadX.push({
@@ -313,7 +317,8 @@ async function getDiskStats(): Promise<ProcessedDiskStats> {
   const diskReadX: ProcessedStats[] = [];
   const diskWriteX: ProcessedStats[] = [];
 
-  const data = await fetchStats<DiskStats>("disk");
+  const statsData = loadStatsData();
+  const data = statsData?.disk || [];
 
   data.forEach((element: DiskStats) => {
     diskReadX.push({
@@ -334,7 +339,8 @@ async function getDiskSizeStats(): Promise<ProcessedDiskSizeStats> {
   const diskAvailableX: ProcessedStats[] = [];
   const diskUsedX: ProcessedStats[] = [];
 
-  const data = await fetchStats<DiskSizeStats>("disk_size");
+  const statsData = loadStatsData();
+  const data = statsData?.diskSize || [];
 
   data.forEach((element: DiskSizeStats) => {
     diskAvailableX.push({
@@ -409,8 +415,8 @@ export async function finish(_currentJob: WorkflowJobType): Promise<boolean> {
   logger.info(`Finishing stat collector ...`);
 
   try {
-    // Trigger stat collect, so we will have remaining stats since the latest schedule
-    await triggerStatCollect();
+    // Note: No action needed for finish. The background collector
+    // automatically saves stats to file periodically.
 
     logger.info(`Finished stat collector`);
 

@@ -257,6 +257,32 @@ QuickChart APIに依存、サービスダウン時のフォールバックなし
 
 ## 完了した改善
 
+### 2025-12-28 (7): HTTPサーバーからファイルベースへの移行 ✅
+- クライアント・サーバー方式からファイルベースの統計収集に移行
+- processTracerと同じパターンに統一してアーキテクチャの一貫性を向上
+- HTTPサーバーのオーバーヘッドとポート管理の複雑さを削減
+- ビルドで検証済み（`npm run bundle`成功）
+
+**変更内容**:
+- `server.ts` → `backgroundCollector.ts` にリネーム
+- HTTPサーバーコードを削除し、ファイルベースの永続化（`saveData()`）に置き換え
+- `collector.ts` の `fetchStats()` と `triggerStatCollect()` を削除
+- `loadStatsData()` 関数を追加してファイルから統計データを読み込み
+- `FILE_PATHS.STATS_DATA` 定数を追加
+
+**メリット**:
+- ✅ シンプルな実装（HTTPサーバー不要）
+- ✅ ポート競合のリスクなし
+- ✅ processTracerとの一貫性
+- ✅ エラーハンドリングが容易
+
+**影響範囲**:
+- `src/constants.ts` - STATS_DATA定数を追加
+- `src/features/stats/server.ts` → `src/features/stats/backgroundCollector.ts` - リネームと実装変更
+- `src/features/stats/collector.ts` - ファイルベースのロードに変更
+- `rollup.config.mjs` - エントリポイントを更新
+- `dist/` - ビルド成果物の更新
+
 ### 2025-12-28 (6): グローバル可変状態のカプセル化（項目3） ✅
 - モジュールレベルの可変状態をクラスインスタンスにカプセル化
 - テスト容易性の向上（状態の分離とリセットが可能に）
