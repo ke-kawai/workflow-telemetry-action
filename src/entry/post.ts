@@ -13,40 +13,48 @@ const PAGE_SIZE = GITHUB_API.PAGE_SIZE;
 const token = core.getInput("github_token");
 const octokit = github.getOctokit(token);
 
-async function getCurrentJob(): Promise<WorkflowJobType | null> {
-  const _getCurrentJob = async (): Promise<WorkflowJobType | null> => {
-    for (let page = 0; ; page++) {
-      const result = await octokit.rest.actions.listJobsForWorkflowRun({
-        owner: repo.owner,
-        repo: repo.repo,
-        run_id: runId,
-        per_page: PAGE_SIZE,
-        page,
-      });
-      const jobs: WorkflowJobType[] = result.data.jobs;
-      // If there are no jobs, stop here
-      if (!jobs || !jobs.length) {
-        break;
-      }
-      const currentJobs = jobs.filter(
-        (it) =>
-          it.status === "in_progress" &&
-          it.runner_name === process.env.RUNNER_NAME
-      );
-      if (currentJobs && currentJobs.length) {
-        return currentJobs[0] ?? null;
-      }
-      // Since returning job count is less than page size, this means that there are no other jobs.
-      // So no need to make another request for the next page.
-      if (jobs.length < PAGE_SIZE) {
-        break;
-      }
+async function fetchJobPage(page: number): Promise<WorkflowJobType[]> {
+  const result = await octokit.rest.actions.listJobsForWorkflowRun({
+    owner: repo.owner,
+    repo: repo.repo,
+    run_id: runId,
+    per_page: PAGE_SIZE,
+    page,
+  });
+  return result.data.jobs;
+}
+
+async function findCurrentJob(): Promise<WorkflowJobType | null> {
+  for (let page = 0; ; page++) {
+    const jobs = await fetchJobPage(page);
+
+    // If there are no jobs, stop here
+    if (!jobs || !jobs.length) {
+      break;
     }
-    return null;
-  };
+
+    const currentJobs = jobs.filter(
+      (it) =>
+        it.status === "in_progress" &&
+        it.runner_name === process.env.RUNNER_NAME
+    );
+    if (currentJobs && currentJobs.length) {
+      return currentJobs[0] ?? null;
+    }
+
+    // Since returning job count is less than page size, this means that there are no other jobs.
+    // So no need to make another request for the next page.
+    if (jobs.length < PAGE_SIZE) {
+      break;
+    }
+  }
+  return null;
+}
+
+async function getCurrentJob(): Promise<WorkflowJobType | null> {
   try {
     for (let i = 0; i < GITHUB_API.CURRENT_JOB_RETRY_COUNT; i++) {
-      const currentJob: WorkflowJobType | null = await _getCurrentJob();
+      const currentJob = await findCurrentJob();
       if (currentJob && currentJob.id) {
         return currentJob;
       }
