@@ -35,7 +35,7 @@ export default [
     ]
   },
   {
-    input: 'src/features/stats/server.ts',
+    input: 'src/features/stats/backgroundCollector.ts',
     output: {
       file: 'dist/scw/index.js',
       format: 'cjs',
