@@ -16,8 +16,7 @@ async function run(): Promise<void> {
 
     logger.info(`Initialization completed`);
   } catch (error: unknown) {
-    const err = error instanceof Error ? error : new Error(String(error));
-    logger.error(err);
+    logger.error(error);
   }
 }
 

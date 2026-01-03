@@ -32261,11 +32261,12 @@ class Logger {
         coreExports.info(LOG_HEADER + " " + msg);
     }
     error(error, context) {
+        const err = error instanceof Error ? error : new Error(String(error));
         if (context) {
             coreExports.error(`${LOG_HEADER} ${context}`);
         }
-        coreExports.error(`${LOG_HEADER} ${error.name}: ${error.message}`);
-        coreExports.error(error);
+        coreExports.error(`${LOG_HEADER} ${err.name}: ${err.message}`);
+        coreExports.error(err);
     }
 }
 
@@ -32344,8 +32345,7 @@ class StepTracer {
             return true;
         }
         catch (error) {
-            const err = error instanceof Error ? error : new Error(String(error));
-            this.logger.error(err, "Unable to start step tracer");
+            this.logger.error(error, "Unable to start step tracer");
             return false;
         }
     }
@@ -32356,8 +32356,7 @@ class StepTracer {
             return true;
         }
         catch (error) {
-            const err = error instanceof Error ? error : new Error(String(error));
-            this.logger.error(err, "Unable to finish step tracer");
+            this.logger.error(error, "Unable to finish step tracer");
             return false;
         }
     }
@@ -32373,8 +32372,7 @@ class StepTracer {
             return postContent;
         }
         catch (error) {
-            const err = error instanceof Error ? error : new Error(String(error));
-            this.logger.error(err, "Unable to report step tracer result");
+            this.logger.error(error, "Unable to report step tracer result");
             return null;
         }
     }
@@ -32462,8 +32460,7 @@ function loadStatsData() {
         return null;
     }
     catch (error) {
-        const err = error instanceof Error ? error : new Error(String(error));
-        logger$3.error(err, "Error loading stats data");
+        logger$3.error(error, "Error loading stats data");
         return null;
     }
 }
@@ -32720,8 +32717,7 @@ async function finish$1(_currentJob) {
         return true;
     }
     catch (error) {
-        const err = error instanceof Error ? error : new Error(String(error));
-        logger$3.error(err, "Unable to finish stat collector");
+        logger$3.error(error, "Unable to finish stat collector");
         return false;
     }
 }
@@ -32733,8 +32729,7 @@ async function report$1(_currentJob) {
         return postContent;
     }
     catch (error) {
-        const err = error instanceof Error ? error : new Error(String(error));
-        logger$3.error(err, "Unable to report stat collector result");
+        logger$3.error(error, "Unable to report stat collector result");
         return null;
     }
 }
@@ -52618,8 +52613,7 @@ class ProcessDataRepository {
             require$$1.writeFileSync(PROC_TRACER_DATA_FILE, JSON.stringify(data, null, 2));
         }
         catch (error) {
-            const err = error instanceof Error ? error : new Error(String(error));
-            this.logger.error(err, "Error saving process data");
+            this.logger.error(error, "Error saving process data");
         }
     }
     load() {
@@ -52633,8 +52627,7 @@ class ProcessDataRepository {
             }
         }
         catch (error) {
-            const err = error instanceof Error ? error : new Error(String(error));
-            this.logger.error(err, "Error loading process data");
+            this.logger.error(error, "Error loading process data");
         }
         return { completed: [], tracked: [] };
     }
@@ -52722,8 +52715,7 @@ class ProcessTracer {
             }
         }
         catch (error) {
-            const err = error instanceof Error ? error : new Error(String(error));
-            this.logger.error(err, "Error collecting processes");
+            this.logger.error(error, "Error collecting processes");
         }
     }
     saveData() {
@@ -52753,8 +52745,7 @@ class ProcessTracer {
             return true;
         }
         catch (error) {
-            const err = error instanceof Error ? error : new Error(String(error));
-            this.logger.error(err, "Unable to start process tracer");
+            this.logger.error(error, "Unable to start process tracer");
             return false;
         }
     }
@@ -52794,8 +52785,7 @@ class ProcessTracer {
             return true;
         }
         catch (error) {
-            const err = error instanceof Error ? error : new Error(String(error));
-            this.logger.error(err, "Unable to finish process tracer");
+            this.logger.error(error, "Unable to finish process tracer");
             return false;
         }
     }
@@ -52824,8 +52814,7 @@ class ProcessTracer {
             return postContent;
         }
         catch (error) {
-            const err = error instanceof Error ? error : new Error(String(error));
-            this.logger.error(err, "Unable to report process tracer result");
+            this.logger.error(error, "Unable to report process tracer result");
             return null;
         }
     }
@@ -52887,8 +52876,7 @@ async function getCurrentJob() {
         }
     }
     catch (error) {
-        const err = error instanceof Error ? error : new Error(String(error));
-        logger$1.error(err, `Unable to get current workflow job info. ` +
+        logger$1.error(error, `Unable to get current workflow job info. ` +
             `Please sure that your workflow have "actions:read" permission!`);
     }
     return null;
@@ -52958,8 +52946,7 @@ async function run() {
         logger$1.info(`Finish completed`);
     }
     catch (error) {
-        const err = error instanceof Error ? error : new Error(String(error));
-        logger$1.error(err);
+        logger$1.error(error);
     }
 }
 run();
@@ -53055,8 +53042,7 @@ async function createChartFromConfig(theme, config, chartConfig, errorLabel) {
         }
     }
     catch (error) {
-        const err = error instanceof Error ? error : new Error(String(error));
-        logger.error(err, `${errorLabel} ${theme} ${JSON.stringify(payload)}`);
+        logger.error(error, `${errorLabel} ${theme} ${JSON.stringify(payload)}`);
     }
     return null;
 }

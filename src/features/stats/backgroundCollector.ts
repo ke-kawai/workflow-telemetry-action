@@ -149,8 +149,7 @@ class StatsBackgroundCollector {
       const stats = collector.transform(data, statTime, timeInterval);
       collector.histogram.push(stats);
     } catch (error: unknown) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      logger.error(err);
+      logger.error(error);
     }
   }
 
@@ -165,8 +164,7 @@ class StatsBackgroundCollector {
       };
       fs.writeFileSync(STATS_DATA_FILE, JSON.stringify(data, null, 2));
     } catch (error: unknown) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      logger.error(err, "Error saving stats data");
+      logger.error(error, "Error saving stats data");
     }
   }
 

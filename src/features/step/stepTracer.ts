@@ -18,8 +18,7 @@ class StepTracer {
 
       return true;
     } catch (error: unknown) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(err, "Unable to start step tracer");
+      this.logger.error(error, "Unable to start step tracer");
 
       return false;
     }
@@ -33,8 +32,7 @@ class StepTracer {
 
       return true;
     } catch (error: unknown) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(err, "Unable to finish step tracer");
+      this.logger.error(error, "Unable to finish step tracer");
 
       return false;
     }
@@ -55,8 +53,7 @@ class StepTracer {
 
       return postContent;
     } catch (error: unknown) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(err, "Unable to report step tracer result");
+      this.logger.error(error, "Unable to report step tracer result");
 
       return null;
     }

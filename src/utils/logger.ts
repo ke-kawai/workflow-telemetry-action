@@ -15,11 +15,12 @@ export class Logger {
     core.info(LOG_HEADER + " " + msg);
   }
 
-  error(error: Error, context?: string): void {
+  error(error: unknown, context?: string): void {
+    const err = error instanceof Error ? error : new Error(String(error));
     if (context) {
       core.error(`${LOG_HEADER} ${context}`);
     }
-    core.error(`${LOG_HEADER} ${error.name}: ${error.message}`);
-    core.error(error);
+    core.error(`${LOG_HEADER} ${err.name}: ${err.message}`);
+    core.error(err);
   }
 }

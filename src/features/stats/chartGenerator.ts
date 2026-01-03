@@ -128,8 +128,7 @@ async function createChartFromConfig(
       return data.url;
     }
   } catch (error: unknown) {
-    const err = error instanceof Error ? error : new Error(String(error));
-    logger.error(err, `${errorLabel} ${theme} ${JSON.stringify(payload)}`);
+    logger.error(error, `${errorLabel} ${theme} ${JSON.stringify(payload)}`);
   }
   return null;
 }

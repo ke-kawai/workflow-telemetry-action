@@ -18,8 +18,7 @@ export class ProcessDataRepository {
     try {
       fs.writeFileSync(PROC_TRACER_DATA_FILE, JSON.stringify(data, null, 2));
     } catch (error: unknown) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(err, "Error saving process data");
+      this.logger.error(error, "Error saving process data");
     }
   }
 
@@ -33,8 +32,7 @@ export class ProcessDataRepository {
         };
       }
     } catch (error: unknown) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(err, "Error loading process data");
+      this.logger.error(error, "Error loading process data");
     }
     return { completed: [], tracked: [] };
   }

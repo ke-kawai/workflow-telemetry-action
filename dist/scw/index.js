@@ -47271,11 +47271,12 @@ class Logger {
         coreExports.info(LOG_HEADER + " " + msg);
     }
     error(error, context) {
+        const err = error instanceof Error ? error : new Error(String(error));
         if (context) {
             coreExports.error(`${LOG_HEADER} ${context}`);
         }
-        coreExports.error(`${LOG_HEADER} ${error.name}: ${error.message}`);
-        coreExports.error(error);
+        coreExports.error(`${LOG_HEADER} ${err.name}: ${err.message}`);
+        coreExports.error(err);
     }
 }
 
@@ -47391,8 +47392,7 @@ class StatsBackgroundCollector {
             collector.histogram.push(stats);
         }
         catch (error) {
-            const err = error instanceof Error ? error : new Error(String(error));
-            logger.error(err);
+            logger.error(error);
         }
     }
     saveData() {
@@ -47407,8 +47407,7 @@ class StatsBackgroundCollector {
             require$$1$1.writeFileSync(STATS_DATA_FILE, JSON.stringify(data, null, 2));
         }
         catch (error) {
-            const err = error instanceof Error ? error : new Error(String(error));
-            logger.error(err, "Error saving stats data");
+            logger.error(error, "Error saving stats data");
         }
     }
     async collectStats(triggeredFromScheduler = true) {

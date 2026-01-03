@@ -78,8 +78,7 @@ class ProcessTracer {
         }
       }
     } catch (error: unknown) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(err, "Error collecting processes");
+      this.logger.error(error, "Error collecting processes");
     }
   }
 
@@ -121,8 +120,7 @@ class ProcessTracer {
 
       return true;
     } catch (error: unknown) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(err, "Unable to start process tracer");
+      this.logger.error(error, "Unable to start process tracer");
 
       return false;
     }
@@ -172,8 +170,7 @@ class ProcessTracer {
 
       return true;
     } catch (error: unknown) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(err, "Unable to finish process tracer");
+      this.logger.error(error, "Unable to finish process tracer");
 
       return false;
     }
@@ -217,8 +214,7 @@ class ProcessTracer {
 
       return postContent;
     } catch (error: unknown) {
-      const err = error instanceof Error ? error : new Error(String(error));
-      this.logger.error(err, "Unable to report process tracer result");
+      this.logger.error(error, "Unable to report process tracer result");
 
       return null;
     }
