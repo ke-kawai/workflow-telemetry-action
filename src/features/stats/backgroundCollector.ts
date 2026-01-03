@@ -1,7 +1,7 @@
 import path from "path";
 import fs from "fs";
 import si from "systeminformation";
-import * as logger from "../../utils/logger";
+import { Logger } from "../../utils/logger";
 import {
   CPUStats,
   MemoryStats,
@@ -10,6 +10,8 @@ import {
   DiskSizeStats,
 } from "../../interfaces";
 import { STATS_COLLECTION, FILE_PATHS } from "../../constants";
+
+const logger = new Logger();
 
 const STATS_FREQ: number =
   parseInt(process.env.WORKFLOW_TELEMETRY_STAT_FREQ || "") ||

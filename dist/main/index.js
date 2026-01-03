@@ -27494,27 +27494,36 @@ function requireCore () {
 var coreExports = requireCore();
 
 const LOG_HEADER = "[Workflow Telemetry]";
-function info(msg) {
-    coreExports.info(LOG_HEADER + " " + msg);
-}
-function error(error, context) {
-    if (context) {
-        coreExports.error(`${LOG_HEADER} ${context}`);
+class Logger {
+    isDebugEnabled() {
+        return coreExports.isDebug();
     }
-    coreExports.error(`${LOG_HEADER} ${error.name}: ${error.message}`);
-    coreExports.error(error);
+    debug(msg) {
+        coreExports.debug(LOG_HEADER + " " + msg);
+    }
+    info(msg) {
+        coreExports.info(LOG_HEADER + " " + msg);
+    }
+    error(error, context) {
+        if (context) {
+            coreExports.error(`${LOG_HEADER} ${context}`);
+        }
+        coreExports.error(`${LOG_HEADER} ${error.name}: ${error.message}`);
+        coreExports.error(error);
+    }
 }
 
+const logger$3 = new Logger();
 ///////////////////////////
 async function start$2() {
-    info(`Starting step tracer ...`);
+    logger$3.info(`Starting step tracer ...`);
     try {
-        info(`Started step tracer`);
+        logger$3.info(`Started step tracer`);
         return true;
     }
-    catch (error$1) {
-        const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
-        error(err, "Unable to start step tracer");
+    catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger$3.error(err, "Unable to start step tracer");
         return false;
     }
 }
@@ -27545,9 +27554,10 @@ const FILE_PATHS = {
     STATS_DATA: "stats-data.json",
 };
 
+const logger$2 = new Logger();
 path.join(__dirname, "../", FILE_PATHS.STATS_DATA);
 async function start$1() {
-    info(`Starting stat collector ...`);
+    logger$2.info(`Starting stat collector ...`);
     try {
         let metricFrequency = 0;
         const metricFrequencyInput = coreExports.getInput("metric_frequency");
@@ -27567,12 +27577,12 @@ async function start$1() {
             env,
         });
         child.unref();
-        info(`Started stat collector`);
+        logger$2.info(`Started stat collector`);
         return true;
     }
-    catch (error$1) {
-        const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
-        error(err, "Unable to start stat collector");
+    catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger$2.error(err, "Unable to start stat collector");
         return false;
     }
 }
@@ -47371,7 +47381,8 @@ const DEFAULT_PROC_TRACE_CHART_MAX_COUNT = PROCESS_TRACE.DEFAULT_CHART_MAX_COUNT
 const GHA_FILE_NAME_PREFIX = PROCESS_TRACE.GHA_FILE_PREFIX;
 const COLLECTION_INTERVAL_MS = PROCESS_TRACE.COLLECTION_INTERVAL_MS;
 class ProcessTracer {
-    constructor() {
+    constructor(logger) {
+        this.logger = logger;
         this.collectionInterval = null;
         this.trackedProcesses = new Map();
         this.completedProcesses = [];
@@ -47424,9 +47435,9 @@ class ProcessTracer {
                 }
             }
         }
-        catch (error$1) {
-            const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
-            error(err, "Error collecting processes");
+        catch (error) {
+            const err = error instanceof Error ? error : new Error(String(error));
+            this.logger.error(err, "Error collecting processes");
         }
     }
     saveData() {
@@ -47437,9 +47448,9 @@ class ProcessTracer {
             };
             require$$1.writeFileSync(PROC_TRACER_DATA_FILE, JSON.stringify(data, null, 2));
         }
-        catch (error$1) {
-            const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
-            error(err, "Error saving process data");
+        catch (error) {
+            const err = error instanceof Error ? error : new Error(String(error));
+            this.logger.error(err, "Error saving process data");
         }
     }
     loadData() {
@@ -47452,9 +47463,9 @@ class ProcessTracer {
                 }
             }
         }
-        catch (error$1) {
-            const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
-            error(err, "Error loading process data");
+        catch (error) {
+            const err = error instanceof Error ? error : new Error(String(error));
+            this.logger.error(err, "Error loading process data");
         }
     }
     getExtraProcessInfo(proc) {
@@ -47531,7 +47542,7 @@ class ProcessTracer {
         return postContentItems.join("\n");
     }
     async start() {
-        info(`Starting process tracer ...`);
+        this.logger.info(`Starting process tracer ...`);
         try {
             // Create state file to indicate tracer is started
             require$$1.writeFileSync(PROC_TRACER_STATE_FILE, Date.now().toString());
@@ -47543,19 +47554,19 @@ class ProcessTracer {
             }, COLLECTION_INTERVAL_MS);
             // Prevent the interval from keeping the process alive
             this.collectionInterval.unref();
-            info(`Started process tracer with ${COLLECTION_INTERVAL_MS}ms interval`);
+            this.logger.info(`Started process tracer with ${COLLECTION_INTERVAL_MS}ms interval`);
             return true;
         }
-        catch (error$1) {
-            const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
-            error(err, "Unable to start process tracer");
+        catch (error) {
+            const err = error instanceof Error ? error : new Error(String(error));
+            this.logger.error(err, "Unable to start process tracer");
             return false;
         }
     }
     async finish(_currentJob) {
-        info(`Finishing process tracer ...`);
+        this.logger.info(`Finishing process tracer ...`);
         if (!require$$1.existsSync(PROC_TRACER_STATE_FILE)) {
-            info(`Skipped finishing process tracer since process tracer didn't started`);
+            this.logger.info(`Skipped finishing process tracer since process tracer didn't started`);
             return false;
         }
         try {
@@ -47585,25 +47596,25 @@ class ProcessTracer {
             // Save final data
             this.saveData();
             this.finished = true;
-            info(`Finished process tracer`);
+            this.logger.info(`Finished process tracer`);
             return true;
         }
-        catch (error$1) {
-            const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
-            error(err, "Unable to finish process tracer");
+        catch (error) {
+            const err = error instanceof Error ? error : new Error(String(error));
+            this.logger.error(err, "Unable to finish process tracer");
             return false;
         }
     }
     async report(currentJob) {
-        info(`Reporting process tracer result ...`);
+        this.logger.info(`Reporting process tracer result ...`);
         if (!this.finished) {
-            info(`Skipped reporting process tracer since process tracer didn't finished`);
+            this.logger.info(`Skipped reporting process tracer since process tracer didn't finished`);
             return null;
         }
         try {
             // Load data from file
             this.loadData();
-            info(`Getting process tracer result from data file ...`);
+            this.logger.info(`Getting process tracer result from data file ...`);
             const config = this.parseConfiguration();
             // Filter processes by minimum duration
             let filteredProcesses = this.completedProcesses;
@@ -47617,32 +47628,34 @@ class ProcessTracer {
                 ? this.generateProcessTable(filteredProcesses)
                 : "";
             const postContent = this.formatProcessReport(chartContent, tableContent, config);
-            info(`Reported process tracer result`);
+            this.logger.info(`Reported process tracer result`);
             return postContent;
         }
-        catch (error$1) {
-            const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
-            error(err, "Unable to report process tracer result");
+        catch (error) {
+            const err = error instanceof Error ? error : new Error(String(error));
+            this.logger.error(err, "Unable to report process tracer result");
             return null;
         }
     }
 }
 // Export singleton instance
-const processTracer = new ProcessTracer();
+const logger$1 = new Logger();
+const processTracer = new ProcessTracer(logger$1);
 const start = () => processTracer.start();
 
+const logger = new Logger();
 async function run() {
     try {
-        info(`Initializing ...`);
+        logger.info(`Initializing ...`);
         // Start tracers and collectors
         await start$2();
         await start$1();
         await start();
-        info(`Initialization completed`);
+        logger.info(`Initialization completed`);
     }
-    catch (error$1) {
-        const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
-        error(err);
+    catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger.error(err);
     }
 }
 run();

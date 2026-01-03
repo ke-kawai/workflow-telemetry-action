@@ -1,5 +1,7 @@
 import { WorkflowJobType } from "../../interfaces";
-import * as logger from "../../utils/logger";
+import { Logger } from "../../utils/logger";
+
+const logger = new Logger();
 
 function generateTraceChartForSteps(job: WorkflowJobType): string {
   let chartContent = "";
