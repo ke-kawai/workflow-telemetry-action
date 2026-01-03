@@ -13,7 +13,7 @@ export class ProcessReportFormatter {
         "",
         `#### Top ${config.chartMaxCount} processes with highest duration`,
         "",
-        "```mermaid" + "\n" + chartContent + "\n" + "```"
+        chartContent
       );
     }
     if (config.tableShow) {

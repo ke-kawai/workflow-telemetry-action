@@ -27513,20 +27513,121 @@ class Logger {
     }
 }
 
-const logger$3 = new Logger();
-///////////////////////////
-async function start$2() {
-    logger$3.info(`Starting step tracer ...`);
-    try {
-        logger$3.info(`Started step tracer`);
-        return true;
+class StepChartGenerator {
+    generateMermaidContent(job) {
+        let mermaidContent = "";
+        /**
+           gantt
+             title Build
+             dateFormat x
+             axisFormat %H:%M:%S
+             Set up job : milestone, 1658073446000, 1658073450000
+             Collect Workflow Telemetry : 1658073450000, 1658073450000
+             Run actions/checkout@v2 : 1658073451000, 1658073453000
+             Set up JDK 8 : 1658073453000, 1658073458000
+             Build with Maven : 1658073459000, 1658073654000
+             Run invalid command : crit, 1658073655000, 1658073654000
+             Archive test results : done, 1658073655000, 1658073654000
+             Post Set up JDK 8 : 1658073655000, 1658073654000
+             Post Run actions/checkout@v2 : 1658073655000, 1658073655000
+        */
+        mermaidContent = mermaidContent.concat("gantt", "\n");
+        mermaidContent = mermaidContent.concat("\t", `title ${job.name}`, "\n");
+        mermaidContent = mermaidContent.concat("\t", `dateFormat x`, "\n");
+        mermaidContent = mermaidContent.concat("\t", `axisFormat %H:%M:%S`, "\n");
+        for (const step of job.steps || []) {
+            if (!step.started_at || !step.completed_at) {
+                continue;
+            }
+            mermaidContent = mermaidContent.concat("\t", `${step.name.replace(/:/g, "-")} : `);
+            if (step.name === "Set up job" && step.number === 1) {
+                mermaidContent = mermaidContent.concat("milestone, ");
+            }
+            if (step.conclusion === "failure") {
+                // to show red
+                mermaidContent = mermaidContent.concat("crit, ");
+            }
+            else if (step.conclusion === "skipped") {
+                // to show grey
+                mermaidContent = mermaidContent.concat("done, ");
+            }
+            const startTime = new Date(step.started_at).getTime();
+            const finishTime = new Date(step.completed_at).getTime();
+            mermaidContent = mermaidContent.concat(`${startTime}, ${finishTime}`, "\n");
+        }
+        return mermaidContent;
     }
-    catch (error) {
-        const err = error instanceof Error ? error : new Error(String(error));
-        logger$3.error(err, "Unable to start step tracer");
-        return false;
+    generate(job) {
+        const mermaidContent = this.generateMermaidContent(job);
+        return "```mermaid\n" + mermaidContent + "```";
     }
 }
+
+class StepReportFormatter {
+    format(chartContent) {
+        const postContentItems = [
+            "",
+            "### Step Trace",
+            "",
+            chartContent,
+        ];
+        return postContentItems.join("\n");
+    }
+}
+
+class StepTracer {
+    constructor(logger, chartGenerator, reportFormatter) {
+        this.logger = logger;
+        this.chartGenerator = chartGenerator;
+        this.reportFormatter = reportFormatter;
+    }
+    async start() {
+        this.logger.info(`Starting step tracer ...`);
+        try {
+            this.logger.info(`Started step tracer`);
+            return true;
+        }
+        catch (error) {
+            const err = error instanceof Error ? error : new Error(String(error));
+            this.logger.error(err, "Unable to start step tracer");
+            return false;
+        }
+    }
+    async finish(_currentJob) {
+        this.logger.info(`Finishing step tracer ...`);
+        try {
+            this.logger.info(`Finished step tracer`);
+            return true;
+        }
+        catch (error) {
+            const err = error instanceof Error ? error : new Error(String(error));
+            this.logger.error(err, "Unable to finish step tracer");
+            return false;
+        }
+    }
+    async report(currentJob) {
+        this.logger.info(`Reporting step tracer result ...`);
+        if (!currentJob) {
+            return null;
+        }
+        try {
+            const chartContent = this.chartGenerator.generate(currentJob);
+            const postContent = this.reportFormatter.format(chartContent);
+            this.logger.info(`Reported step tracer result`);
+            return postContent;
+        }
+        catch (error) {
+            const err = error instanceof Error ? error : new Error(String(error));
+            this.logger.error(err, "Unable to report step tracer result");
+            return null;
+        }
+    }
+}
+const logger$3 = new Logger();
+const chartGenerator$1 = new StepChartGenerator();
+const reportFormatter$1 = new StepReportFormatter();
+const stepTracer = new StepTracer(logger$3, chartGenerator$1, reportFormatter$1);
+const start$2 = () => stepTracer.start();
 
 /**
  * HTTP Server Configuration
@@ -47355,12 +47456,12 @@ var si = /*@__PURE__*/getDefaultExportFromCjs(libExports);
 
 const GHA_FILE_NAME_PREFIX = PROCESS_TRACE.GHA_FILE_PREFIX;
 class ProcessChartGenerator {
-    generate(processes, config, jobName) {
-        let chartContent = "";
-        chartContent = chartContent.concat("gantt", "\n");
-        chartContent = chartContent.concat("\t", `title ${jobName}`, "\n");
-        chartContent = chartContent.concat("\t", `dateFormat x`, "\n");
-        chartContent = chartContent.concat("\t", `axisFormat %H:%M:%S`, "\n");
+    generateMermaidContent(processes, config, jobName) {
+        let mermaidContent = "";
+        mermaidContent = mermaidContent.concat("gantt", "\n");
+        mermaidContent = mermaidContent.concat("\t", `title ${jobName}`, "\n");
+        mermaidContent = mermaidContent.concat("\t", `dateFormat x`, "\n");
+        mermaidContent = mermaidContent.concat("\t", `axisFormat %H:%M:%S`, "\n");
         const processesForChart = [...processes]
             .sort((a, b) => -(a.duration - b.duration))
             .slice(0, config.chartMaxCount)
@@ -47369,16 +47470,20 @@ class ProcessChartGenerator {
             const extraProcessInfo = this.getExtraProcessInfo(proc);
             const escapedName = proc.name.replace(/:/g, "#colon;");
             if (extraProcessInfo) {
-                chartContent = chartContent.concat("\t", `${escapedName} (${extraProcessInfo}) : `);
+                mermaidContent = mermaidContent.concat("\t", `${escapedName} (${extraProcessInfo}) : `);
             }
             else {
-                chartContent = chartContent.concat("\t", `${escapedName} : `);
+                mermaidContent = mermaidContent.concat("\t", `${escapedName} : `);
             }
             const startTime = proc.started;
             const finishTime = proc.ended;
-            chartContent = chartContent.concat(`${Math.min(startTime, finishTime)}, ${finishTime}`, "\n");
+            mermaidContent = mermaidContent.concat(`${startTime}, ${finishTime}`, "\n");
         }
-        return chartContent;
+        return mermaidContent;
+    }
+    generate(processes, config, jobName) {
+        const mermaidContent = this.generateMermaidContent(processes, config, jobName);
+        return "```mermaid\n" + mermaidContent + "```";
     }
     getExtraProcessInfo(proc) {
         // Check whether this is Node.js GHA process
@@ -47443,7 +47548,7 @@ class ProcessReportFormatter {
     format(chartContent, tableContent, config) {
         const postContentItems = ["", "### Process Trace"];
         if (config.chartShow) {
-            postContentItems.push("", `#### Top ${config.chartMaxCount} processes with highest duration`, "", "```mermaid" + "\n" + chartContent + "\n" + "```");
+            postContentItems.push("", `#### Top ${config.chartMaxCount} processes with highest duration`, "", chartContent);
         }
         if (config.tableShow) {
             postContentItems.push("", `#### All processes with detail`, "", "```" + "\n" + tableContent + "\n" + "```");
@@ -47585,9 +47690,7 @@ class ProcessTracer {
     async start() {
         this.logger.info(`Starting process tracer ...`);
         try {
-            // Create state file to indicate tracer is started
             require$$1.writeFileSync(PROC_TRACER_STATE_FILE, Date.now().toString());
-            // Start collecting processes
             await this.collectProcesses();
             this.collectionInterval = setInterval(async () => {
                 await this.collectProcesses();
@@ -47634,7 +47737,6 @@ class ProcessTracer {
                 });
             }
             this.trackedProcesses.clear();
-            // Save final data
             this.saveData();
             this.finished = true;
             this.logger.info(`Finished process tracer`);
@@ -47653,7 +47755,6 @@ class ProcessTracer {
             return null;
         }
         try {
-            // Load data from file
             this.loadData();
             this.logger.info(`Getting process tracer result from data file ...`);
             // Filter processes by minimum duration
