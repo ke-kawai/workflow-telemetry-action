@@ -31,11 +31,11 @@ export class ProcessChartGenerator {
     return line;
   }
 
+  // Select top N processes by duration, then sort by start time for chronological display
   private selectTopProcessesByDuration(
     processes: CompletedProcess[],
     maxCount: number
   ): CompletedProcess[] {
-    // Select top N processes by duration, then sort by start time for chronological display
     return [...processes]
       .sort((a, b) => -(a.duration - b.duration))  // Longest duration first
       .slice(0, maxCount)                          // Take top N
