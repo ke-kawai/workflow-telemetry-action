@@ -27516,41 +27516,39 @@ class Logger {
 
 class StepChartGenerator {
     generateGanttHeader(jobName) {
-        let header = "";
-        header = header.concat("gantt", "\n");
-        header = header.concat("\t", `title ${jobName}`, "\n");
-        header = header.concat("\t", `dateFormat x`, "\n");
-        header = header.concat("\t", `axisFormat %H:%M:%S`, "\n");
-        return header;
+        const lines = [
+            "gantt",
+            `\ttitle ${jobName}`,
+            `\tdateFormat x`,
+            `\taxisFormat %H:%M:%S`,
+        ];
+        return lines.join("\n") + "\n";
     }
     generateStepLine(step) {
         if (!step.started_at || !step.completed_at) {
             return "";
         }
-        let line = "";
-        line = line.concat("\t", `${step.name.replace(/:/g, "-")} : `);
+        const parts = [`\t${step.name.replace(/:/g, "-")} : `];
         if (step.name === "Set up job" && step.number === 1) {
-            line = line.concat("milestone, ");
+            parts.push("milestone, ");
         }
         if (step.conclusion === "failure") {
             // to show red
-            line = line.concat("crit, ");
+            parts.push("crit, ");
         }
         else if (step.conclusion === "skipped") {
             // to show grey
-            line = line.concat("done, ");
+            parts.push("done, ");
         }
         const startTime = new Date(step.started_at).getTime();
         const finishTime = new Date(step.completed_at).getTime();
-        line = line.concat(`${startTime}, ${finishTime}`, "\n");
-        return line;
+        parts.push(`${startTime}, ${finishTime}`, "\n");
+        return parts.join("");
     }
     generateMermaidContent(job) {
-        let mermaidContent = this.generateGanttHeader(job.name);
-        for (const step of job.steps || []) {
-            mermaidContent = mermaidContent.concat(this.generateStepLine(step));
-        }
-        return mermaidContent;
+        const header = this.generateGanttHeader(job.name);
+        const stepLines = (job.steps || []).map(step => this.generateStepLine(step)).join("");
+        return header + stepLines;
     }
     generate(job) {
         const mermaidContent = this.generateMermaidContent(job);
@@ -47448,42 +47446,36 @@ var si = /*@__PURE__*/getDefaultExportFromCjs(libExports);
 const GHA_FILE_NAME_PREFIX = PROCESS_TRACE.GHA_FILE_PREFIX;
 class ProcessChartGenerator {
     generateGanttHeader(jobName) {
-        let header = "";
-        header = header.concat("gantt", "\n");
-        header = header.concat("\t", `title ${jobName}`, "\n");
-        header = header.concat("\t", `dateFormat x`, "\n");
-        header = header.concat("\t", `axisFormat %H:%M:%S`, "\n");
-        return header;
+        const lines = [
+            "gantt",
+            `\ttitle ${jobName}`,
+            `\tdateFormat x`,
+            `\taxisFormat %H:%M:%S`,
+        ];
+        return lines.join("\n") + "\n";
     }
     generateProcessLine(proc) {
-        let line = "";
         const extraProcessInfo = this.getExtraProcessInfo(proc);
         const escapedName = proc.name.replace(/:/g, "#colon;");
-        if (extraProcessInfo) {
-            line = line.concat("\t", `${escapedName} (${extraProcessInfo}) : `);
-        }
-        else {
-            line = line.concat("\t", `${escapedName} : `);
-        }
+        const nameWithInfo = extraProcessInfo
+            ? `\t${escapedName} (${extraProcessInfo}) : `
+            : `\t${escapedName} : `;
         const startTime = proc.started;
         const finishTime = proc.ended;
-        line = line.concat(`${startTime}, ${finishTime}`, "\n");
-        return line;
+        return `${nameWithInfo}${startTime}, ${finishTime}\n`;
     }
+    // Select top N processes by duration, then sort by start time for chronological display
     selectTopProcessesByDuration(processes, maxCount) {
-        // Select top N processes by duration, then sort by start time for chronological display
         return [...processes]
             .sort((a, b) => -(a.duration - b.duration)) // Longest duration first
             .slice(0, maxCount) // Take top N
             .sort((a, b) => a.started - b.started); // Chronological order
     }
     generateMermaidContent(processes, config, jobName) {
-        let mermaidContent = this.generateGanttHeader(jobName);
         const processesForChart = this.selectTopProcessesByDuration(processes, config.chartMaxCount);
-        for (const proc of processesForChart) {
-            mermaidContent = mermaidContent.concat(this.generateProcessLine(proc));
-        }
-        return mermaidContent;
+        const header = this.generateGanttHeader(jobName);
+        const processLines = processesForChart.map(proc => this.generateProcessLine(proc)).join("");
+        return header + processLines;
     }
     generate(processes, config, jobName) {
         const mermaidContent = this.generateMermaidContent(processes, config, jobName);

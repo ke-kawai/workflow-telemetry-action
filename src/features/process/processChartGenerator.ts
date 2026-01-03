@@ -5,30 +5,27 @@ const GHA_FILE_NAME_PREFIX = PROCESS_TRACE.GHA_FILE_PREFIX;
 
 export class ProcessChartGenerator {
   private generateGanttHeader(jobName: string): string {
-    let header = "";
-    header = header.concat("gantt", "\n");
-    header = header.concat("\t", `title ${jobName}`, "\n");
-    header = header.concat("\t", `dateFormat x`, "\n");
-    header = header.concat("\t", `axisFormat %H:%M:%S`, "\n");
-    return header;
+    const lines = [
+      "gantt",
+      `\ttitle ${jobName}`,
+      `\tdateFormat x`,
+      `\taxisFormat %H:%M:%S`,
+    ];
+    return lines.join("\n") + "\n";
   }
 
   private generateProcessLine(proc: CompletedProcess): string {
-    let line = "";
     const extraProcessInfo: string | null = this.getExtraProcessInfo(proc);
     const escapedName = proc.name.replace(/:/g, "#colon;");
 
-    if (extraProcessInfo) {
-      line = line.concat("\t", `${escapedName} (${extraProcessInfo}) : `);
-    } else {
-      line = line.concat("\t", `${escapedName} : `);
-    }
+    const nameWithInfo = extraProcessInfo
+      ? `\t${escapedName} (${extraProcessInfo}) : `
+      : `\t${escapedName} : `;
 
     const startTime: number = proc.started;
     const finishTime: number = proc.ended;
-    line = line.concat(`${startTime}, ${finishTime}`, "\n");
 
-    return line;
+    return `${nameWithInfo}${startTime}, ${finishTime}\n`;
   }
 
   // Select top N processes by duration, then sort by start time for chronological display
@@ -47,18 +44,15 @@ export class ProcessChartGenerator {
     config: ProcessTracerConfig,
     jobName: string
   ): string {
-    let mermaidContent = this.generateGanttHeader(jobName);
-
     const processesForChart = this.selectTopProcessesByDuration(
       processes,
       config.chartMaxCount
     );
 
-    for (const proc of processesForChart) {
-      mermaidContent = mermaidContent.concat(this.generateProcessLine(proc));
-    }
+    const header = this.generateGanttHeader(jobName);
+    const processLines = processesForChart.map(proc => this.generateProcessLine(proc)).join("");
 
-    return mermaidContent;
+    return header + processLines;
   }
 
   generate(
