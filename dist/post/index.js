@@ -52467,6 +52467,45 @@ function requireLib () {
 var libExports = requireLib();
 var si = /*@__PURE__*/getDefaultExportFromCjs(libExports);
 
+const GHA_FILE_NAME_PREFIX = PROCESS_TRACE.GHA_FILE_PREFIX;
+class ProcessChartGenerator {
+    generate(processes, config, jobName) {
+        let chartContent = "";
+        chartContent = chartContent.concat("gantt", "\n");
+        chartContent = chartContent.concat("\t", `title ${jobName}`, "\n");
+        chartContent = chartContent.concat("\t", `dateFormat x`, "\n");
+        chartContent = chartContent.concat("\t", `axisFormat %H:%M:%S`, "\n");
+        const processesForChart = [...processes]
+            .sort((a, b) => -(a.duration - b.duration))
+            .slice(0, config.chartMaxCount)
+            .sort((a, b) => a.started - b.started);
+        for (const proc of processesForChart) {
+            const extraProcessInfo = this.getExtraProcessInfo(proc);
+            const escapedName = proc.name.replace(/:/g, "#colon;");
+            if (extraProcessInfo) {
+                chartContent = chartContent.concat("\t", `${escapedName} (${extraProcessInfo}) : `);
+            }
+            else {
+                chartContent = chartContent.concat("\t", `${escapedName} : `);
+            }
+            const startTime = proc.started;
+            const finishTime = proc.ended;
+            chartContent = chartContent.concat(`${Math.min(startTime, finishTime)}, ${finishTime}`, "\n");
+        }
+        return chartContent;
+    }
+    getExtraProcessInfo(proc) {
+        // Check whether this is Node.js GHA process
+        if (proc.name === "node" && proc.params && proc.params.includes(GHA_FILE_NAME_PREFIX)) {
+            const match = proc.params.match(new RegExp(`${GHA_FILE_NAME_PREFIX}([^/]+/[^/]+)`));
+            if (match && match[1]) {
+                return match[1];
+            }
+        }
+        return null;
+    }
+}
+
 /**
  * String and number formatting utilities
  */
@@ -52489,14 +52528,105 @@ function formatFloat(val, width, precision) {
     return val.toFixed(precision).padStart(width);
 }
 
-const PROC_TRACER_STATE_FILE = path.join(__dirname, "../", FILE_PATHS.PROC_TRACER_STATE);
+class ProcessTableGenerator {
+    /// Formats a row for the process table
+    /// Example:
+    /// NAME             PID     START TIME      DURATION (ms)   MAX CPU %  MAX MEM %  COMMAND + PARAMS
+    /// node            1234    1234567890000            5000       45.23      12.50  /usr/bin/node index.js
+    /// python          5678    1234567895000            3000       30.15       8.20  python script.py
+    formatRow(name, pid, startTime, duration, maxCpu, maxMem, commandParams) {
+        return `${padEnd(name, 16)} ${padStart(pid, 7)} ${padStart(startTime, 15)} ${padStart(duration, 15)} ${padStart(maxCpu, 10)} ${padStart(maxMem, 10)} ${padEnd(commandParams, 40)}`;
+    }
+    formatHeader() {
+        return this.formatRow("NAME", "PID", "START TIME", "DURATION (ms)", "MAX CPU %", "MAX MEM %", "COMMAND + PARAMS");
+    }
+    formatDataRow(proc) {
+        return this.formatRow(proc.name, proc.pid, proc.started, proc.duration, formatFloat(proc.maxCpu, 10, 2), formatFloat(proc.maxMem, 10, 2), `${proc.command} ${proc.params}`);
+    }
+    generate(processes) {
+        const processInfos = [];
+        processInfos.push(this.formatHeader());
+        for (const proc of processes) {
+            processInfos.push(this.formatDataRow(proc));
+        }
+        return processInfos.join("\n");
+    }
+}
+
+class ProcessReportFormatter {
+    format(chartContent, tableContent, config) {
+        const postContentItems = ["", "### Process Trace"];
+        if (config.chartShow) {
+            postContentItems.push("", `#### Top ${config.chartMaxCount} processes with highest duration`, "", "```mermaid" + "\n" + chartContent + "\n" + "```");
+        }
+        if (config.tableShow) {
+            postContentItems.push("", `#### All processes with detail`, "", "```" + "\n" + tableContent + "\n" + "```");
+        }
+        return postContentItems.join("\n");
+    }
+}
+
 const PROC_TRACER_DATA_FILE = path.join(__dirname, "../", FILE_PATHS.PROC_TRACER_DATA);
-const DEFAULT_PROC_TRACE_CHART_MAX_COUNT = PROCESS_TRACE.DEFAULT_CHART_MAX_COUNT;
-const GHA_FILE_NAME_PREFIX = PROCESS_TRACE.GHA_FILE_PREFIX;
-const COLLECTION_INTERVAL_MS = PROCESS_TRACE.COLLECTION_INTERVAL_MS;
-class ProcessTracer {
+class ProcessDataRepository {
     constructor(logger) {
         this.logger = logger;
+    }
+    save(data) {
+        try {
+            require$$1.writeFileSync(PROC_TRACER_DATA_FILE, JSON.stringify(data, null, 2));
+        }
+        catch (error) {
+            const err = error instanceof Error ? error : new Error(String(error));
+            this.logger.error(err, "Error saving process data");
+        }
+    }
+    load() {
+        try {
+            if (require$$1.existsSync(PROC_TRACER_DATA_FILE)) {
+                const data = JSON.parse(require$$1.readFileSync(PROC_TRACER_DATA_FILE, "utf-8"));
+                return {
+                    completed: data.completed || [],
+                    tracked: data.tracked || [],
+                };
+            }
+        }
+        catch (error) {
+            const err = error instanceof Error ? error : new Error(String(error));
+            this.logger.error(err, "Error loading process data");
+        }
+        return { completed: [], tracked: [] };
+    }
+}
+
+const DEFAULT_PROC_TRACE_CHART_MAX_COUNT = PROCESS_TRACE.DEFAULT_CHART_MAX_COUNT;
+function loadProcessTracerConfig() {
+    let minDuration = -1;
+    const procTraceMinDurationInput = coreExports.getInput("proc_trace_min_duration");
+    if (procTraceMinDurationInput) {
+        const minProcDurationVal = parseInt(procTraceMinDurationInput);
+        if (Number.isInteger(minProcDurationVal)) {
+            minDuration = minProcDurationVal;
+        }
+    }
+    const chartShow = coreExports.getInput("proc_trace_chart_show") === "true";
+    const procTraceChartMaxCountInput = parseInt(coreExports.getInput("proc_trace_chart_max_count"));
+    const chartMaxCount = Number.isInteger(procTraceChartMaxCountInput)
+        ? procTraceChartMaxCountInput
+        : DEFAULT_PROC_TRACE_CHART_MAX_COUNT;
+    const tableShow = coreExports.getInput("proc_trace_table_show") === "true";
+    return { minDuration, chartShow, chartMaxCount, tableShow };
+}
+
+const PROC_TRACER_STATE_FILE = path.join(__dirname, "../", FILE_PATHS.PROC_TRACER_STATE);
+const COLLECTION_INTERVAL_MS = PROCESS_TRACE.COLLECTION_INTERVAL_MS;
+class ProcessTracer {
+    constructor(logger, chartGenerator, tableGenerator, reportFormatter, config, dataRepository) {
+        this.logger = logger;
+        this.chartGenerator = chartGenerator;
+        this.tableGenerator = tableGenerator;
+        this.reportFormatter = reportFormatter;
+        this.config = config;
+        this.dataRepository = dataRepository;
         this.collectionInterval = null;
         this.trackedProcesses = new Map();
         this.completedProcesses = [];
@@ -52555,105 +52685,16 @@ class ProcessTracer {
         }
     }
     saveData() {
-        try {
-            const data = {
-                completed: this.completedProcesses,
-                tracked: Array.from(this.trackedProcesses.values()),
-            };
-            require$$1.writeFileSync(PROC_TRACER_DATA_FILE, JSON.stringify(data, null, 2));
-        }
-        catch (error) {
-            const err = error instanceof Error ? error : new Error(String(error));
-            this.logger.error(err, "Error saving process data");
-        }
+        const data = {
+            completed: this.completedProcesses,
+            tracked: Array.from(this.trackedProcesses.values()),
+        };
+        this.dataRepository.save(data);
     }
     loadData() {
-        try {
-            if (require$$1.existsSync(PROC_TRACER_DATA_FILE)) {
-                const data = JSON.parse(require$$1.readFileSync(PROC_TRACER_DATA_FILE, "utf-8"));
-                this.completedProcesses = data.completed || [];
-                if (data.tracked) {
-                    this.trackedProcesses = new Map(data.tracked.map((p) => [p.pid, p]));
-                }
-            }
-        }
-        catch (error) {
-            const err = error instanceof Error ? error : new Error(String(error));
-            this.logger.error(err, "Error loading process data");
-        }
-    }
-    getExtraProcessInfo(proc) {
-        // Check whether this is node process with args
-        if (proc.name === "node" && proc.params) {
-            // Check whether this is Node.js GHA process
-            if (proc.params.includes(GHA_FILE_NAME_PREFIX)) {
-                const match = proc.params.match(new RegExp(`${GHA_FILE_NAME_PREFIX}([^/]+/[^/]+)`));
-                if (match && match[1]) {
-                    return match[1];
-                }
-            }
-        }
-        return null;
-    }
-    parseConfiguration() {
-        let minDuration = -1;
-        const procTraceMinDurationInput = coreExports.getInput("proc_trace_min_duration");
-        if (procTraceMinDurationInput) {
-            const minProcDurationVal = parseInt(procTraceMinDurationInput);
-            if (Number.isInteger(minProcDurationVal)) {
-                minDuration = minProcDurationVal;
-            }
-        }
-        const chartShow = coreExports.getInput("proc_trace_chart_show") === "true";
-        const procTraceChartMaxCountInput = parseInt(coreExports.getInput("proc_trace_chart_max_count"));
-        const chartMaxCount = Number.isInteger(procTraceChartMaxCountInput)
-            ? procTraceChartMaxCountInput
-            : DEFAULT_PROC_TRACE_CHART_MAX_COUNT;
-        const tableShow = coreExports.getInput("proc_trace_table_show") === "true";
-        return { minDuration, chartShow, chartMaxCount, tableShow };
-    }
-    generateProcessChart(processes, config, jobName) {
-        let chartContent = "";
-        chartContent = chartContent.concat("gantt", "\n");
-        chartContent = chartContent.concat("\t", `title ${jobName}`, "\n");
-        chartContent = chartContent.concat("\t", `dateFormat x`, "\n");
-        chartContent = chartContent.concat("\t", `axisFormat %H:%M:%S`, "\n");
-        const processesForChart = [...processes]
-            .sort((a, b) => -(a.duration - b.duration))
-            .slice(0, config.chartMaxCount)
-            .sort((a, b) => a.started - b.started);
-        for (const proc of processesForChart) {
-            const extraProcessInfo = this.getExtraProcessInfo(proc);
-            const escapedName = proc.name.replace(/:/g, "#colon;");
-            if (extraProcessInfo) {
-                chartContent = chartContent.concat("\t", `${escapedName} (${extraProcessInfo}) : `);
-            }
-            else {
-                chartContent = chartContent.concat("\t", `${escapedName} : `);
-            }
-            const startTime = proc.started;
-            const finishTime = proc.ended;
-            chartContent = chartContent.concat(`${Math.min(startTime, finishTime)}, ${finishTime}`, "\n");
-        }
-        return chartContent;
-    }
-    generateProcessTable(processes) {
-        const processInfos = [];
-        processInfos.push(`${padEnd("NAME", 16)} ${padStart("PID", 7)} ${padStart("START TIME", 15)} ${padStart("DURATION (ms)", 15)} ${padStart("MAX CPU %", 10)} ${padStart("MAX MEM %", 10)} ${padEnd("COMMAND + PARAMS", 40)}`);
-        for (const proc of processes) {
-            processInfos.push(`${padEnd(proc.name, 16)} ${padStart(proc.pid, 7)} ${padStart(proc.started, 15)} ${padStart(proc.duration, 15)} ${formatFloat(proc.maxCpu, 10, 2)} ${formatFloat(proc.maxMem, 10, 2)} ${proc.command} ${proc.params}`);
-        }
-        return processInfos.join("\n");
-    }
-    formatProcessReport(chartContent, tableContent, config) {
-        const postContentItems = ["", "### Process Trace"];
-        if (config.chartShow) {
-            postContentItems.push("", `#### Top ${config.chartMaxCount} processes with highest duration`, "", "```mermaid" + "\n" + chartContent + "\n" + "```");
-        }
-        if (config.tableShow) {
-            postContentItems.push("", `#### All processes with detail`, "", "```" + "\n" + tableContent + "\n" + "```");
-        }
-        return postContentItems.join("\n");
+        const data = this.dataRepository.load();
+        this.completedProcesses = data.completed;
+        this.trackedProcesses = new Map(data.tracked.map((p) => [p.pid, p]));
     }
     async start() {
         this.logger.info(`Starting process tracer ...`);
@@ -52729,19 +52770,18 @@ class ProcessTracer {
             // Load data from file
             this.loadData();
             this.logger.info(`Getting process tracer result from data file ...`);
-            const config = this.parseConfiguration();
             // Filter processes by minimum duration
             let filteredProcesses = this.completedProcesses;
-            if (config.minDuration > 0) {
-                filteredProcesses = this.completedProcesses.filter((p) => p.duration >= config.minDuration);
+            if (this.config.minDuration > 0) {
+                filteredProcesses = this.completedProcesses.filter((p) => p.duration >= this.config.minDuration);
             }
-            const chartContent = config.chartShow
-                ? this.generateProcessChart(filteredProcesses, config, currentJob.name)
+            const chartContent = this.config.chartShow
+                ? this.chartGenerator.generate(filteredProcesses, this.config, currentJob.name)
                 : "";
-            const tableContent = config.tableShow
-                ? this.generateProcessTable(filteredProcesses)
+            const tableContent = this.config.tableShow
+                ? this.tableGenerator.generate(filteredProcesses)
                 : "";
-            const postContent = this.formatProcessReport(chartContent, tableContent, config);
+            const postContent = this.reportFormatter.format(chartContent, tableContent, this.config);
             this.logger.info(`Reported process tracer result`);
             return postContent;
         }
@@ -52752,9 +52792,13 @@ class ProcessTracer {
         }
     }
 }
-// Export singleton instance
 const logger$2 = new Logger();
-const processTracer = new ProcessTracer(logger$2);
+const chartGenerator$1 = new ProcessChartGenerator();
+const tableGenerator = new ProcessTableGenerator();
+const reportFormatter = new ProcessReportFormatter();
+const config = loadProcessTracerConfig();
+const dataRepository = new ProcessDataRepository(logger$2);
+const processTracer = new ProcessTracer(logger$2, chartGenerator$1, tableGenerator, reportFormatter, config, dataRepository);
 const finish = (currentJob) => processTracer.finish(currentJob);
 const report = (currentJob) => processTracer.report(currentJob);
 
