@@ -1,7 +1,9 @@
 import * as stepTracer from "../features/step/stepTracer";
 import * as statCollector from "../features/stats/collector";
 import * as processTracer from "../features/process/processTracer";
-import * as logger from "../utils/logger";
+import { Logger } from "../utils/logger";
+
+const logger = new Logger();
 
 async function run(): Promise<void> {
   try {

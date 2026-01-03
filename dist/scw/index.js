@@ -47260,15 +47260,23 @@ function requireCore () {
 var coreExports = requireCore();
 
 const LOG_HEADER = "[Workflow Telemetry]";
-function info(msg) {
-    coreExports.info(LOG_HEADER + " " + msg);
-}
-function error(error, context) {
-    if (context) {
-        coreExports.error(`${LOG_HEADER} ${context}`);
+class Logger {
+    isDebugEnabled() {
+        return coreExports.isDebug();
     }
-    coreExports.error(`${LOG_HEADER} ${error.name}: ${error.message}`);
-    coreExports.error(error);
+    debug(msg) {
+        coreExports.debug(LOG_HEADER + " " + msg);
+    }
+    info(msg) {
+        coreExports.info(LOG_HEADER + " " + msg);
+    }
+    error(error, context) {
+        if (context) {
+            coreExports.error(`${LOG_HEADER} ${context}`);
+        }
+        coreExports.error(`${LOG_HEADER} ${error.name}: ${error.message}`);
+        coreExports.error(error);
+    }
 }
 
 /**
@@ -47288,6 +47296,7 @@ const FILE_PATHS = {
     STATS_DATA: "stats-data.json",
 };
 
+const logger = new Logger();
 const STATS_FREQ = parseInt(process.env.WORKFLOW_TELEMETRY_STAT_FREQ || "") ||
     STATS_COLLECTION.DEFAULT_FREQUENCY_MS;
 const STATS_DATA_FILE = require$$1$2.join(__dirname, "../", FILE_PATHS.STATS_DATA);
@@ -47381,9 +47390,9 @@ class StatsBackgroundCollector {
             const stats = collector.transform(data, statTime, timeInterval);
             collector.histogram.push(stats);
         }
-        catch (error$1) {
-            const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
-            error(err);
+        catch (error) {
+            const err = error instanceof Error ? error : new Error(String(error));
+            logger.error(err);
         }
     }
     saveData() {
@@ -47397,9 +47406,9 @@ class StatsBackgroundCollector {
             };
             require$$1$1.writeFileSync(STATS_DATA_FILE, JSON.stringify(data, null, 2));
         }
-        catch (error$1) {
-            const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
-            error(err, "Error saving stats data");
+        catch (error) {
+            const err = error instanceof Error ? error : new Error(String(error));
+            logger.error(err, "Error saving stats data");
         }
     }
     async collectStats(triggeredFromScheduler = true) {
@@ -47423,9 +47432,9 @@ class StatsBackgroundCollector {
     }
     init() {
         this.expectedScheduleTime = Date.now();
-        info("Starting stats background collector ...");
+        logger.info("Starting stats background collector ...");
         process.nextTick(() => this.collectStats());
-        info(`Stats collector started with ${STATS_FREQ}ms interval`);
+        logger.info(`Stats collector started with ${STATS_FREQ}ms interval`);
     }
 }
 // Create and initialize singleton instance

@@ -3,9 +3,11 @@ import * as github from "@actions/github";
 import * as stepTracer from "../features/step/stepTracer";
 import * as statCollector from "../features/stats/collector";
 import * as processTracer from "../features/process/processTracer";
-import * as logger from "../utils/logger";
+import { Logger } from "../utils/logger";
 import { WorkflowJobType } from "../interfaces";
 import { GITHUB_API } from "../constants";
+
+const logger = new Logger();
 
 const { pull_request } = github.context.payload;
 const { workflow, job, repo, runId, sha } = github.context;

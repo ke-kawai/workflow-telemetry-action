@@ -18,8 +18,10 @@ import {
   StackedAreaGraphOptions,
   WorkflowJobType,
 } from "../../interfaces";
-import * as logger from "../../utils/logger";
+import { Logger } from "../../utils/logger";
 import { FILE_PATHS } from "../../constants";
+
+const logger = new Logger();
 
 const STATS_DATA_FILE = path.join(__dirname, "../", FILE_PATHS.STATS_DATA);
 

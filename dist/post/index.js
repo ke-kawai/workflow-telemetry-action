@@ -32250,23 +32250,26 @@ function requireGithub () {
 var githubExports = requireGithub();
 
 const LOG_HEADER = "[Workflow Telemetry]";
-function isDebugEnabled() {
-    return coreExports.isDebug();
-}
-function debug(msg) {
-    coreExports.debug(LOG_HEADER + " " + msg);
-}
-function info(msg) {
-    coreExports.info(LOG_HEADER + " " + msg);
-}
-function error(error, context) {
-    if (context) {
-        coreExports.error(`${LOG_HEADER} ${context}`);
+class Logger {
+    isDebugEnabled() {
+        return coreExports.isDebug();
     }
-    coreExports.error(`${LOG_HEADER} ${error.name}: ${error.message}`);
-    coreExports.error(error);
+    debug(msg) {
+        coreExports.debug(LOG_HEADER + " " + msg);
+    }
+    info(msg) {
+        coreExports.info(LOG_HEADER + " " + msg);
+    }
+    error(error, context) {
+        if (context) {
+            coreExports.error(`${LOG_HEADER} ${context}`);
+        }
+        coreExports.error(`${LOG_HEADER} ${error.name}: ${error.message}`);
+        coreExports.error(error);
+    }
 }
 
+const logger$4 = new Logger();
 function generateTraceChartForSteps(job) {
     let chartContent = "";
     /**
@@ -32317,30 +32320,30 @@ function generateTraceChartForSteps(job) {
     return postContentItems.join("\n");
 }
 async function finish$2(_currentJob) {
-    info(`Finishing step tracer ...`);
+    logger$4.info(`Finishing step tracer ...`);
     try {
-        info(`Finished step tracer`);
+        logger$4.info(`Finished step tracer`);
         return true;
     }
-    catch (error$1) {
-        const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
-        error(err, "Unable to finish step tracer");
+    catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger$4.error(err, "Unable to finish step tracer");
         return false;
     }
 }
 async function report$2(currentJob) {
-    info(`Reporting step tracer result ...`);
+    logger$4.info(`Reporting step tracer result ...`);
     if (!currentJob) {
         return null;
     }
     try {
         const postContent = generateTraceChartForSteps(currentJob);
-        info(`Reported step tracer result`);
+        logger$4.info(`Reported step tracer result`);
         return postContent;
     }
-    catch (error$1) {
-        const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
-        error(err, "Unable to report step tracer result");
+    catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger$4.error(err, "Unable to report step tracer result");
         return null;
     }
 }
@@ -32408,20 +32411,21 @@ const FILE_PATHS = {
     STATS_DATA: "stats-data.json",
 };
 
+const logger$3 = new Logger();
 const STATS_DATA_FILE = path.join(__dirname, "../", FILE_PATHS.STATS_DATA);
 function loadStatsData() {
     try {
         if (require$$1.existsSync(STATS_DATA_FILE)) {
             const data = JSON.parse(require$$1.readFileSync(STATS_DATA_FILE, "utf-8"));
-            debug("Loaded stats data from file");
+            logger$3.debug("Loaded stats data from file");
             return data;
         }
-        debug("Stats data file does not exist");
+        logger$3.debug("Stats data file does not exist");
         return null;
     }
-    catch (error$1) {
-        const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
-        error(err, "Error loading stats data");
+    catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger$3.error(err, "Error loading stats data");
         return null;
     }
 }
@@ -32670,29 +32674,29 @@ async function getStackedAreaGraph$1(options) {
     return chartGenerator$1.getStackedAreaGraph(options);
 }
 async function finish$1(_currentJob) {
-    info(`Finishing stat collector ...`);
+    logger$3.info(`Finishing stat collector ...`);
     try {
         // Note: No action needed for finish. The background collector
         // automatically saves stats to file periodically.
-        info(`Finished stat collector`);
+        logger$3.info(`Finished stat collector`);
         return true;
     }
-    catch (error$1) {
-        const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
-        error(err, "Unable to finish stat collector");
+    catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger$3.error(err, "Unable to finish stat collector");
         return false;
     }
 }
 async function report$1(_currentJob) {
-    info(`Reporting stat collector result ...`);
+    logger$3.info(`Reporting stat collector result ...`);
     try {
         const postContent = await reportWorkflowMetrics();
-        info(`Reported stat collector result`);
+        logger$3.info(`Reported stat collector result`);
         return postContent;
     }
-    catch (error$1) {
-        const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
-        error(err, "Unable to report stat collector result");
+    catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger$3.error(err, "Unable to report stat collector result");
         return null;
     }
 }
@@ -52491,7 +52495,8 @@ const DEFAULT_PROC_TRACE_CHART_MAX_COUNT = PROCESS_TRACE.DEFAULT_CHART_MAX_COUNT
 const GHA_FILE_NAME_PREFIX = PROCESS_TRACE.GHA_FILE_PREFIX;
 const COLLECTION_INTERVAL_MS = PROCESS_TRACE.COLLECTION_INTERVAL_MS;
 class ProcessTracer {
-    constructor() {
+    constructor(logger) {
+        this.logger = logger;
         this.collectionInterval = null;
         this.trackedProcesses = new Map();
         this.completedProcesses = [];
@@ -52544,9 +52549,9 @@ class ProcessTracer {
                 }
             }
         }
-        catch (error$1) {
-            const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
-            error(err, "Error collecting processes");
+        catch (error) {
+            const err = error instanceof Error ? error : new Error(String(error));
+            this.logger.error(err, "Error collecting processes");
         }
     }
     saveData() {
@@ -52557,9 +52562,9 @@ class ProcessTracer {
             };
             require$$1.writeFileSync(PROC_TRACER_DATA_FILE, JSON.stringify(data, null, 2));
         }
-        catch (error$1) {
-            const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
-            error(err, "Error saving process data");
+        catch (error) {
+            const err = error instanceof Error ? error : new Error(String(error));
+            this.logger.error(err, "Error saving process data");
         }
     }
     loadData() {
@@ -52572,9 +52577,9 @@ class ProcessTracer {
                 }
             }
         }
-        catch (error$1) {
-            const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
-            error(err, "Error loading process data");
+        catch (error) {
+            const err = error instanceof Error ? error : new Error(String(error));
+            this.logger.error(err, "Error loading process data");
         }
     }
     getExtraProcessInfo(proc) {
@@ -52651,7 +52656,7 @@ class ProcessTracer {
         return postContentItems.join("\n");
     }
     async start() {
-        info(`Starting process tracer ...`);
+        this.logger.info(`Starting process tracer ...`);
         try {
             // Create state file to indicate tracer is started
             require$$1.writeFileSync(PROC_TRACER_STATE_FILE, Date.now().toString());
@@ -52663,19 +52668,19 @@ class ProcessTracer {
             }, COLLECTION_INTERVAL_MS);
             // Prevent the interval from keeping the process alive
             this.collectionInterval.unref();
-            info(`Started process tracer with ${COLLECTION_INTERVAL_MS}ms interval`);
+            this.logger.info(`Started process tracer with ${COLLECTION_INTERVAL_MS}ms interval`);
             return true;
         }
-        catch (error$1) {
-            const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
-            error(err, "Unable to start process tracer");
+        catch (error) {
+            const err = error instanceof Error ? error : new Error(String(error));
+            this.logger.error(err, "Unable to start process tracer");
             return false;
         }
     }
     async finish(_currentJob) {
-        info(`Finishing process tracer ...`);
+        this.logger.info(`Finishing process tracer ...`);
         if (!require$$1.existsSync(PROC_TRACER_STATE_FILE)) {
-            info(`Skipped finishing process tracer since process tracer didn't started`);
+            this.logger.info(`Skipped finishing process tracer since process tracer didn't started`);
             return false;
         }
         try {
@@ -52705,25 +52710,25 @@ class ProcessTracer {
             // Save final data
             this.saveData();
             this.finished = true;
-            info(`Finished process tracer`);
+            this.logger.info(`Finished process tracer`);
             return true;
         }
-        catch (error$1) {
-            const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
-            error(err, "Unable to finish process tracer");
+        catch (error) {
+            const err = error instanceof Error ? error : new Error(String(error));
+            this.logger.error(err, "Unable to finish process tracer");
             return false;
         }
     }
     async report(currentJob) {
-        info(`Reporting process tracer result ...`);
+        this.logger.info(`Reporting process tracer result ...`);
         if (!this.finished) {
-            info(`Skipped reporting process tracer since process tracer didn't finished`);
+            this.logger.info(`Skipped reporting process tracer since process tracer didn't finished`);
             return null;
         }
         try {
             // Load data from file
             this.loadData();
-            info(`Getting process tracer result from data file ...`);
+            this.logger.info(`Getting process tracer result from data file ...`);
             const config = this.parseConfiguration();
             // Filter processes by minimum duration
             let filteredProcesses = this.completedProcesses;
@@ -52737,21 +52742,23 @@ class ProcessTracer {
                 ? this.generateProcessTable(filteredProcesses)
                 : "";
             const postContent = this.formatProcessReport(chartContent, tableContent, config);
-            info(`Reported process tracer result`);
+            this.logger.info(`Reported process tracer result`);
             return postContent;
         }
-        catch (error$1) {
-            const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
-            error(err, "Unable to report process tracer result");
+        catch (error) {
+            const err = error instanceof Error ? error : new Error(String(error));
+            this.logger.error(err, "Unable to report process tracer result");
             return null;
         }
     }
 }
 // Export singleton instance
-const processTracer = new ProcessTracer();
+const logger$2 = new Logger();
+const processTracer = new ProcessTracer(logger$2);
 const finish = (currentJob) => processTracer.finish(currentJob);
 const report = (currentJob) => processTracer.report(currentJob);
 
+const logger$1 = new Logger();
 const { pull_request } = githubExports.context.payload;
 const { workflow, job, repo, runId, sha } = githubExports.context;
 const PAGE_SIZE = GITHUB_API.PAGE_SIZE;
@@ -52797,24 +52804,24 @@ async function getCurrentJob() {
             await new Promise((r) => setTimeout(r, GITHUB_API.CURRENT_JOB_RETRY_INTERVAL_MS));
         }
     }
-    catch (error$1) {
-        const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
-        error(err, `Unable to get current workflow job info. ` +
+    catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger$1.error(err, `Unable to get current workflow job info. ` +
             `Please sure that your workflow have "actions:read" permission!`);
     }
     return null;
 }
 async function reportAll(currentJob, content) {
-    info(`Reporting all content ...`);
-    debug(`Workflow - Job: ${workflow} - ${job}`);
+    logger$1.info(`Reporting all content ...`);
+    logger$1.debug(`Workflow - Job: ${workflow} - ${job}`);
     const jobUrl = `https://github.com/${repo.owner}/${repo.repo}/runs/${currentJob.id}?check_suite_focus=true`;
-    debug(`Job url: ${jobUrl}`);
+    logger$1.debug(`Job url: ${jobUrl}`);
     const title = `## Workflow Telemetry - ${workflow} / ${currentJob.name}`;
-    debug(`Title: ${title}`);
+    logger$1.debug(`Title: ${title}`);
     const commit = (pull_request && pull_request.head && pull_request.head.sha) || sha;
-    debug(`Commit: ${commit}`);
+    logger$1.debug(`Commit: ${commit}`);
     const commitUrl = `https://github.com/${repo.owner}/${repo.repo}/commit/${commit}`;
-    debug(`Commit url: ${commitUrl}`);
+    logger$1.debug(`Commit url: ${commitUrl}`);
     const postContent = [title, content].join("\n");
     const jobSummary = coreExports.getInput("job_summary");
     if ("true" === jobSummary) {
@@ -52823,8 +52830,8 @@ async function reportAll(currentJob, content) {
     }
     const commentOnPR = coreExports.getInput("comment_on_pr");
     if (pull_request && "true" === commentOnPR) {
-        if (isDebugEnabled()) {
-            debug(`Found Pull Request: ${JSON.stringify(pull_request)}`);
+        if (logger$1.isDebugEnabled()) {
+            logger$1.debug(`Found Pull Request: ${JSON.stringify(pull_request)}`);
         }
         await octokit.rest.issues.createComment({
             ...githubExports.context.repo,
@@ -52833,19 +52840,19 @@ async function reportAll(currentJob, content) {
         });
     }
     else {
-        debug(`Couldn't find Pull Request`);
+        logger$1.debug(`Couldn't find Pull Request`);
     }
-    info(`Reporting all content completed`);
+    logger$1.info(`Reporting all content completed`);
 }
 async function run() {
     try {
-        info(`Finishing ...`);
+        logger$1.info(`Finishing ...`);
         const currentJob = await getCurrentJob();
         if (!currentJob) {
-            error(new Error(`Couldn't find current job. So action will not report any data.`));
+            logger$1.error(new Error(`Couldn't find current job. So action will not report any data.`));
             return;
         }
-        debug(`Current job: ${JSON.stringify(currentJob)}`);
+        logger$1.debug(`Current job: ${JSON.stringify(currentJob)}`);
         // Finish tracer and collector
         await finish$2(currentJob);
         await finish$1(currentJob);
@@ -52866,15 +52873,16 @@ async function run() {
             allContent = allContent.concat(procTracerContent, "\n");
         }
         await reportAll(currentJob, allContent);
-        info(`Finish completed`);
+        logger$1.info(`Finish completed`);
     }
-    catch (error$1) {
-        const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
-        error(err);
+    catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger$1.error(err);
     }
 }
 run();
 
+const logger = new Logger();
 /**
  * Chart Generator using QuickChart.io API
  * QuickChart.io is an open-source Chart.js service that can be self-hosted
@@ -52964,9 +52972,9 @@ async function createChartFromConfig(theme, config, chartConfig, errorLabel) {
             return data.url;
         }
     }
-    catch (error$1) {
-        const err = error$1 instanceof Error ? error$1 : new Error(String(error$1));
-        error(err, `${errorLabel} ${theme} ${JSON.stringify(payload)}`);
+    catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        logger.error(err, `${errorLabel} ${theme} ${JSON.stringify(payload)}`);
     }
     return null;
 }

@@ -1,10 +1,12 @@
-import * as logger from "../../utils/logger";
+import { Logger } from "../../utils/logger";
 import {
   GraphResponse,
   LineGraphOptions,
   StackedAreaGraphOptions,
 } from "../../interfaces";
 import { QUICKCHART, THEME } from "../../constants";
+
+const logger = new Logger();
 
 /**
  * Chart Generator using QuickChart.io API

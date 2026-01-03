@@ -3,7 +3,7 @@ import fs from "fs";
 import * as core from "@actions/core";
 import si from "systeminformation";
 import { WorkflowJobType } from "../../interfaces";
-import * as logger from "../../utils/logger";
+import { Logger } from "../../utils/logger";
 import { padStart, padEnd, formatFloat } from "../../utils/formatter";
 import { PROCESS_TRACE, FILE_PATHS } from "../../constants";
 
@@ -47,6 +47,8 @@ class ProcessTracer {
   private trackedProcesses = new Map<number, TrackedProcess>();
   private completedProcesses: CompletedProcess[] = [];
   private finished = false;
+
+  constructor(private logger: Logger) {}
 
   private async collectProcesses(): Promise<void> {
     try {
@@ -98,7 +100,7 @@ class ProcessTracer {
       }
     } catch (error: unknown) {
       const err = error instanceof Error ? error : new Error(String(error));
-      logger.error(err, "Error collecting processes");
+      this.logger.error(err, "Error collecting processes");
     }
   }
 
@@ -111,7 +113,7 @@ class ProcessTracer {
       fs.writeFileSync(PROC_TRACER_DATA_FILE, JSON.stringify(data, null, 2));
     } catch (error: unknown) {
       const err = error instanceof Error ? error : new Error(String(error));
-      logger.error(err, "Error saving process data");
+      this.logger.error(err, "Error saving process data");
     }
   }
 
@@ -128,7 +130,7 @@ class ProcessTracer {
       }
     } catch (error: unknown) {
       const err = error instanceof Error ? error : new Error(String(error));
-      logger.error(err, "Error loading process data");
+      this.logger.error(err, "Error loading process data");
     }
   }
 
@@ -267,7 +269,7 @@ class ProcessTracer {
   }
 
   async start(): Promise<boolean> {
-    logger.info(`Starting process tracer ...`);
+    this.logger.info(`Starting process tracer ...`);
 
     try {
       // Create state file to indicate tracer is started
@@ -284,24 +286,24 @@ class ProcessTracer {
       // Prevent the interval from keeping the process alive
       this.collectionInterval.unref();
 
-      logger.info(
+      this.logger.info(
         `Started process tracer with ${COLLECTION_INTERVAL_MS}ms interval`
       );
 
       return true;
     } catch (error: unknown) {
       const err = error instanceof Error ? error : new Error(String(error));
-      logger.error(err, "Unable to start process tracer");
+      this.logger.error(err, "Unable to start process tracer");
 
       return false;
     }
   }
 
   async finish(_currentJob: WorkflowJobType): Promise<boolean> {
-    logger.info(`Finishing process tracer ...`);
+    this.logger.info(`Finishing process tracer ...`);
 
     if (!fs.existsSync(PROC_TRACER_STATE_FILE)) {
-      logger.info(
+      this.logger.info(
         `Skipped finishing process tracer since process tracer didn't started`
       );
       return false;
@@ -338,12 +340,12 @@ class ProcessTracer {
       this.saveData();
       this.finished = true;
 
-      logger.info(`Finished process tracer`);
+      this.logger.info(`Finished process tracer`);
 
       return true;
     } catch (error: unknown) {
       const err = error instanceof Error ? error : new Error(String(error));
-      logger.error(err, "Unable to finish process tracer");
+      this.logger.error(err, "Unable to finish process tracer");
 
       return false;
     }
@@ -352,10 +354,10 @@ class ProcessTracer {
   async report(
     currentJob: WorkflowJobType
   ): Promise<string | null> {
-    logger.info(`Reporting process tracer result ...`);
+    this.logger.info(`Reporting process tracer result ...`);
 
     if (!this.finished) {
-      logger.info(
+      this.logger.info(
         `Skipped reporting process tracer since process tracer didn't finished`
       );
       return null;
@@ -365,7 +367,7 @@ class ProcessTracer {
       // Load data from file
       this.loadData();
 
-      logger.info(`Getting process tracer result from data file ...`);
+      this.logger.info(`Getting process tracer result from data file ...`);
 
       const config = this.parseConfiguration();
 
@@ -386,12 +388,12 @@ class ProcessTracer {
 
       const postContent = this.formatProcessReport(chartContent, tableContent, config);
 
-      logger.info(`Reported process tracer result`);
+      this.logger.info(`Reported process tracer result`);
 
       return postContent;
     } catch (error: unknown) {
       const err = error instanceof Error ? error : new Error(String(error));
-      logger.error(err, "Unable to report process tracer result");
+      this.logger.error(err, "Unable to report process tracer result");
 
       return null;
     }
@@ -399,7 +401,8 @@ class ProcessTracer {
 }
 
 // Export singleton instance
-const processTracer = new ProcessTracer();
+const logger = new Logger();
+const processTracer = new ProcessTracer(logger);
 
 export const start = () => processTracer.start();
 export const finish = (currentJob: WorkflowJobType) => processTracer.finish(currentJob);
