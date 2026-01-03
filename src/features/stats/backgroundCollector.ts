@@ -8,7 +8,7 @@ import {
   DiskStats,
   NetworkStats,
   DiskSizeStats,
-} from "../../interfaces";
+} from "./types";
 import { STATS_COLLECTION, FILE_PATHS } from "../../constants";
 
 const logger = new Logger();

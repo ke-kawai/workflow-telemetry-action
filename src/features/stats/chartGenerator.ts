@@ -3,7 +3,7 @@ import {
   GraphResponse,
   LineGraphOptions,
   StackedAreaGraphOptions,
-} from "../../interfaces";
+} from "./types";
 import { QUICKCHART, THEME } from "../../constants";
 
 const logger = new Logger();

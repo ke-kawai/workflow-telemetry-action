@@ -2,6 +2,7 @@ import { ChildProcess, spawn } from "child_process";
 import path from "path";
 import fs from "fs";
 import * as core from "@actions/core";
+import { WorkflowJobType } from "../../interfaces";
 import {
   CPUStats,
   DiskSizeStats,
@@ -16,8 +17,7 @@ import {
   ProcessedNetworkStats,
   ProcessedStats,
   StackedAreaGraphOptions,
-  WorkflowJobType,
-} from "../../interfaces";
+} from "./types";
 import { Logger } from "../../utils/logger";
 import { FILE_PATHS } from "../../constants";
 
