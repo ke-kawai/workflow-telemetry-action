@@ -7,7 +7,6 @@ import {
   CPUStats,
   DiskSizeStats,
   DiskStats,
-  LineGraphOptions,
   MemoryStats,
   NetworkStats,
   ProcessedCPUStats,
@@ -16,10 +15,10 @@ import {
   ProcessedMemoryStats,
   ProcessedNetworkStats,
   ProcessedStats,
-  StackedAreaGraphOptions,
 } from "./types";
 import { Logger } from "../../utils/logger";
 import { FILE_PATHS } from "../../constants";
+import { getLineGraph, getStackedAreaGraph } from "./chartGenerator";
 
 const logger = new Logger();
 
@@ -356,20 +355,6 @@ async function getDiskSizeStats(): Promise<ProcessedDiskSizeStats> {
   });
 
   return { diskAvailableX, diskUsedX };
-}
-
-async function getLineGraph(options: LineGraphOptions): Promise<string> {
-  // Import chartGenerator functions dynamically
-  const chartGenerator = await import("./chartGenerator");
-  return chartGenerator.getLineGraph(options);
-}
-
-async function getStackedAreaGraph(
-  options: StackedAreaGraphOptions
-): Promise<string> {
-  // Import chartGenerator functions dynamically
-  const chartGenerator = await import("./chartGenerator");
-  return chartGenerator.getStackedAreaGraph(options);
 }
 
 export async function start(): Promise<boolean> {

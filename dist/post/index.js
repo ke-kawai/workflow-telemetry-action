@@ -1,17 +1,16 @@
 'use strict';
 
-var require$$1 = require('fs');
 var require$$0$1 = require('os');
+var require$$0$2 = require('crypto');
+var require$$1 = require('fs');
+var path = require('path');
 var require$$2$1 = require('http');
 var require$$1$1 = require('https');
-var require$$1$6 = require('child_process');
-var path = require('path');
-var require$$0$3 = require('util');
 var require$$0$5 = require('net');
-var require$$0$2 = require('crypto');
 var require$$1$2 = require('tls');
 var require$$4$1 = require('events');
 var require$$0$4 = require('assert');
+var require$$0$3 = require('util');
 var require$$0$6 = require('stream');
 var require$$7 = require('buffer');
 var require$$8 = require('querystring');
@@ -28,6 +27,7 @@ var require$$1$5 = require('url');
 var require$$3$1 = require('zlib');
 var require$$6 = require('string_decoder');
 var require$$0$a = require('diagnostics_channel');
+var require$$1$6 = require('child_process');
 var require$$6$1 = require('timers');
 
 var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
@@ -32272,41 +32272,39 @@ class Logger {
 
 class StepChartGenerator {
     generateGanttHeader(jobName) {
-        let header = "";
-        header = header.concat("gantt", "\n");
-        header = header.concat("\t", `title ${jobName}`, "\n");
-        header = header.concat("\t", `dateFormat x`, "\n");
-        header = header.concat("\t", `axisFormat %H:%M:%S`, "\n");
-        return header;
+        const lines = [
+            "gantt",
+            `\ttitle ${jobName}`,
+            `\tdateFormat x`,
+            `\taxisFormat %H:%M:%S`,
+        ];
+        return lines.join("\n") + "\n";
     }
     generateStepLine(step) {
         if (!step.started_at || !step.completed_at) {
             return "";
         }
-        let line = "";
-        line = line.concat("\t", `${step.name.replace(/:/g, "-")} : `);
+        const parts = [`\t${step.name.replace(/:/g, "-")} : `];
         if (step.name === "Set up job" && step.number === 1) {
-            line = line.concat("milestone, ");
+            parts.push("milestone, ");
         }
         if (step.conclusion === "failure") {
             // to show red
-            line = line.concat("crit, ");
+            parts.push("crit, ");
         }
         else if (step.conclusion === "skipped") {
             // to show grey
-            line = line.concat("done, ");
+            parts.push("done, ");
         }
         const startTime = new Date(step.started_at).getTime();
         const finishTime = new Date(step.completed_at).getTime();
-        line = line.concat(`${startTime}, ${finishTime}`, "\n");
-        return line;
+        parts.push(`${startTime}, ${finishTime}`, "\n");
+        return parts.join("");
     }
     generateMermaidContent(job) {
-        let mermaidContent = this.generateGanttHeader(job.name);
-        for (const step of job.steps || []) {
-            mermaidContent = mermaidContent.concat(this.generateStepLine(step));
-        }
-        return mermaidContent;
+        const header = this.generateGanttHeader(job.name);
+        const stepLines = (job.steps || []).map(step => this.generateStepLine(step)).join("");
+        return header + stepLines;
     }
     generate(job) {
         const mermaidContent = this.generateMermaidContent(job);
@@ -32372,9 +32370,9 @@ class StepTracer {
     }
 }
 const logger$4 = new Logger();
-const chartGenerator$2 = new StepChartGenerator();
+const chartGenerator$1 = new StepChartGenerator();
 const reportFormatter$1 = new StepReportFormatter();
-const stepTracer = new StepTracer(logger$4, chartGenerator$2, reportFormatter$1);
+const stepTracer = new StepTracer(logger$4, chartGenerator$1, reportFormatter$1);
 const finish$2 = (currentJob) => stepTracer.finish(currentJob);
 const report$2 = (currentJob) => stepTracer.report(currentJob);
 
@@ -32442,19 +32440,189 @@ const FILE_PATHS = {
 };
 
 const logger$3 = new Logger();
+/**
+ * Chart Generator using QuickChart.io API
+ * QuickChart.io is an open-source Chart.js service that can be self-hosted
+ * Free tier: https://quickchart.io
+ * GitHub: https://github.com/typpo/quickchart
+ */
+const THEME_TO_CONFIG = {
+    light: {
+        axisColor: THEME.LIGHT.AXIS_COLOR,
+        backgroundColor: THEME.LIGHT.BACKGROUND_COLOR,
+    },
+    dark: {
+        axisColor: THEME.DARK.AXIS_COLOR,
+        backgroundColor: THEME.DARK.BACKGROUND_COLOR,
+    },
+};
+function generatePictureHTML(themeToURLMap, label) {
+    const sources = Array.from(themeToURLMap.entries())
+        .map(([theme, url]) => `<source media="(prefers-color-scheme: ${theme})" srcset="${url}">`)
+        .join("");
+    const fallbackUrl = themeToURLMap.get("light") || "";
+    return `<picture>${sources}<img alt="${label}" src="${fallbackUrl}"></picture>`;
+}
+///////////////////////////
+// Common chart configuration helpers
+///////////////////////////
+function createTimeScaleConfig(config) {
+    return {
+        type: "time",
+        time: {
+            displayFormats: {
+                millisecond: "HH:mm:ss",
+                second: "HH:mm:ss",
+                minute: "HH:mm:ss",
+                hour: "HH:mm",
+            },
+            unit: "second",
+        },
+        scaleLabel: {
+            display: true,
+            labelString: "Time",
+            fontColor: config.axisColor,
+        },
+        ticks: {
+            fontColor: config.axisColor,
+        },
+    };
+}
+function createYAxisConfig(config, label, stacked = false) {
+    return {
+        stacked,
+        scaleLabel: {
+            display: true,
+            labelString: label,
+            fontColor: config.axisColor,
+        },
+        ticks: {
+            fontColor: config.axisColor,
+            beginAtZero: true,
+        },
+    };
+}
+function createLegendConfig(config) {
+    return {
+        labels: {
+            fontColor: config.axisColor,
+        },
+    };
+}
+async function createChartFromConfig(theme, config, chartConfig, errorLabel) {
+    const payload = {
+        width: QUICKCHART.CHART_WIDTH,
+        height: QUICKCHART.CHART_HEIGHT,
+        backgroundColor: config.backgroundColor,
+        chart: chartConfig,
+    };
+    try {
+        const response = await fetch(QUICKCHART.API_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+        });
+        const data = await response.json();
+        if (data?.success && data?.url) {
+            return data.url;
+        }
+    }
+    catch (error) {
+        logger$3.error(error, `${errorLabel} ${theme} ${JSON.stringify(payload)}`);
+    }
+    return null;
+}
+///////////////////////////
+/**
+ * Generate a line chart using QuickChart API
+ * Time format matches Mermaid gantt chart (HH:mm:ss)
+ */
+async function getLineGraph(options) {
+    const themeToURLMap = new Map();
+    await Promise.all(Object.keys(THEME_TO_CONFIG).map(async (theme) => {
+        const config = THEME_TO_CONFIG[theme];
+        const chartConfig = {
+            type: "line",
+            data: {
+                datasets: [
+                    {
+                        label: options.line.label,
+                        data: options.line.points,
+                        borderColor: options.line.color,
+                        backgroundColor: options.line.color + "33",
+                        fill: false,
+                        tension: 0.1,
+                    },
+                ],
+            },
+            options: {
+                scales: {
+                    xAxes: [createTimeScaleConfig(config)],
+                    yAxes: [createYAxisConfig(config, options.label)],
+                },
+                legend: createLegendConfig(config),
+            },
+        };
+        const url = await createChartFromConfig(theme, config, chartConfig, "getLineGraph");
+        if (url) {
+            themeToURLMap.set(theme, url);
+        }
+    }));
+    return generatePictureHTML(themeToURLMap, options.label);
+}
+/**
+ * Generate a stacked area chart using QuickChart API
+ * Time format matches Mermaid gantt chart (HH:mm:ss)
+ */
+async function getStackedAreaGraph(options) {
+    const themeToURLMap = new Map();
+    await Promise.all(Object.keys(THEME_TO_CONFIG).map(async (theme) => {
+        const config = THEME_TO_CONFIG[theme];
+        const datasets = options.areas.map((area, index) => ({
+            label: area.label,
+            data: area.points,
+            borderColor: area.color,
+            backgroundColor: area.color,
+            fill: index === 0 ? "origin" : "-1",
+            tension: 0.1,
+        }));
+        const chartConfig = {
+            type: "line",
+            data: {
+                datasets,
+            },
+            options: {
+                scales: {
+                    xAxes: [createTimeScaleConfig(config)],
+                    yAxes: [createYAxisConfig(config, options.label, true)],
+                },
+                legend: createLegendConfig(config),
+            },
+        };
+        const url = await createChartFromConfig(theme, config, chartConfig, "getStackedAreaGraph");
+        if (url) {
+            themeToURLMap.set(theme, url);
+        }
+    }));
+    return generatePictureHTML(themeToURLMap, options.label);
+}
+
+const logger$2 = new Logger();
 const STATS_DATA_FILE = path.join(__dirname, "../", FILE_PATHS.STATS_DATA);
 function loadStatsData() {
     try {
         if (require$$1.existsSync(STATS_DATA_FILE)) {
             const data = JSON.parse(require$$1.readFileSync(STATS_DATA_FILE, "utf-8"));
-            logger$3.debug("Loaded stats data from file");
+            logger$2.debug("Loaded stats data from file");
             return data;
         }
-        logger$3.debug("Stats data file does not exist");
+        logger$2.debug("Stats data file does not exist");
         return null;
     }
     catch (error) {
-        logger$3.error(error, "Error loading stats data");
+        logger$2.error(error, "Error loading stats data");
         return null;
     }
 }
@@ -32473,7 +32641,7 @@ async function createMetricCharts(stats) {
     const { diskReadX, diskWriteX } = stats.disk;
     const { diskAvailableX, diskUsedX } = stats.diskSize;
     const cpuLoad = userLoadX && userLoadX.length && systemLoadX && systemLoadX.length
-        ? await getStackedAreaGraph$1({
+        ? await getStackedAreaGraph({
             label: "CPU Load (%)",
             areas: [
                 {
@@ -32493,7 +32661,7 @@ async function createMetricCharts(stats) {
         activeMemoryX.length &&
         availableMemoryX &&
         availableMemoryX.length
-        ? await getStackedAreaGraph$1({
+        ? await getStackedAreaGraph({
             label: "Memory Usage (MB)",
             areas: [
                 {
@@ -32510,7 +32678,7 @@ async function createMetricCharts(stats) {
         })
         : null;
     const networkIORead = networkReadX && networkReadX.length
-        ? await getLineGraph$1({
+        ? await getLineGraph({
             label: "Network I/O Read (MB)",
             line: {
                 label: "Read",
@@ -32520,7 +32688,7 @@ async function createMetricCharts(stats) {
         })
         : null;
     const networkIOWrite = networkWriteX && networkWriteX.length
-        ? await getLineGraph$1({
+        ? await getLineGraph({
             label: "Network I/O Write (MB)",
             line: {
                 label: "Write",
@@ -32530,7 +32698,7 @@ async function createMetricCharts(stats) {
         })
         : null;
     const diskIORead = diskReadX && diskReadX.length
-        ? await getLineGraph$1({
+        ? await getLineGraph({
             label: "Disk I/O Read (MB)",
             line: {
                 label: "Read",
@@ -32540,7 +32708,7 @@ async function createMetricCharts(stats) {
         })
         : null;
     const diskIOWrite = diskWriteX && diskWriteX.length
-        ? await getLineGraph$1({
+        ? await getLineGraph({
             label: "Disk I/O Write (MB)",
             line: {
                 label: "Write",
@@ -32550,7 +32718,7 @@ async function createMetricCharts(stats) {
         })
         : null;
     const diskSizeUsage = diskUsedX && diskUsedX.length && diskAvailableX && diskAvailableX.length
-        ? await getStackedAreaGraph$1({
+        ? await getStackedAreaGraph({
             label: "Disk Usage (MB)",
             areas: [
                 {
@@ -32692,38 +32860,28 @@ async function getDiskSizeStats() {
     });
     return { diskAvailableX, diskUsedX };
 }
-async function getLineGraph$1(options) {
-    // Import chartGenerator functions dynamically
-    const chartGenerator$1 = await Promise.resolve().then(function () { return chartGenerator; });
-    return chartGenerator$1.getLineGraph(options);
-}
-async function getStackedAreaGraph$1(options) {
-    // Import chartGenerator functions dynamically
-    const chartGenerator$1 = await Promise.resolve().then(function () { return chartGenerator; });
-    return chartGenerator$1.getStackedAreaGraph(options);
-}
 async function finish$1(_currentJob) {
-    logger$3.info(`Finishing stat collector ...`);
+    logger$2.info(`Finishing stat collector ...`);
     try {
         // Note: No action needed for finish. The background collector
         // automatically saves stats to file periodically.
-        logger$3.info(`Finished stat collector`);
+        logger$2.info(`Finished stat collector`);
         return true;
     }
     catch (error) {
-        logger$3.error(error, "Unable to finish stat collector");
+        logger$2.error(error, "Unable to finish stat collector");
         return false;
     }
 }
 async function report$1(_currentJob) {
-    logger$3.info(`Reporting stat collector result ...`);
+    logger$2.info(`Reporting stat collector result ...`);
     try {
         const postContent = await reportWorkflowMetrics();
-        logger$3.info(`Reported stat collector result`);
+        logger$2.info(`Reported stat collector result`);
         return postContent;
     }
     catch (error) {
-        logger$3.error(error, "Unable to report stat collector result");
+        logger$2.error(error, "Unable to report stat collector result");
         return null;
     }
 }
@@ -52497,42 +52655,36 @@ var si = /*@__PURE__*/getDefaultExportFromCjs(libExports);
 const GHA_FILE_NAME_PREFIX = PROCESS_TRACE.GHA_FILE_PREFIX;
 class ProcessChartGenerator {
     generateGanttHeader(jobName) {
-        let header = "";
-        header = header.concat("gantt", "\n");
-        header = header.concat("\t", `title ${jobName}`, "\n");
-        header = header.concat("\t", `dateFormat x`, "\n");
-        header = header.concat("\t", `axisFormat %H:%M:%S`, "\n");
-        return header;
+        const lines = [
+            "gantt",
+            `\ttitle ${jobName}`,
+            `\tdateFormat x`,
+            `\taxisFormat %H:%M:%S`,
+        ];
+        return lines.join("\n") + "\n";
     }
     generateProcessLine(proc) {
-        let line = "";
         const extraProcessInfo = this.getExtraProcessInfo(proc);
         const escapedName = proc.name.replace(/:/g, "#colon;");
-        if (extraProcessInfo) {
-            line = line.concat("\t", `${escapedName} (${extraProcessInfo}) : `);
-        }
-        else {
-            line = line.concat("\t", `${escapedName} : `);
-        }
+        const nameWithInfo = extraProcessInfo
+            ? `\t${escapedName} (${extraProcessInfo}) : `
+            : `\t${escapedName} : `;
         const startTime = proc.started;
         const finishTime = proc.ended;
-        line = line.concat(`${startTime}, ${finishTime}`, "\n");
-        return line;
+        return `${nameWithInfo}${startTime}, ${finishTime}\n`;
     }
+    // Select top N processes by duration, then sort by start time for chronological display
     selectTopProcessesByDuration(processes, maxCount) {
-        // Select top N processes by duration, then sort by start time for chronological display
         return [...processes]
             .sort((a, b) => -(a.duration - b.duration)) // Longest duration first
             .slice(0, maxCount) // Take top N
             .sort((a, b) => a.started - b.started); // Chronological order
     }
     generateMermaidContent(processes, config, jobName) {
-        let mermaidContent = this.generateGanttHeader(jobName);
         const processesForChart = this.selectTopProcessesByDuration(processes, config.chartMaxCount);
-        for (const proc of processesForChart) {
-            mermaidContent = mermaidContent.concat(this.generateProcessLine(proc));
-        }
-        return mermaidContent;
+        const header = this.generateGanttHeader(jobName);
+        const processLines = processesForChart.map(proc => this.generateProcessLine(proc)).join("");
+        return header + processLines;
     }
     generate(processes, config, jobName) {
         const mermaidContent = this.generateMermaidContent(processes, config, jobName);
@@ -52826,17 +52978,17 @@ class ProcessTracer {
         }
     }
 }
-const logger$2 = new Logger();
-const chartGenerator$1 = new ProcessChartGenerator();
+const logger$1 = new Logger();
+const chartGenerator = new ProcessChartGenerator();
 const tableGenerator = new ProcessTableGenerator();
 const reportFormatter = new ProcessReportFormatter();
 const config = loadProcessTracerConfig();
-const dataRepository = new ProcessDataRepository(logger$2);
-const processTracer = new ProcessTracer(logger$2, chartGenerator$1, tableGenerator, reportFormatter, config, dataRepository);
+const dataRepository = new ProcessDataRepository(logger$1);
+const processTracer = new ProcessTracer(logger$1, chartGenerator, tableGenerator, reportFormatter, config, dataRepository);
 const finish = (currentJob) => processTracer.finish(currentJob);
 const report = (currentJob) => processTracer.report(currentJob);
 
-const logger$1 = new Logger();
+const logger = new Logger();
 const { pull_request } = githubExports.context.payload;
 const { workflow, job, repo, runId, sha } = githubExports.context;
 const PAGE_SIZE = GITHUB_API.PAGE_SIZE;
@@ -52883,22 +53035,22 @@ async function getCurrentJob() {
         }
     }
     catch (error) {
-        logger$1.error(error, `Unable to get current workflow job info. ` +
+        logger.error(error, `Unable to get current workflow job info. ` +
             `Please sure that your workflow have "actions:read" permission!`);
     }
     return null;
 }
 async function reportAll(currentJob, content) {
-    logger$1.info(`Reporting all content ...`);
-    logger$1.debug(`Workflow - Job: ${workflow} - ${job}`);
+    logger.info(`Reporting all content ...`);
+    logger.debug(`Workflow - Job: ${workflow} - ${job}`);
     const jobUrl = `https://github.com/${repo.owner}/${repo.repo}/runs/${currentJob.id}?check_suite_focus=true`;
-    logger$1.debug(`Job url: ${jobUrl}`);
+    logger.debug(`Job url: ${jobUrl}`);
     const title = `## Workflow Telemetry - ${workflow} / ${currentJob.name}`;
-    logger$1.debug(`Title: ${title}`);
+    logger.debug(`Title: ${title}`);
     const commit = (pull_request && pull_request.head && pull_request.head.sha) || sha;
-    logger$1.debug(`Commit: ${commit}`);
+    logger.debug(`Commit: ${commit}`);
     const commitUrl = `https://github.com/${repo.owner}/${repo.repo}/commit/${commit}`;
-    logger$1.debug(`Commit url: ${commitUrl}`);
+    logger.debug(`Commit url: ${commitUrl}`);
     const postContent = [title, content].join("\n");
     const jobSummary = coreExports.getInput("job_summary");
     if ("true" === jobSummary) {
@@ -52907,8 +53059,8 @@ async function reportAll(currentJob, content) {
     }
     const commentOnPR = coreExports.getInput("comment_on_pr");
     if (pull_request && "true" === commentOnPR) {
-        if (logger$1.isDebugEnabled()) {
-            logger$1.debug(`Found Pull Request: ${JSON.stringify(pull_request)}`);
+        if (logger.isDebugEnabled()) {
+            logger.debug(`Found Pull Request: ${JSON.stringify(pull_request)}`);
         }
         await octokit.rest.issues.createComment({
             ...githubExports.context.repo,
@@ -52917,19 +53069,19 @@ async function reportAll(currentJob, content) {
         });
     }
     else {
-        logger$1.debug(`Couldn't find Pull Request`);
+        logger.debug(`Couldn't find Pull Request`);
     }
-    logger$1.info(`Reporting all content completed`);
+    logger.info(`Reporting all content completed`);
 }
 async function run() {
     try {
-        logger$1.info(`Finishing ...`);
+        logger.info(`Finishing ...`);
         const currentJob = await getCurrentJob();
         if (!currentJob) {
-            logger$1.error(new Error(`Couldn't find current job. So action will not report any data.`));
+            logger.error(new Error(`Couldn't find current job. So action will not report any data.`));
             return;
         }
-        logger$1.debug(`Current job: ${JSON.stringify(currentJob)}`);
+        logger.debug(`Current job: ${JSON.stringify(currentJob)}`);
         // Finish tracer and collector
         await finish$2(currentJob);
         await finish$1(currentJob);
@@ -52950,187 +53102,11 @@ async function run() {
             allContent = allContent.concat(procTracerContent, "\n");
         }
         await reportAll(currentJob, allContent);
-        logger$1.info(`Finish completed`);
+        logger.info(`Finish completed`);
     }
     catch (error) {
-        logger$1.error(error);
+        logger.error(error);
     }
 }
 run();
-
-const logger = new Logger();
-/**
- * Chart Generator using QuickChart.io API
- * QuickChart.io is an open-source Chart.js service that can be self-hosted
- * Free tier: https://quickchart.io
- * GitHub: https://github.com/typpo/quickchart
- */
-const THEME_TO_CONFIG = {
-    light: {
-        axisColor: THEME.LIGHT.AXIS_COLOR,
-        backgroundColor: THEME.LIGHT.BACKGROUND_COLOR,
-    },
-    dark: {
-        axisColor: THEME.DARK.AXIS_COLOR,
-        backgroundColor: THEME.DARK.BACKGROUND_COLOR,
-    },
-};
-function generatePictureHTML(themeToURLMap, label) {
-    const sources = Array.from(themeToURLMap.entries())
-        .map(([theme, url]) => `<source media="(prefers-color-scheme: ${theme})" srcset="${url}">`)
-        .join("");
-    const fallbackUrl = themeToURLMap.get("light") || "";
-    return `<picture>${sources}<img alt="${label}" src="${fallbackUrl}"></picture>`;
-}
-///////////////////////////
-// Common chart configuration helpers
-///////////////////////////
-function createTimeScaleConfig(config) {
-    return {
-        type: "time",
-        time: {
-            displayFormats: {
-                millisecond: "HH:mm:ss",
-                second: "HH:mm:ss",
-                minute: "HH:mm:ss",
-                hour: "HH:mm",
-            },
-            unit: "second",
-        },
-        scaleLabel: {
-            display: true,
-            labelString: "Time",
-            fontColor: config.axisColor,
-        },
-        ticks: {
-            fontColor: config.axisColor,
-        },
-    };
-}
-function createYAxisConfig(config, label, stacked = false) {
-    return {
-        stacked,
-        scaleLabel: {
-            display: true,
-            labelString: label,
-            fontColor: config.axisColor,
-        },
-        ticks: {
-            fontColor: config.axisColor,
-            beginAtZero: true,
-        },
-    };
-}
-function createLegendConfig(config) {
-    return {
-        labels: {
-            fontColor: config.axisColor,
-        },
-    };
-}
-async function createChartFromConfig(theme, config, chartConfig, errorLabel) {
-    const payload = {
-        width: QUICKCHART.CHART_WIDTH,
-        height: QUICKCHART.CHART_HEIGHT,
-        backgroundColor: config.backgroundColor,
-        chart: chartConfig,
-    };
-    try {
-        const response = await fetch(QUICKCHART.API_URL, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(payload),
-        });
-        const data = await response.json();
-        if (data?.success && data?.url) {
-            return data.url;
-        }
-    }
-    catch (error) {
-        logger.error(error, `${errorLabel} ${theme} ${JSON.stringify(payload)}`);
-    }
-    return null;
-}
-///////////////////////////
-/**
- * Generate a line chart using QuickChart API
- * Time format matches Mermaid gantt chart (HH:mm:ss)
- */
-async function getLineGraph(options) {
-    const themeToURLMap = new Map();
-    await Promise.all(Object.keys(THEME_TO_CONFIG).map(async (theme) => {
-        const config = THEME_TO_CONFIG[theme];
-        const chartConfig = {
-            type: "line",
-            data: {
-                datasets: [
-                    {
-                        label: options.line.label,
-                        data: options.line.points,
-                        borderColor: options.line.color,
-                        backgroundColor: options.line.color + "33",
-                        fill: false,
-                        tension: 0.1,
-                    },
-                ],
-            },
-            options: {
-                scales: {
-                    xAxes: [createTimeScaleConfig(config)],
-                    yAxes: [createYAxisConfig(config, options.label)],
-                },
-                legend: createLegendConfig(config),
-            },
-        };
-        const url = await createChartFromConfig(theme, config, chartConfig, "getLineGraph");
-        if (url) {
-            themeToURLMap.set(theme, url);
-        }
-    }));
-    return generatePictureHTML(themeToURLMap, options.label);
-}
-/**
- * Generate a stacked area chart using QuickChart API
- * Time format matches Mermaid gantt chart (HH:mm:ss)
- */
-async function getStackedAreaGraph(options) {
-    const themeToURLMap = new Map();
-    await Promise.all(Object.keys(THEME_TO_CONFIG).map(async (theme) => {
-        const config = THEME_TO_CONFIG[theme];
-        const datasets = options.areas.map((area, index) => ({
-            label: area.label,
-            data: area.points,
-            borderColor: area.color,
-            backgroundColor: area.color,
-            fill: index === 0 ? "origin" : "-1",
-            tension: 0.1,
-        }));
-        const chartConfig = {
-            type: "line",
-            data: {
-                datasets,
-            },
-            options: {
-                scales: {
-                    xAxes: [createTimeScaleConfig(config)],
-                    yAxes: [createYAxisConfig(config, options.label, true)],
-                },
-                legend: createLegendConfig(config),
-            },
-        };
-        const url = await createChartFromConfig(theme, config, chartConfig, "getStackedAreaGraph");
-        if (url) {
-            themeToURLMap.set(theme, url);
-        }
-    }));
-    return generatePictureHTML(themeToURLMap, options.label);
-}
-
-var chartGenerator = /*#__PURE__*/Object.freeze({
-	__proto__: null,
-	getLineGraph: getLineGraph,
-	getStackedAreaGraph: getStackedAreaGraph
-});
 //# sourceMappingURL=index.js.map
