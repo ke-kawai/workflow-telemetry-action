@@ -3,18 +3,21 @@
 ## 🔴 高優先度の改善
 
 ### 1. カラーコードの定数化
-**ファイル**: `src/features/stats/collector.ts` (93-189行)
+
+**ファイル**: `src/features/stats/collector.ts` (93-189 行)
 
 **問題点**:
+
 - 同じカラーコードが複数回ハードコーディング
-  - `#be4d25` (Read) - 2回
-  - `#6c25be` (Write) - 2回
-  - `#377eb899` (Used) - 2回
-  - `#4daf4a99` (Free) - 2回
+  - `#be4d25` (Read) - 2 回
+  - `#6c25be` (Write) - 2 回
+  - `#377eb899` (Used) - 2 回
+  - `#4daf4a99` (Free) - 2 回
 - 色の変更時に複数箇所を修正する必要がある
 - 一貫性が保証されない
 
 **提案**:
+
 ```typescript
 const CHART_COLORS = {
   CPU_USER: "#e41a1c99",
@@ -27,6 +30,7 @@ const CHART_COLORS = {
 ```
 
 **効果**:
+
 - メンテナンス性向上（一箇所で色を管理）
 - 色の一貫性保証
 - 意味のある名前で可読性向上
@@ -34,46 +38,56 @@ const CHART_COLORS = {
 ---
 
 ### 2. 不要な動的インポートの削除
-**ファイル**: `src/features/stats/collector.ts` (361-373行)
+
+**ファイル**: `src/features/stats/collector.ts` (361-373 行)
 
 **問題点**:
-- 不要なラッパー関数が2つ存在
+
+- 不要なラッパー関数が 2 つ存在
 - 動的インポートの利点がない（常に同じモジュールをインポート）
 - コードの複雑性が増している
 
 **Before**:
+
 ```typescript
 async function getLineGraph(options: LineGraphOptions): Promise<string> {
   const chartGenerator = await import("./chartGenerator");
   return chartGenerator.getLineGraph(options);
 }
 
-async function getStackedAreaGraph(options: StackedAreaGraphOptions): Promise<string> {
+async function getStackedAreaGraph(
+  options: StackedAreaGraphOptions
+): Promise<string> {
   const chartGenerator = await import("./chartGenerator");
   return chartGenerator.getStackedAreaGraph(options);
 }
 ```
 
 **After**:
+
 ```typescript
 import { getLineGraph, getStackedAreaGraph } from "./chartGenerator";
 ```
 
 **効果**:
+
 - コード簡潔化（ラッパー関数削除）
 - パフォーマンス向上（動的ロードのオーバーヘッド削減）
 - 可読性向上
 
 ---
 
-### 3. any型の削除
+### 3. any 型の削除
+
 **ファイル**: `src/features/stats/chartGenerator.ts:108`
 
 **問題点**:
+
 - `chartConfig: any` で型安全性が失われている
 - コンパイル時のエラー検出ができない
 
 **提案**:
+
 ```typescript
 interface ChartJSDataset {
   label: string;
@@ -107,12 +121,13 @@ async function createChartFromConfig(
   config: ThemeConfig,
   chartConfig: ChartJSConfig,
   errorLabel: string
-): Promise<string | null>
+): Promise<string | null>;
 ```
 
 **効果**:
+
 - 型安全性向上
-- IDE補完の改善
+- IDE 補完の改善
 - バグの早期発見
 
 ---
@@ -120,13 +135,16 @@ async function createChartFromConfig(
 ## 🟡 中優先度の改善
 
 ### 4. 文字列連結の改善
-**影響範囲**: ChartGeneratorクラス全般（142箇所）
+
+**影響範囲**: ChartGenerator クラス全般（142 箇所）
 
 **問題点**:
+
 - `.concat()` の繰り返し使用で可読性が低い
 - パフォーマンスの問題（多数の文字列結合）
 
 **Before**:
+
 ```typescript
 header = header.concat("gantt", "\n");
 header = header.concat("\t", `title ${jobName}`, "\n");
@@ -135,6 +153,7 @@ header = header.concat("\t", `axisFormat %H:%M:%S`, "\n");
 ```
 
 **After**:
+
 ```typescript
 const lines = [
   "gantt",
@@ -146,20 +165,24 @@ return lines.join("\n") + "\n";
 ```
 
 **効果**:
+
 - 可読性の大幅向上
-- パフォーマンス向上（単一のjoin操作）
+- パフォーマンス向上（単一の join 操作）
 - メンテナンス容易性向上
 
 ---
 
 ### 5. テーブルカラム幅の定数化
+
 **ファイル**: `src/features/process/processTableGenerator.ts:19-25`
 
 **問題点**:
+
 - マジックナンバー (16, 7, 15, 10, 40) がハードコーディング
 - カラム幅の変更時に複数箇所を修正する必要がある
 
 **提案**:
+
 ```typescript
 const COLUMN_WIDTHS = {
   NAME: 16,
@@ -188,6 +211,7 @@ private formatRow(
 ```
 
 **効果**:
+
 - マジックナンバー排除
 - 保守性向上（一箇所で管理）
 - 自己文書化
@@ -196,15 +220,18 @@ private formatRow(
 
 ## 🟢 低優先度の改善
 
-### 6. createMetricCharts関数の重複パターン削除
+### 6. createMetricCharts 関数の重複パターン削除
+
 **ファイル**: `src/features/stats/collector.ts:86-193`
 
 **問題点**:
-- 似たようなチャート生成コードが7回繰り返される
+
+- 似たようなチャート生成コードが 7 回繰り返される
 - cpuLoad, memoryUsage, networkIORead, networkIOWrite, diskIORead, diskIOWrite, diskSizeUsage
 
 **提案**:
 ヘルパー関数を作成して重複を削減：
+
 ```typescript
 async function createLineChartIfData(
   data: ProcessedStats[] | undefined,
@@ -217,7 +244,7 @@ async function createLineChartIfData(
         label,
         line: { label: lineLabel, color, points: data },
       })
-    : null;
+    : null;ddd
 }
 
 async function createStackedAreaChartIfData(
@@ -242,20 +269,24 @@ async function createStackedAreaChartIfData(
 ```
 
 **効果**:
+
 - コード重複の削減
 - 保守性向上
-- DRY原則の適用
+- DRY 原則の適用
 
 ---
 
 ### 7. 入力バリデーションの追加
+
 **影響範囲**: 各種設定パース箇所
 
 **問題点**:
+
 - ユーザー入力の検証が不十分
 - 負の数や範囲外の値のチェックがない
 
 **例** (`src/features/stats/collector.ts`):
+
 ```typescript
 const metricFrequencyVal: number = parseInt(metricFrequencyInput);
 if (Number.isInteger(metricFrequencyVal)) {
@@ -264,17 +295,25 @@ if (Number.isInteger(metricFrequencyVal)) {
 ```
 
 **提案**:
+
 ```typescript
 const metricFrequencyVal: number = parseInt(metricFrequencyInput);
-if (Number.isInteger(metricFrequencyVal) && metricFrequencyVal > 0 && metricFrequencyVal <= 3600) {
+if (
+  Number.isInteger(metricFrequencyVal) &&
+  metricFrequencyVal > 0 &&
+  metricFrequencyVal <= 3600
+) {
   metricFrequency = metricFrequencyVal * 1000;
 } else {
-  logger.warn(`Invalid metric_frequency: ${metricFrequencyInput}, using default`);
+  logger.warn(
+    `Invalid metric_frequency: ${metricFrequencyInput}, using default`
+  );
   metricFrequency = DEFAULT_FREQUENCY;
 }
 ```
 
 **効果**:
+
 - 予期しない動作の防止
 - ユーザーへの適切なフィードバック
 
@@ -283,12 +322,14 @@ if (Number.isInteger(metricFrequencyVal) && metricFrequencyVal > 0 && metricFreq
 ## 📋 その他の懸念事項
 
 ### テストの欠如
+
 - `package.json`: `"test": "echo \"Warn: no test specified\" && exit 0"`
 - テストカバレッジがゼロ
 - リファクタリングの安全性が保証されない
 
-### 外部API依存
-- QuickChart APIに依存
+### 外部 API 依存
+
+- QuickChart API に依存
 - サービスダウン時のフォールバックなし
 - エラー時の適切なハンドリングが必要
 
@@ -296,10 +337,24 @@ if (Number.isInteger(metricFrequencyVal) && metricFrequencyVal > 0 && metricFreq
 
 ## ✅ 維持すべき良い点
 
-- 優れたTypeScript strict mode設定
+- 優れた TypeScript strict mode 設定
 - 機能モジュールの適切な責務分離
 - トレーサー間で一貫したライフサイクルパターン
-- 明確なインターフェース定義とreadonly プロパティ
+- 明確なインターフェース定義と readonly プロパティ
 - 定数ファイルの適切な使用
-- クラスベースの設計とDI（依存性注入）
+- クラスベースの設計と DI（依存性注入）
 - エラーハンドリングの一貫性
+
+### リファクタリング計画
+
+- constants.ts をそれぞれの必要な箇所へ移動
+  - 共通のものとかほぼないはず
+- colors を定数化
+  - 色の名前でつけてあげる
+  - これは constants.ts に入れてもいいかも
+- generateStepLine を改良
+  - 最後に謎の join("")してるのをやめる
+  - 代わりに generateStepLine を map 関数で呼び出しているやつがいるのでその後で join("\n")にする
+- formatRow の見た目を改善
+  - 不自然な改行でわかりづらい
+- configLoader.ts の 

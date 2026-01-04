@@ -17,12 +17,11 @@ import {
   ProcessedStats,
 } from "./types";
 import { Logger } from "../../utils/logger";
-import { FILE_PATHS } from "../../constants";
 import { getLineGraph, getStackedAreaGraph } from "./chartGenerator";
 
 const logger = new Logger();
 
-const STATS_DATA_FILE = path.join(__dirname, "../", FILE_PATHS.STATS_DATA);
+const STATS_DATA_FILE = path.join(__dirname, "../", "stats-data.json");
 
 interface StatsData {
   cpu: CPUStats[];

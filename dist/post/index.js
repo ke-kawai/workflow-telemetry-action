@@ -32376,69 +32376,6 @@ const stepTracer = new StepTracer(logger$4, chartGenerator$1, reportFormatter$1)
 const finish$2 = (currentJob) => stepTracer.finish(currentJob);
 const report$2 = (currentJob) => stepTracer.report(currentJob);
 
-/**
- * HTTP Server Configuration
- */
-/**
- * Process Tracing Configuration
- */
-const PROCESS_TRACE = {
-    /** Process collection interval in milliseconds */
-    COLLECTION_INTERVAL_MS: 1000,
-    /** Default maximum number of processes to show in chart */
-    DEFAULT_CHART_MAX_COUNT: 100,
-    /** GitHub Actions file path prefix (Linux/Ubuntu specific) */
-    GHA_FILE_PREFIX: "/home/runner/work/_actions/",
-};
-/**
- * GitHub API Configuration
- */
-const GITHUB_API = {
-    /** Number of items per page for pagination */
-    PAGE_SIZE: 100,
-    /** Maximum number of retries for getting current job */
-    CURRENT_JOB_RETRY_COUNT: 10,
-    /** Retry interval in milliseconds */
-    CURRENT_JOB_RETRY_INTERVAL_MS: 1000,
-};
-/**
- * QuickChart Configuration
- */
-const QUICKCHART = {
-    /** QuickChart.io API endpoint */
-    API_URL: "https://quickchart.io/chart/create",
-    /** Chart width in pixels */
-    CHART_WIDTH: 800,
-    /** Chart height in pixels */
-    CHART_HEIGHT: 400,
-    /** Request timeout in milliseconds */
-    REQUEST_TIMEOUT_MS: 10000,
-};
-/**
- * Theme Configuration
- */
-const THEME = {
-    LIGHT: {
-        AXIS_COLOR: "#000000",
-        BACKGROUND_COLOR: "white",
-    },
-    DARK: {
-        AXIS_COLOR: "#FFFFFF",
-        BACKGROUND_COLOR: "#0d1117",
-    },
-};
-/**
- * File Paths
- */
-const FILE_PATHS = {
-    /** Process tracer state file */
-    PROC_TRACER_STATE: ".proc-tracer-started",
-    /** Process tracer data file */
-    PROC_TRACER_DATA: "proc-tracer-data.json",
-    /** Stats collector data file */
-    STATS_DATA: "stats-data.json",
-};
-
 const logger$3 = new Logger();
 /**
  * Chart Generator using QuickChart.io API
@@ -32446,16 +32383,13 @@ const logger$3 = new Logger();
  * Free tier: https://quickchart.io
  * GitHub: https://github.com/typpo/quickchart
  */
-const THEME_TO_CONFIG = {
-    light: {
-        axisColor: THEME.LIGHT.AXIS_COLOR,
-        backgroundColor: THEME.LIGHT.BACKGROUND_COLOR,
-    },
-    dark: {
-        axisColor: THEME.DARK.AXIS_COLOR,
-        backgroundColor: THEME.DARK.BACKGROUND_COLOR,
-    },
-};
+const QUICKCHART_API_URL = "https://quickchart.io/chart/create";
+const CHART_WIDTH = 800;
+const CHART_HEIGHT = 400;
+const THEMES = [
+    { name: "light", axisColor: "#000000", backgroundColor: "white" },
+    { name: "dark", axisColor: "#FFFFFF", backgroundColor: "#0d1117" },
+];
 function generatePictureHTML(themeToURLMap, label) {
     const sources = Array.from(themeToURLMap.entries())
         .map(([theme, url]) => `<source media="(prefers-color-scheme: ${theme})" srcset="${url}">`)
@@ -32466,7 +32400,7 @@ function generatePictureHTML(themeToURLMap, label) {
 ///////////////////////////
 // Common chart configuration helpers
 ///////////////////////////
-function createTimeScaleConfig(config) {
+function createTimeScaleConfig(theme) {
     return {
         type: "time",
         time: {
@@ -32481,43 +32415,43 @@ function createTimeScaleConfig(config) {
         scaleLabel: {
             display: true,
             labelString: "Time",
-            fontColor: config.axisColor,
+            fontColor: theme.axisColor,
         },
         ticks: {
-            fontColor: config.axisColor,
+            fontColor: theme.axisColor,
         },
     };
 }
-function createYAxisConfig(config, label, stacked = false) {
+function createYAxisConfig(theme, label, stacked = false) {
     return {
         stacked,
         scaleLabel: {
             display: true,
             labelString: label,
-            fontColor: config.axisColor,
+            fontColor: theme.axisColor,
         },
         ticks: {
-            fontColor: config.axisColor,
+            fontColor: theme.axisColor,
             beginAtZero: true,
         },
     };
 }
-function createLegendConfig(config) {
+function createLegendConfig(theme) {
     return {
         labels: {
-            fontColor: config.axisColor,
+            fontColor: theme.axisColor,
         },
     };
 }
-async function createChartFromConfig(theme, config, chartConfig, errorLabel) {
+async function createChartFromConfig(theme, chartConfig, errorLabel) {
     const payload = {
-        width: QUICKCHART.CHART_WIDTH,
-        height: QUICKCHART.CHART_HEIGHT,
-        backgroundColor: config.backgroundColor,
+        width: CHART_WIDTH,
+        height: CHART_HEIGHT,
+        backgroundColor: theme.backgroundColor,
         chart: chartConfig,
     };
     try {
-        const response = await fetch(QUICKCHART.API_URL, {
+        const response = await fetch(QUICKCHART_API_URL, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -32530,7 +32464,7 @@ async function createChartFromConfig(theme, config, chartConfig, errorLabel) {
         }
     }
     catch (error) {
-        logger$3.error(error, `${errorLabel} ${theme} ${JSON.stringify(payload)}`);
+        logger$3.error(error, `${errorLabel} ${theme.name} ${JSON.stringify(payload)}`);
     }
     return null;
 }
@@ -32541,8 +32475,7 @@ async function createChartFromConfig(theme, config, chartConfig, errorLabel) {
  */
 async function getLineGraph(options) {
     const themeToURLMap = new Map();
-    await Promise.all(Object.keys(THEME_TO_CONFIG).map(async (theme) => {
-        const config = THEME_TO_CONFIG[theme];
+    await Promise.all(THEMES.map(async (theme) => {
         const chartConfig = {
             type: "line",
             data: {
@@ -32559,15 +32492,15 @@ async function getLineGraph(options) {
             },
             options: {
                 scales: {
-                    xAxes: [createTimeScaleConfig(config)],
-                    yAxes: [createYAxisConfig(config, options.label)],
+                    xAxes: [createTimeScaleConfig(theme)],
+                    yAxes: [createYAxisConfig(theme, options.label)],
                 },
-                legend: createLegendConfig(config),
+                legend: createLegendConfig(theme),
             },
         };
-        const url = await createChartFromConfig(theme, config, chartConfig, "getLineGraph");
+        const url = await createChartFromConfig(theme, chartConfig, "getLineGraph");
         if (url) {
-            themeToURLMap.set(theme, url);
+            themeToURLMap.set(theme.name, url);
         }
     }));
     return generatePictureHTML(themeToURLMap, options.label);
@@ -32578,8 +32511,7 @@ async function getLineGraph(options) {
  */
 async function getStackedAreaGraph(options) {
     const themeToURLMap = new Map();
-    await Promise.all(Object.keys(THEME_TO_CONFIG).map(async (theme) => {
-        const config = THEME_TO_CONFIG[theme];
+    await Promise.all(THEMES.map(async (theme) => {
         const datasets = options.areas.map((area, index) => ({
             label: area.label,
             data: area.points,
@@ -32595,22 +32527,22 @@ async function getStackedAreaGraph(options) {
             },
             options: {
                 scales: {
-                    xAxes: [createTimeScaleConfig(config)],
-                    yAxes: [createYAxisConfig(config, options.label, true)],
+                    xAxes: [createTimeScaleConfig(theme)],
+                    yAxes: [createYAxisConfig(theme, options.label, true)],
                 },
-                legend: createLegendConfig(config),
+                legend: createLegendConfig(theme),
             },
         };
-        const url = await createChartFromConfig(theme, config, chartConfig, "getStackedAreaGraph");
+        const url = await createChartFromConfig(theme, chartConfig, "getStackedAreaGraph");
         if (url) {
-            themeToURLMap.set(theme, url);
+            themeToURLMap.set(theme.name, url);
         }
     }));
     return generatePictureHTML(themeToURLMap, options.label);
 }
 
 const logger$2 = new Logger();
-const STATS_DATA_FILE = path.join(__dirname, "../", FILE_PATHS.STATS_DATA);
+const STATS_DATA_FILE = path.join(__dirname, "../", "stats-data.json");
 function loadStatsData() {
     try {
         if (require$$1.existsSync(STATS_DATA_FILE)) {
@@ -52652,7 +52584,7 @@ function requireLib () {
 var libExports = requireLib();
 var si = /*@__PURE__*/getDefaultExportFromCjs(libExports);
 
-const GHA_FILE_NAME_PREFIX = PROCESS_TRACE.GHA_FILE_PREFIX;
+const GHA_FILE_NAME_PREFIX = "/home/runner/work/_actions/";
 class ProcessChartGenerator {
     generateGanttHeader(jobName) {
         const lines = [
@@ -52762,7 +52694,7 @@ class ProcessReportFormatter {
     }
 }
 
-const PROC_TRACER_DATA_FILE = path.join(__dirname, "../", FILE_PATHS.PROC_TRACER_DATA);
+const PROC_TRACER_DATA_FILE = path.join(__dirname, "../", "proc-tracer-data.json");
 class ProcessDataRepository {
     constructor(logger) {
         this.logger = logger;
@@ -52792,7 +52724,7 @@ class ProcessDataRepository {
     }
 }
 
-const DEFAULT_PROC_TRACE_CHART_MAX_COUNT = PROCESS_TRACE.DEFAULT_CHART_MAX_COUNT;
+const DEFAULT_PROC_TRACE_CHART_MAX_COUNT = 100;
 function loadProcessTracerConfig() {
     let minDuration = -1;
     const procTraceMinDurationInput = coreExports.getInput("proc_trace_min_duration");
@@ -52811,8 +52743,8 @@ function loadProcessTracerConfig() {
     return { minDuration, chartShow, chartMaxCount, tableShow };
 }
 
-const PROC_TRACER_STATE_FILE = path.join(__dirname, "../", FILE_PATHS.PROC_TRACER_STATE);
-const COLLECTION_INTERVAL_MS = PROCESS_TRACE.COLLECTION_INTERVAL_MS;
+const PROC_TRACER_STATE_FILE = path.join(__dirname, "../", ".proc-tracer-started");
+const COLLECTION_INTERVAL_MS = 1000;
 class ProcessTracer {
     constructor(logger, chartGenerator, tableGenerator, reportFormatter, config, dataRepository) {
         this.logger = logger;
@@ -52989,9 +52921,11 @@ const finish = (currentJob) => processTracer.finish(currentJob);
 const report = (currentJob) => processTracer.report(currentJob);
 
 const logger = new Logger();
+const PAGE_SIZE = 100;
+const CURRENT_JOB_RETRY_COUNT = 10;
+const CURRENT_JOB_RETRY_INTERVAL_MS = 1000;
 const { pull_request } = githubExports.context.payload;
 const { workflow, job, repo, runId, sha } = githubExports.context;
-const PAGE_SIZE = GITHUB_API.PAGE_SIZE;
 const token = coreExports.getInput("github_token");
 const octokit = githubExports.getOctokit(token);
 async function fetchJobPage(page) {
@@ -53026,12 +52960,12 @@ async function findCurrentJob() {
 }
 async function getCurrentJob() {
     try {
-        for (let i = 0; i < GITHUB_API.CURRENT_JOB_RETRY_COUNT; i++) {
+        for (let i = 0; i < CURRENT_JOB_RETRY_COUNT; i++) {
             const currentJob = await findCurrentJob();
             if (currentJob && currentJob.id) {
                 return currentJob;
             }
-            await new Promise((r) => setTimeout(r, GITHUB_API.CURRENT_JOB_RETRY_INTERVAL_MS));
+            await new Promise((r) => setTimeout(r, CURRENT_JOB_RETRY_INTERVAL_MS));
         }
     }
     catch (error) {

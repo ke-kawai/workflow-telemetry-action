@@ -27619,34 +27619,8 @@ const reportFormatter$1 = new StepReportFormatter();
 const stepTracer = new StepTracer(logger$3, chartGenerator$1, reportFormatter$1);
 const start$2 = () => stepTracer.start();
 
-/**
- * HTTP Server Configuration
- */
-/**
- * Process Tracing Configuration
- */
-const PROCESS_TRACE = {
-    /** Process collection interval in milliseconds */
-    COLLECTION_INTERVAL_MS: 1000,
-    /** Default maximum number of processes to show in chart */
-    DEFAULT_CHART_MAX_COUNT: 100,
-    /** GitHub Actions file path prefix (Linux/Ubuntu specific) */
-    GHA_FILE_PREFIX: "/home/runner/work/_actions/",
-};
-/**
- * File Paths
- */
-const FILE_PATHS = {
-    /** Process tracer state file */
-    PROC_TRACER_STATE: ".proc-tracer-started",
-    /** Process tracer data file */
-    PROC_TRACER_DATA: "proc-tracer-data.json",
-    /** Stats collector data file */
-    STATS_DATA: "stats-data.json",
-};
-
 const logger$2 = new Logger();
-path.join(__dirname, "../", FILE_PATHS.STATS_DATA);
+path.join(__dirname, "../", "stats-data.json");
 async function start$1() {
     logger$2.info(`Starting stat collector ...`);
     try {
@@ -47443,7 +47417,7 @@ function requireLib () {
 var libExports = requireLib();
 var si = /*@__PURE__*/getDefaultExportFromCjs(libExports);
 
-const GHA_FILE_NAME_PREFIX = PROCESS_TRACE.GHA_FILE_PREFIX;
+const GHA_FILE_NAME_PREFIX = "/home/runner/work/_actions/";
 class ProcessChartGenerator {
     generateGanttHeader(jobName) {
         const lines = [
@@ -47553,7 +47527,7 @@ class ProcessReportFormatter {
     }
 }
 
-const PROC_TRACER_DATA_FILE = path.join(__dirname, "../", FILE_PATHS.PROC_TRACER_DATA);
+const PROC_TRACER_DATA_FILE = path.join(__dirname, "../", "proc-tracer-data.json");
 class ProcessDataRepository {
     constructor(logger) {
         this.logger = logger;
@@ -47583,7 +47557,7 @@ class ProcessDataRepository {
     }
 }
 
-const DEFAULT_PROC_TRACE_CHART_MAX_COUNT = PROCESS_TRACE.DEFAULT_CHART_MAX_COUNT;
+const DEFAULT_PROC_TRACE_CHART_MAX_COUNT = 100;
 function loadProcessTracerConfig() {
     let minDuration = -1;
     const procTraceMinDurationInput = coreExports.getInput("proc_trace_min_duration");
@@ -47602,8 +47576,8 @@ function loadProcessTracerConfig() {
     return { minDuration, chartShow, chartMaxCount, tableShow };
 }
 
-const PROC_TRACER_STATE_FILE = path.join(__dirname, "../", FILE_PATHS.PROC_TRACER_STATE);
-const COLLECTION_INTERVAL_MS = PROCESS_TRACE.COLLECTION_INTERVAL_MS;
+const PROC_TRACER_STATE_FILE = path.join(__dirname, "../", ".proc-tracer-started");
+const COLLECTION_INTERVAL_MS = 1000;
 class ProcessTracer {
     constructor(logger, chartGenerator, tableGenerator, reportFormatter, config, dataRepository) {
         this.logger = logger;

@@ -16,13 +16,15 @@ export class ProcessTableGenerator {
     maxMem: string | number,
     commandParams: string
   ): string {
-    return `${padEnd(name, 16)} ${padStart(pid, 7)} ${padStart(
-      startTime,
-      15
-    )} ${padStart(duration, 15)} ${padStart(
-      maxCpu,
-      10
-    )} ${padStart(maxMem, 10)} ${padEnd(commandParams, 40)}`;
+    return `
+      ${padEnd(name, 16)}
+      ${padStart(pid, 7)}
+      ${padStart(startTime, 15)}
+      ${padStart(duration, 15)}
+      ${padStart(maxCpu, 10)}
+      ${padStart(maxMem, 10)}
+      ${padEnd(commandParams, 40)}
+    `;
   }
 
   private formatHeader(): string {
