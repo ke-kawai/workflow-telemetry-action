@@ -3,7 +3,6 @@ import fs from "fs";
 import si from "systeminformation";
 import { WorkflowJobType } from "../../interfaces";
 import { Logger } from "../../utils/logger";
-import { PROCESS_TRACE, FILE_PATHS } from "../../constants";
 import { ProcessChartGenerator } from "./processChartGenerator";
 import { ProcessTableGenerator } from "./processTableGenerator";
 import { ProcessReportFormatter } from "./processReportFormatter";
@@ -11,8 +10,8 @@ import { ProcessDataRepository } from "./processDataRepository";
 import { loadProcessTracerConfig } from "./configLoader";
 import { TrackedProcess, CompletedProcess, ProcessTracerConfig } from "./types";
 
-const PROC_TRACER_STATE_FILE = path.join(__dirname, "../", FILE_PATHS.PROC_TRACER_STATE);
-const COLLECTION_INTERVAL_MS = PROCESS_TRACE.COLLECTION_INTERVAL_MS;
+const PROC_TRACER_STATE_FILE = path.join(__dirname, "../", ".proc-tracer-started");
+const COLLECTION_INTERVAL_MS = 1000;
 
 class ProcessTracer {
   private collectionInterval: NodeJS.Timeout | null = null;

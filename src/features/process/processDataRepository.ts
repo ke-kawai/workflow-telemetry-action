@@ -2,9 +2,8 @@ import path from "path";
 import fs from "fs";
 import { Logger } from "../../utils/logger";
 import { TrackedProcess, CompletedProcess } from "./types";
-import { FILE_PATHS } from "../../constants";
 
-const PROC_TRACER_DATA_FILE = path.join(__dirname, "../", FILE_PATHS.PROC_TRACER_DATA);
+const PROC_TRACER_DATA_FILE = path.join(__dirname, "../", "proc-tracer-data.json");
 
 interface ProcessData {
   completed: CompletedProcess[];

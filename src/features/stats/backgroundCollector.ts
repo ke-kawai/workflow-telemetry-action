@@ -9,15 +9,15 @@ import {
   NetworkStats,
   DiskSizeStats,
 } from "./types";
-import { STATS_COLLECTION, FILE_PATHS } from "../../constants";
 
 const logger = new Logger();
 
+const DEFAULT_FREQUENCY_MS = 5000;
 const STATS_FREQ: number =
   parseInt(process.env.WORKFLOW_TELEMETRY_STAT_FREQ || "") ||
-  STATS_COLLECTION.DEFAULT_FREQUENCY_MS;
+  DEFAULT_FREQUENCY_MS;
 
-const STATS_DATA_FILE = path.join(__dirname, "../", FILE_PATHS.STATS_DATA);
+const STATS_DATA_FILE = path.join(__dirname, "../", "stats-data.json");
 
 interface StatsCollector<T, D> {
   histogram: T[];

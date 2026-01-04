@@ -4,7 +4,6 @@ import {
   LineGraphOptions,
   StackedAreaGraphOptions,
 } from "./types";
-import { QUICKCHART, THEME } from "../../constants";
 
 const logger = new Logger();
 
@@ -15,23 +14,16 @@ const logger = new Logger();
  * GitHub: https://github.com/typpo/quickchart
  */
 
-const THEME_TO_CONFIG = {
-  light: {
-    axisColor: THEME.LIGHT.AXIS_COLOR,
-    backgroundColor: THEME.LIGHT.BACKGROUND_COLOR,
-  },
-  dark: {
-    axisColor: THEME.DARK.AXIS_COLOR,
-    backgroundColor: THEME.DARK.BACKGROUND_COLOR,
-  },
-};
+const QUICKCHART_API_URL = "https://quickchart.io/chart/create";
+const CHART_WIDTH = 800;
+const CHART_HEIGHT = 400;
 
-type Theme = keyof typeof THEME_TO_CONFIG;
+const THEMES = [
+  { name: "light", axisColor: "#000000", backgroundColor: "white" },
+  { name: "dark", axisColor: "#FFFFFF", backgroundColor: "#0d1117" },
+] as const;
 
-interface ThemeConfig {
-  axisColor: string;
-  backgroundColor: string;
-}
+type Theme = typeof THEMES[number]["name"];
 
 function generatePictureHTML(
   themeToURLMap: Map<Theme, string>,
@@ -52,7 +44,7 @@ function generatePictureHTML(
 // Common chart configuration helpers
 ///////////////////////////
 
-function createTimeScaleConfig(config: ThemeConfig) {
+function createTimeScaleConfig(theme: typeof THEMES[number]) {
   return {
     type: "time",
     time: {
@@ -67,16 +59,16 @@ function createTimeScaleConfig(config: ThemeConfig) {
     scaleLabel: {
       display: true,
       labelString: "Time",
-      fontColor: config.axisColor,
+      fontColor: theme.axisColor,
     },
     ticks: {
-      fontColor: config.axisColor,
+      fontColor: theme.axisColor,
     },
   };
 }
 
 function createYAxisConfig(
-  config: ThemeConfig,
+  theme: typeof THEMES[number],
   label: string,
   stacked: boolean = false
 ) {
@@ -85,38 +77,37 @@ function createYAxisConfig(
     scaleLabel: {
       display: true,
       labelString: label,
-      fontColor: config.axisColor,
+      fontColor: theme.axisColor,
     },
     ticks: {
-      fontColor: config.axisColor,
+      fontColor: theme.axisColor,
       beginAtZero: true,
     },
   };
 }
 
-function createLegendConfig(config: ThemeConfig) {
+function createLegendConfig(theme: typeof THEMES[number]) {
   return {
     labels: {
-      fontColor: config.axisColor,
+      fontColor: theme.axisColor,
     },
   };
 }
 
 async function createChartFromConfig(
-  theme: Theme,
-  config: ThemeConfig,
+  theme: typeof THEMES[number],
   chartConfig: any,
   errorLabel: string
 ): Promise<string | null> {
   const payload = {
-    width: QUICKCHART.CHART_WIDTH,
-    height: QUICKCHART.CHART_HEIGHT,
-    backgroundColor: config.backgroundColor,
+    width: CHART_WIDTH,
+    height: CHART_HEIGHT,
+    backgroundColor: theme.backgroundColor,
     chart: chartConfig,
   };
 
   try {
-    const response = await fetch(QUICKCHART.API_URL, {
+    const response = await fetch(QUICKCHART_API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -128,7 +119,7 @@ async function createChartFromConfig(
       return data.url;
     }
   } catch (error: unknown) {
-    logger.error(error, `${errorLabel} ${theme} ${JSON.stringify(payload)}`);
+    logger.error(error, `${errorLabel} ${theme.name} ${JSON.stringify(payload)}`);
   }
   return null;
 }
@@ -143,8 +134,7 @@ export async function getLineGraph(options: LineGraphOptions): Promise<string> {
   const themeToURLMap = new Map<Theme, string>();
 
   await Promise.all(
-    (Object.keys(THEME_TO_CONFIG) as Theme[]).map(async (theme) => {
-      const config = THEME_TO_CONFIG[theme];
+    THEMES.map(async (theme) => {
       const chartConfig = {
         type: "line",
         data: {
@@ -161,21 +151,20 @@ export async function getLineGraph(options: LineGraphOptions): Promise<string> {
         },
         options: {
           scales: {
-            xAxes: [createTimeScaleConfig(config)],
-            yAxes: [createYAxisConfig(config, options.label)],
+            xAxes: [createTimeScaleConfig(theme)],
+            yAxes: [createYAxisConfig(theme, options.label)],
           },
-          legend: createLegendConfig(config),
+          legend: createLegendConfig(theme),
         },
       };
 
       const url = await createChartFromConfig(
         theme,
-        config,
         chartConfig,
         "getLineGraph"
       );
       if (url) {
-        themeToURLMap.set(theme, url);
+        themeToURLMap.set(theme.name, url);
       }
     })
   );
@@ -193,8 +182,7 @@ export async function getStackedAreaGraph(
   const themeToURLMap = new Map<Theme, string>();
 
   await Promise.all(
-    (Object.keys(THEME_TO_CONFIG) as Theme[]).map(async (theme) => {
-      const config = THEME_TO_CONFIG[theme];
+    THEMES.map(async (theme) => {
       const datasets = options.areas.map((area, index) => ({
         label: area.label,
         data: area.points,
@@ -211,21 +199,20 @@ export async function getStackedAreaGraph(
         },
         options: {
           scales: {
-            xAxes: [createTimeScaleConfig(config)],
-            yAxes: [createYAxisConfig(config, options.label, true)],
+            xAxes: [createTimeScaleConfig(theme)],
+            yAxes: [createYAxisConfig(theme, options.label, true)],
           },
-          legend: createLegendConfig(config),
+          legend: createLegendConfig(theme),
         },
       };
 
       const url = await createChartFromConfig(
         theme,
-        config,
         chartConfig,
         "getStackedAreaGraph"
       );
       if (url) {
-        themeToURLMap.set(theme, url);
+        themeToURLMap.set(theme.name, url);
       }
     })
   );

@@ -47280,27 +47280,11 @@ class Logger {
     }
 }
 
-/**
- * HTTP Server Configuration
- */
-/**
- * Stats Collection Configuration
- */
-const STATS_COLLECTION = {
-    /** Default stats collection frequency in milliseconds */
-    DEFAULT_FREQUENCY_MS: 5000};
-/**
- * File Paths
- */
-const FILE_PATHS = {
-    /** Stats collector data file */
-    STATS_DATA: "stats-data.json",
-};
-
 const logger = new Logger();
+const DEFAULT_FREQUENCY_MS = 5000;
 const STATS_FREQ = parseInt(process.env.WORKFLOW_TELEMETRY_STAT_FREQ || "") ||
-    STATS_COLLECTION.DEFAULT_FREQUENCY_MS;
-const STATS_DATA_FILE = require$$1$2.join(__dirname, "../", FILE_PATHS.STATS_DATA);
+    DEFAULT_FREQUENCY_MS;
+const STATS_DATA_FILE = require$$1$2.join(__dirname, "../", "stats-data.json");
 class StatsBackgroundCollector {
     constructor() {
         this.expectedScheduleTime = 0;

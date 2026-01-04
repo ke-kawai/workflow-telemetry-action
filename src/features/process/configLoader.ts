@@ -1,13 +1,12 @@
 import * as core from "@actions/core";
 import { ProcessTracerConfig } from "./types";
-import { PROCESS_TRACE } from "../../constants";
 
-const DEFAULT_PROC_TRACE_CHART_MAX_COUNT = PROCESS_TRACE.DEFAULT_CHART_MAX_COUNT;
+const DEFAULT_PROC_TRACE_CHART_MAX_COUNT = 100;
 
 export function loadProcessTracerConfig(): ProcessTracerConfig {
   let minDuration = -1;
   const procTraceMinDurationInput: string = core.getInput(
-    "proc_trace_min_duration"
+    "proc_trace_min_duration",
   );
   if (procTraceMinDurationInput) {
     const minProcDurationVal: number = parseInt(procTraceMinDurationInput);
@@ -15,10 +14,9 @@ export function loadProcessTracerConfig(): ProcessTracerConfig {
       minDuration = minProcDurationVal;
     }
   }
-
   const chartShow: boolean = core.getInput("proc_trace_chart_show") === "true";
   const procTraceChartMaxCountInput: number = parseInt(
-    core.getInput("proc_trace_chart_max_count")
+    core.getInput("proc_trace_chart_max_count"),
   );
   const chartMaxCount = Number.isInteger(procTraceChartMaxCountInput)
     ? procTraceChartMaxCountInput

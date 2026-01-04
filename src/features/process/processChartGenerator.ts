@@ -1,7 +1,6 @@
-import { PROCESS_TRACE } from "../../constants";
 import { CompletedProcess, ProcessTracerConfig } from "./types";
 
-const GHA_FILE_NAME_PREFIX = PROCESS_TRACE.GHA_FILE_PREFIX;
+const GHA_FILE_NAME_PREFIX = "/home/runner/work/_actions/";
 
 export class ProcessChartGenerator {
   private generateGanttHeader(jobName: string): string {
