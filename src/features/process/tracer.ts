@@ -3,10 +3,10 @@ import fs from "fs";
 import { ChildProcess, spawn } from "child_process";
 import { WorkflowJobType } from "../../interfaces";
 import { Logger } from "../../utils/logger";
-import { ProcessChartGenerator } from "./processChartGenerator";
-import { ProcessTableGenerator } from "./processTableGenerator";
-import { ProcessReportFormatter } from "./processReportFormatter";
-import { ProcessDataRepository } from "./processDataRepository";
+import { ProcessChartGenerator } from "./chartGenerator";
+import { ProcessTableGenerator } from "./tableGenerator";
+import { ProcessReportFormatter } from "./reportFormatter";
+import { ProcessDataRepository } from "./dataRepository";
 import { ProcessTracerConfig } from "../../config/types";
 import { CompletedProcess } from "./types";
 

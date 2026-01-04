@@ -12,8 +12,8 @@ import {
 import { Logger } from "../../utils/logger";
 import { StatsChartGenerator } from "./chartGenerator";
 import { StatsCollectorConfig } from "../../config/types";
-import { StatsDataRepository, StatsData } from "./statsDataRepository";
-import { MetricCharts, StatsReportFormatter } from "./statsReportFormatter";
+import { StatsDataRepository, StatsData } from "./dataRepository";
+import { MetricCharts, StatsReportFormatter } from "./reportFormatter";
 
 interface AllStats {
   cpu: ProcessedCPUStats;

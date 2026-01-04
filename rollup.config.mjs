@@ -50,7 +50,7 @@ export default [
     ]
   },
   {
-    input: 'src/features/process/processBackgroundTracer.ts',
+    input: 'src/features/process/backgroundTracer.ts',
     output: {
       file: 'dist/pcw/index.js',
       format: 'cjs',

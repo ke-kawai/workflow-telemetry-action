@@ -1,7 +1,7 @@
 import { WorkflowJobType } from "../../interfaces";
 import { Logger } from "../../utils/logger";
-import { StepChartGenerator } from "./stepChartGenerator";
-import { StepReportFormatter } from "./stepReportFormatter";
+import { StepChartGenerator } from "./chartGenerator";
+import { StepReportFormatter } from "./reportFormatter";
 
 class StepTracer {
   constructor(
