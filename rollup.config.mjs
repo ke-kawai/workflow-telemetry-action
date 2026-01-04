@@ -48,5 +48,20 @@ export default [
       commonjs(),
       json()
     ]
+  },
+  {
+    input: 'src/features/process/processBackgroundTracer.ts',
+    output: {
+      file: 'dist/pcw/index.js',
+      format: 'cjs',
+      sourcemap: true,
+      inlineDynamicImports: true
+    },
+    plugins: [
+      typescript({ tsconfig: './tsconfig.json' }),
+      resolve({ preferBuiltins: true }),
+      commonjs(),
+      json()
+    ]
   }
 ]

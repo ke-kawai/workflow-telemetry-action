@@ -1,6 +1,6 @@
 import path from "path";
 import fs from "fs";
-import si from "systeminformation";
+import { ChildProcess, spawn } from "child_process";
 import { WorkflowJobType } from "../../interfaces";
 import { Logger } from "../../utils/logger";
 import { ProcessChartGenerator } from "./processChartGenerator";
@@ -8,14 +8,11 @@ import { ProcessTableGenerator } from "./processTableGenerator";
 import { ProcessReportFormatter } from "./processReportFormatter";
 import { ProcessDataRepository } from "./processDataRepository";
 import { ProcessTracerConfig } from "../../config/types";
-import { TrackedProcess, CompletedProcess } from "./types";
+import { CompletedProcess } from "./types";
 
 const PROC_TRACER_STATE_FILE = path.join(__dirname, "../", ".proc-tracer-started");
-const COLLECTION_INTERVAL_MS = 1000;
 
 class ProcessTracer {
-  private collectionInterval: NodeJS.Timeout | null = null;
-  private trackedProcesses = new Map<number, TrackedProcess>();
   private completedProcesses: CompletedProcess[] = [];
 
   constructor(
@@ -27,73 +24,9 @@ class ProcessTracer {
     private dataRepository: ProcessDataRepository
   ) { }
 
-  private async collectProcesses(): Promise<void> {
-    try {
-      const processes = await si.processes();
-      const currentPids = new Set<number>();
-      const now = Date.now();
-
-      // Update tracked processes
-      for (const proc of processes.list) {
-        if (!proc.pid) continue;
-
-        currentPids.add(proc.pid);
-
-        if (this.trackedProcesses.has(proc.pid)) {
-          // Update existing process
-          const tracked = this.trackedProcesses.get(proc.pid)!;
-          tracked.pcpu = Math.max(tracked.pcpu, proc.cpu || 0);
-          tracked.pmem = Math.max(tracked.pmem, proc.mem || 0);
-        } else {
-          // New process
-          this.trackedProcesses.set(proc.pid, {
-            pid: proc.pid,
-            name: proc.name || "unknown",
-            command: proc.command || "",
-            params: proc.params || "",
-            started: proc.started ? new Date(proc.started).getTime() : now,
-            pcpu: proc.cpu || 0,
-            pmem: proc.mem || 0,
-          });
-        }
-      }
-
-      // Find completed processes (no longer in current list)
-      for (const [pid, tracked] of this.trackedProcesses.entries()) {
-        if (!currentPids.has(pid)) {
-          this.completedProcesses.push({
-            pid: tracked.pid,
-            name: tracked.name,
-            command: tracked.command,
-            params: tracked.params,
-            started: tracked.started,
-            ended: now,
-            duration: now - tracked.started,
-            maxCpu: tracked.pcpu,
-            maxMem: tracked.pmem,
-          });
-          this.trackedProcesses.delete(pid);
-        }
-      }
-    } catch (error: unknown) {
-      this.logger.error(error, "Error collecting processes");
-    }
-  }
-
-  private saveData(): void {
-    const data = {
-      completed: this.completedProcesses,
-      tracked: Array.from(this.trackedProcesses.values()),
-    };
-    this.dataRepository.save(data);
-  }
-
   private loadData(): void {
     const data = this.dataRepository.load();
     this.completedProcesses = data.completed;
-    this.trackedProcesses = new Map(
-      data.tracked.map((p: TrackedProcess) => [p.pid, p])
-    );
   }
 
   async start(): Promise<boolean> {
@@ -102,19 +35,17 @@ class ProcessTracer {
     try {
       fs.writeFileSync(PROC_TRACER_STATE_FILE, Date.now().toString());
 
-      await this.collectProcesses();
-
-      this.collectionInterval = setInterval(async () => {
-        await this.collectProcesses();
-        this.saveData();
-      }, COLLECTION_INTERVAL_MS);
-
-      // Prevent the interval from keeping the process alive
-      this.collectionInterval.unref();
-
-      this.logger.info(
-        `Started process tracer with ${COLLECTION_INTERVAL_MS}ms interval`
+      const child: ChildProcess = spawn(
+        process.execPath,
+        [path.join(__dirname, "../pcw/index.js")],
+        {
+          detached: true,
+          stdio: "ignore",
+        }
       );
+      child.unref();
+
+      this.logger.info(`Started process tracer`);
 
       return true;
     } catch (error: unknown) {
@@ -129,39 +60,14 @@ class ProcessTracer {
 
     if (!fs.existsSync(PROC_TRACER_STATE_FILE)) {
       this.logger.info(
-        `Skipped finishing process tracer since process tracer didn't started`
+        `Skipped finishing process tracer since process tracer didn't start`
       );
       return false;
     }
 
     try {
-      // Stop collection interval
-      if (this.collectionInterval) {
-        clearInterval(this.collectionInterval);
-        this.collectionInterval = null;
-      }
-
-      // Final collection
-      await this.collectProcesses();
-
-      // Mark any remaining tracked processes as completed
-      const now = Date.now();
-      for (const [_pid, tracked] of this.trackedProcesses.entries()) {
-        this.completedProcesses.push({
-          pid: tracked.pid,
-          name: tracked.name,
-          command: tracked.command,
-          params: tracked.params,
-          started: tracked.started,
-          ended: now,
-          duration: now - tracked.started,
-          maxCpu: tracked.pcpu,
-          maxMem: tracked.pmem,
-        });
-      }
-      this.trackedProcesses.clear();
-
-      this.saveData();
+      // Note: No action needed for finish. The background tracer
+      // automatically saves process data periodically.
 
       this.logger.info(`Finished process tracer`);
 
