@@ -17,7 +17,6 @@ class ProcessTracer {
   private collectionInterval: NodeJS.Timeout | null = null;
   private trackedProcesses = new Map<number, TrackedProcess>();
   private completedProcesses: CompletedProcess[] = [];
-  private finished = false;
 
   constructor(
     private logger: Logger,
@@ -163,7 +162,6 @@ class ProcessTracer {
       this.trackedProcesses.clear();
 
       this.saveData();
-      this.finished = true;
 
       this.logger.info(`Finished process tracer`);
 
@@ -180,15 +178,20 @@ class ProcessTracer {
   ): Promise<string | null> {
     this.logger.info(`Reporting process tracer result ...`);
 
-    if (!this.finished) {
+    if (!fs.existsSync(PROC_TRACER_STATE_FILE)) {
       this.logger.info(
-        `Skipped reporting process tracer since process tracer didn't finished`
+        `Skipped reporting process tracer since process tracer didn't start`
       );
       return null;
     }
 
     try {
       this.loadData();
+
+      if (this.completedProcesses.length === 0) {
+        this.logger.info(`No process data to report`);
+        return null;
+      }
 
       this.logger.info(`Getting process tracer result from data file ...`);
 

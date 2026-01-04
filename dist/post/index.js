@@ -2,12 +2,12 @@
 
 var require$$0$1 = require('os');
 var require$$0$2 = require('crypto');
-var require$$1 = require('fs');
+var fs = require('fs');
 var path = require('path');
 var require$$2$1 = require('http');
-var require$$1$1 = require('https');
+var require$$1 = require('https');
 var require$$0$5 = require('net');
-var require$$1$2 = require('tls');
+var require$$1$1 = require('tls');
 var require$$4$1 = require('events');
 var require$$0$4 = require('assert');
 var require$$0$3 = require('util');
@@ -16,18 +16,18 @@ var require$$7 = require('buffer');
 var require$$8 = require('querystring');
 var require$$14 = require('stream/web');
 var require$$0$8 = require('node:stream');
-var require$$1$3 = require('node:util');
+var require$$1$2 = require('node:util');
 var require$$0$7 = require('node:events');
 var require$$0$9 = require('worker_threads');
 var require$$2$2 = require('perf_hooks');
 var require$$5 = require('util/types');
 var require$$4$2 = require('async_hooks');
-var require$$1$4 = require('console');
-var require$$1$5 = require('url');
+var require$$1$3 = require('console');
+var require$$1$4 = require('url');
 var require$$3$1 = require('zlib');
 var require$$6 = require('string_decoder');
 var require$$0$a = require('diagnostics_channel');
-var require$$1$6 = require('child_process');
+var require$$1$5 = require('child_process');
 var require$$6$1 = require('timers');
 
 var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
@@ -299,7 +299,7 @@ function requireFileCommand () {
 	// We use any as a valid input type
 	/* eslint-disable @typescript-eslint/no-explicit-any */
 	const crypto = __importStar(require$$0$2);
-	const fs = __importStar(require$$1);
+	const fs$1 = __importStar(fs);
 	const os = __importStar(require$$0$1);
 	const utils_1 = requireUtils$3();
 	function issueFileCommand(command, message) {
@@ -307,10 +307,10 @@ function requireFileCommand () {
 	    if (!filePath) {
 	        throw new Error(`Unable to find environment variable for file command ${command}`);
 	    }
-	    if (!fs.existsSync(filePath)) {
+	    if (!fs$1.existsSync(filePath)) {
 	        throw new Error(`Missing file at path: ${filePath}`);
 	    }
-	    fs.appendFileSync(filePath, `${(0, utils_1.toCommandValue)(message)}${os.EOL}`, {
+	    fs$1.appendFileSync(filePath, `${(0, utils_1.toCommandValue)(message)}${os.EOL}`, {
 	        encoding: 'utf8'
 	    });
 	}
@@ -446,9 +446,9 @@ var hasRequiredTunnel$1;
 function requireTunnel$1 () {
 	if (hasRequiredTunnel$1) return tunnel$1;
 	hasRequiredTunnel$1 = 1;
-	var tls = require$$1$2;
+	var tls = require$$1$1;
 	var http = require$$2$1;
-	var https = require$$1$1;
+	var https = require$$1;
 	var events = require$$4$1;
 	var util = require$$0$3;
 
@@ -1828,7 +1828,7 @@ function requireSbmh () {
 	 * by Hongli Lai at: https://github.com/FooBarWidget/boyer-moore-horspool
 	 */
 	const EventEmitter = require$$0$7.EventEmitter;
-	const inherits = require$$1$3.inherits;
+	const inherits = require$$1$2.inherits;
 
 	function SBMH (needle) {
 	  if (typeof needle === 'string') {
@@ -2037,7 +2037,7 @@ function requirePartStream () {
 	if (hasRequiredPartStream) return PartStream_1;
 	hasRequiredPartStream = 1;
 
-	const inherits = require$$1$3.inherits;
+	const inherits = require$$1$2.inherits;
 	const ReadableStream = require$$0$8.Readable;
 
 	function PartStream (opts) {
@@ -2083,7 +2083,7 @@ function requireHeaderParser () {
 	hasRequiredHeaderParser = 1;
 
 	const EventEmitter = require$$0$7.EventEmitter;
-	const inherits = require$$1$3.inherits;
+	const inherits = require$$1$2.inherits;
 	const getLimit = requireGetLimit();
 
 	const StreamSearch = requireSbmh();
@@ -2191,7 +2191,7 @@ function requireDicer () {
 	hasRequiredDicer = 1;
 
 	const WritableStream = require$$0$8.Writable;
-	const inherits = require$$1$3.inherits;
+	const inherits = require$$1$2.inherits;
 
 	const StreamSearch = requireSbmh();
 
@@ -2768,7 +2768,7 @@ function requireMultipart () {
 	//     -- this will require modifications to utils.parseParams
 
 	const { Readable } = require$$0$8;
-	const { inherits } = require$$1$3;
+	const { inherits } = require$$1$2;
 
 	const Dicer = requireDicer();
 
@@ -3334,7 +3334,7 @@ function requireMain () {
 	hasRequiredMain = 1;
 
 	const WritableStream = require$$0$8.Writable;
-	const { inherits } = require$$1$3;
+	const { inherits } = require$$1$2;
 	const Dicer = requireDicer();
 
 	const MultipartParser = requireMultipart();
@@ -8158,7 +8158,7 @@ function requireConnect () {
 	    let socket;
 	    if (protocol === 'https:') {
 	      if (!tls) {
-	        tls = require$$1$2;
+	        tls = require$$1$1;
 	      }
 	      servername = servername || options.servername || util.getServerName(host) || null;
 
@@ -14182,7 +14182,7 @@ function requirePendingInterceptorsFormatter () {
 	hasRequiredPendingInterceptorsFormatter = 1;
 
 	const { Transform } = require$$0$6;
-	const { Console } = require$$1$4;
+	const { Console } = require$$1$3;
 
 	/**
 	 * Gets the output of `console.table(…)` as a string.
@@ -14409,7 +14409,7 @@ function requireProxyAgent () {
 	hasRequiredProxyAgent = 1;
 
 	const { kProxy, kClose, kDestroy, kInterceptors } = requireSymbols$4();
-	const { URL } = require$$1$5;
+	const { URL } = require$$1$4;
 	const Agent = requireAgent();
 	const Pool = requirePool();
 	const DispatcherBase = requireDispatcherBase();
@@ -24474,7 +24474,7 @@ function requireLib$2 () {
 	lib$2.getProxyUrl = getProxyUrl;
 	lib$2.isHttps = isHttps;
 	const http = __importStar(require$$2$1);
-	const https = __importStar(require$$1$1);
+	const https = __importStar(require$$1);
 	const pm = __importStar(requireProxy$1());
 	const tunnel = __importStar(requireTunnel());
 	const undici_1 = requireUndici();
@@ -25348,7 +25348,7 @@ function requireSummary () {
 		Object.defineProperty(exports$1, "__esModule", { value: true });
 		exports$1.summary = exports$1.markdownSummary = exports$1.SUMMARY_DOCS_URL = exports$1.SUMMARY_ENV_VAR = void 0;
 		const os_1 = require$$0$1;
-		const fs_1 = require$$1;
+		const fs_1 = fs;
 		const { access, appendFile, writeFile } = fs_1.promises;
 		exports$1.SUMMARY_ENV_VAR = 'GITHUB_STEP_SUMMARY';
 		exports$1.SUMMARY_DOCS_URL = 'https://docs.github.com/actions/using-workflows/workflow-commands-for-github-actions#adding-a-job-summary';
@@ -25769,9 +25769,9 @@ function requireIoUtil () {
 		exports$1.isRooted = isRooted;
 		exports$1.tryGetExecutablePath = tryGetExecutablePath;
 		exports$1.getCmdPath = getCmdPath;
-		const fs = __importStar(require$$1);
+		const fs$1 = __importStar(fs);
 		const path$1 = __importStar(path);
-		_a = fs.promises
+		_a = fs$1.promises
 		// export const {open} = 'fs'
 		, exports$1.chmod = _a.chmod, exports$1.copyFile = _a.copyFile, exports$1.lstat = _a.lstat, exports$1.mkdir = _a.mkdir, exports$1.open = _a.open, exports$1.readdir = _a.readdir, exports$1.rename = _a.rename, exports$1.rm = _a.rm, exports$1.rmdir = _a.rmdir, exports$1.stat = _a.stat, exports$1.symlink = _a.symlink, exports$1.unlink = _a.unlink;
 		// export const {open} = 'fs'
@@ -25789,7 +25789,7 @@ function requireIoUtil () {
 		 */
 		function readlink(fsPath) {
 		    return __awaiter(this, void 0, void 0, function* () {
-		        const result = yield fs.promises.readlink(fsPath);
+		        const result = yield fs$1.promises.readlink(fsPath);
 		        // On Windows, restore Node 20 behavior: add trailing backslash to all results
 		        // since junctions on Windows are always directory links
 		        if (exports$1.IS_WINDOWS && !result.endsWith('\\')) {
@@ -25800,7 +25800,7 @@ function requireIoUtil () {
 		}
 		// See https://github.com/nodejs/node/blob/d0153aee367422d0858105abec186da4dff0a0c5/deps/uv/include/uv/win.h#L691
 		exports$1.UV_FS_O_EXLOCK = 0x10000000;
-		exports$1.READONLY = fs.constants.O_RDONLY;
+		exports$1.READONLY = fs$1.constants.O_RDONLY;
 		function exists(fsPath) {
 		    return __awaiter(this, void 0, void 0, function* () {
 		        try {
@@ -26316,7 +26316,7 @@ function requireToolrunner () {
 	toolrunner.argStringToArray = argStringToArray;
 	const os = __importStar(require$$0$1);
 	const events = __importStar(require$$4$1);
-	const child = __importStar(require$$1$6);
+	const child = __importStar(require$$1$5);
 	const path$1 = __importStar(path);
 	const io = __importStar(requireIo());
 	const ioUtil = __importStar(requireIoUtil());
@@ -27533,7 +27533,7 @@ function requireContext () {
 	hasRequiredContext = 1;
 	Object.defineProperty(context, "__esModule", { value: true });
 	context.Context = void 0;
-	const fs_1 = require$$1;
+	const fs_1 = fs;
 	const os_1 = require$$0$1;
 	class Context {
 	    /**
@@ -27740,7 +27740,7 @@ function requireLib$1 () {
 	Object.defineProperty(lib$1, "__esModule", { value: true });
 	lib$1.HttpClient = lib$1.isHttps = lib$1.HttpClientResponse = lib$1.HttpClientError = lib$1.getProxyUrl = lib$1.MediaTypes = lib$1.Headers = lib$1.HttpCodes = void 0;
 	const http = __importStar(require$$2$1);
-	const https = __importStar(require$$1$1);
+	const https = __importStar(require$$1);
 	const pm = __importStar(requireProxy());
 	const tunnel = __importStar(requireTunnel());
 	const undici_1 = requireUndici();
@@ -32548,8 +32548,8 @@ class StatsDataRepository {
     }
     load() {
         try {
-            if (require$$1.existsSync(STATS_DATA_FILE)) {
-                const data = JSON.parse(require$$1.readFileSync(STATS_DATA_FILE, "utf-8"));
+            if (fs.existsSync(STATS_DATA_FILE)) {
+                const data = JSON.parse(fs.readFileSync(STATS_DATA_FILE, "utf-8"));
                 this.logger.debug("Loaded stats data from file");
                 return data;
             }
@@ -32810,7 +32810,7 @@ class StatsCollector {
             if (config.metricFrequency) {
                 env.WORKFLOW_TELEMETRY_STAT_FREQ = `${config.metricFrequency}`;
             }
-            const child = require$$1$6.spawn(process.execPath, [path.join(__dirname, "../scw/index.js")], {
+            const child = require$$1$5.spawn(process.execPath, [path.join(__dirname, "../scw/index.js")], {
                 detached: true,
                 stdio: "ignore",
                 env,
@@ -32891,11 +32891,11 @@ function requireUtil () {
 	// ----------------------------------------------------------------------------------
 
 	const os = require$$0$1;
-	const fs = require$$1;
+	const fs$1 = fs;
 	const path$1 = path;
-	const spawn = require$$1$6.spawn;
-	const exec = require$$1$6.exec;
-	const execSync = require$$1$6.execSync;
+	const spawn = require$$1$5.spawn;
+	const exec = require$$1$5.exec;
+	const execSync = require$$1$5.execSync;
 	const util$1 = require$$0$3;
 
 	let _platform = process.platform;
@@ -33235,7 +33235,7 @@ function requireUtil () {
 	  _powerShell = 'powershell.exe';
 	  if (_windows) {
 	    const defaultPath = `${WINDIR}\\system32\\WindowsPowerShell\\v1.0\\powershell.exe`;
-	    if (fs.existsSync(defaultPath)) {
+	    if (fs$1.existsSync(defaultPath)) {
 	      _powerShell = defaultPath;
 	    }
 	  }
@@ -33244,7 +33244,7 @@ function requireUtil () {
 	function getWmic() {
 	  if (os.type() === 'Windows_NT' && !wmicPath) {
 	    wmicPath = WINDIR + '\\system32\\wbem\\wmic.exe';
-	    if (!fs.existsSync(wmicPath)) {
+	    if (!fs$1.existsSync(wmicPath)) {
 	      try {
 	        const wmicPathArray = execSync('WHERE WMIC', execOptsWin).toString().split('\r\n');
 	        if (wmicPathArray && wmicPathArray.length) {
@@ -33545,7 +33545,7 @@ function requireUtil () {
 	    cpuinfo = _rpi_cpuinfo;
 	  } else if (cpuinfo === undefined) {
 	    try {
-	      cpuinfo = fs.readFileSync('/proc/cpuinfo', { encoding: 'utf8' }).toString().split('\n');
+	      cpuinfo = fs$1.readFileSync('/proc/cpuinfo', { encoding: 'utf8' }).toString().split('\n');
 	      _rpi_cpuinfo = cpuinfo;
 	    } catch {
 	      return false;
@@ -33560,7 +33560,7 @@ function requireUtil () {
 	function isRaspbian() {
 	  let osrelease = [];
 	  try {
-	    osrelease = fs.readFileSync('/etc/os-release', { encoding: 'utf8' }).toString().split('\n');
+	    osrelease = fs$1.readFileSync('/etc/os-release', { encoding: 'utf8' }).toString().split('\n');
 	  } catch {
 	    return false;
 	  }
@@ -33580,9 +33580,9 @@ function requireUtil () {
 	}
 
 	function darwinXcodeExists() {
-	  const cmdLineToolsExists = fs.existsSync('/Library/Developer/CommandLineTools/usr/bin/');
-	  const xcodeAppExists = fs.existsSync('/Applications/Xcode.app/Contents/Developer/Tools');
-	  const xcodeExists = fs.existsSync('/Library/Developer/Xcode/');
+	  const cmdLineToolsExists = fs$1.existsSync('/Library/Developer/CommandLineTools/usr/bin/');
+	  const xcodeAppExists = fs$1.existsSync('/Applications/Xcode.app/Contents/Developer/Tools');
+	  const xcodeExists = fs$1.existsSync('/Library/Developer/Xcode/');
 	  return cmdLineToolsExists || xcodeExists || xcodeAppExists;
 	}
 
@@ -33743,8 +33743,8 @@ function requireUtil () {
 	}
 
 	function getFilesInPath(source) {
-	  const lstatSync = fs.lstatSync;
-	  const readdirSync = fs.readdirSync;
+	  const lstatSync = fs$1.lstatSync;
+	  const readdirSync = fs$1.readdirSync;
 	  const join = path$1.join;
 
 	  function isDirectory(source) {
@@ -33785,7 +33785,7 @@ function requireUtil () {
 	    }
 	  }
 
-	  if (fs.existsSync(source)) {
+	  if (fs$1.existsSync(source)) {
 	    return getFilesRecursively(source);
 	  } else {
 	    return [];
@@ -33999,7 +33999,7 @@ function requireUtil () {
 	    cpuinfo = _rpi_cpuinfo;
 	  } else {
 	    try {
-	      cpuinfo = fs.readFileSync('/proc/cpuinfo', { encoding: 'utf8' }).toString().split('\n');
+	      cpuinfo = fs$1.readFileSync('/proc/cpuinfo', { encoding: 'utf8' }).toString().split('\n');
 	      _rpi_cpuinfo = cpuinfo;
 	    } catch (e) {
 	      return false;
@@ -35490,7 +35490,7 @@ function requireUtil () {
 	}
 
 	function checkWebsite(url, timeout = 5000) {
-	  const http = url.startsWith('https:') || url.indexOf(':443/') > 0 || url.indexOf(':8443/') > 0 ? require$$1$1 : require$$2$1;
+	  const http = url.startsWith('https:') || url.indexOf(':443/') > 0 || url.indexOf(':8443/') > 0 ? require$$1 : require$$2$1;
 	  const t = Date.now();
 	  return new Promise((resolve) => {
 	    const request = http
@@ -35613,10 +35613,10 @@ function requireOsinfo () {
 	// ----------------------------------------------------------------------------------
 
 	const os = require$$0$1;
-	const fs = require$$1;
+	const fs$1 = fs;
 	const util = requireUtil();
-	const exec = require$$1$6.exec;
-	const execSync = require$$1$6.execSync;
+	const exec = require$$1$5.exec;
+	const execSync = require$$1$5.execSync;
 
 	let _platform = process.platform;
 
@@ -36013,7 +36013,7 @@ function requireOsinfo () {
 	function isUefiLinux() {
 	  return new Promise((resolve) => {
 	    process.nextTick(() => {
-	      fs.stat('/sys/firmware/efi', function (err) {
+	      fs$1.stat('/sys/firmware/efi', function (err) {
 	        if (!err) {
 	          return resolve(true);
 	        } else {
@@ -36255,7 +36255,7 @@ function requireOsinfo () {
 	        }
 	        if ({}.hasOwnProperty.call(appsObj.versions, 'git')) {
 	          if (_darwin) {
-	            const gitHomebrewExists = fs.existsSync('/usr/local/Cellar/git') || fs.existsSync('/opt/homebrew/bin/git');
+	            const gitHomebrewExists = fs$1.existsSync('/usr/local/Cellar/git') || fs$1.existsSync('/opt/homebrew/bin/git');
 	            if (util.darwinXcodeExists() || gitHomebrewExists) {
 	              exec('git --version', function (error, stdout) {
 	                if (!error) {
@@ -36450,8 +36450,8 @@ function requireOsinfo () {
 	              const stdout = execSync('sw_vers');
 	              const lines = stdout.toString().split('\n');
 	              const osVersion = util.getValue(lines, 'ProductVersion', ':');
-	              const gitHomebrewExists1 = fs.existsSync('/usr/local/Cellar/python');
-	              const gitHomebrewExists2 = fs.existsSync('/opt/homebrew/bin/python');
+	              const gitHomebrewExists1 = fs$1.existsSync('/usr/local/Cellar/python');
+	              const gitHomebrewExists2 = fs$1.existsSync('/opt/homebrew/bin/python');
 	              if ((util.darwinXcodeExists() && util.semverCompare('12.0.1', osVersion) < 0) || gitHomebrewExists1 || gitHomebrewExists2) {
 	                const cmd = gitHomebrewExists1 ? '/usr/local/Cellar/python -V 2>&1' : (gitHomebrewExists2 ? '/opt/homebrew/bin/python -V 2>&1' : 'python -V 2>&1');
 	                exec(cmd, function (error, stdout) {
@@ -36480,7 +36480,7 @@ function requireOsinfo () {
 	        }
 	        if ({}.hasOwnProperty.call(appsObj.versions, 'python3')) {
 	          if (_darwin) {
-	            const gitHomebrewExists = fs.existsSync('/usr/local/Cellar/python3') || fs.existsSync('/opt/homebrew/bin/python3');
+	            const gitHomebrewExists = fs$1.existsSync('/usr/local/Cellar/python3') || fs$1.existsSync('/opt/homebrew/bin/python3');
 	            if (util.darwinXcodeExists() || gitHomebrewExists) {
 	              exec('python3 -V 2>&1', function (error, stdout) {
 	                if (!error) {
@@ -36504,7 +36504,7 @@ function requireOsinfo () {
 	        }
 	        if ({}.hasOwnProperty.call(appsObj.versions, 'pip')) {
 	          if (_darwin) {
-	            const gitHomebrewExists = fs.existsSync('/usr/local/Cellar/pip') || fs.existsSync('/opt/homebrew/bin/pip');
+	            const gitHomebrewExists = fs$1.existsSync('/usr/local/Cellar/pip') || fs$1.existsSync('/opt/homebrew/bin/pip');
 	            if (util.darwinXcodeExists() || gitHomebrewExists) {
 	              exec('pip -V 2>&1', function (error, stdout) {
 	                if (!error) {
@@ -36530,7 +36530,7 @@ function requireOsinfo () {
 	        }
 	        if ({}.hasOwnProperty.call(appsObj.versions, 'pip3')) {
 	          if (_darwin) {
-	            const gitHomebrewExists = fs.existsSync('/usr/local/Cellar/pip3') || fs.existsSync('/opt/homebrew/bin/pip3');
+	            const gitHomebrewExists = fs$1.existsSync('/usr/local/Cellar/pip3') || fs$1.existsSync('/opt/homebrew/bin/pip3');
 	            if (util.darwinXcodeExists() || gitHomebrewExists) {
 	              exec('pip3 -V 2>&1', function (error, stdout) {
 	                if (!error) {
@@ -36832,7 +36832,7 @@ echo -n "hardware: "; cat /sys/class/dmi/id/product_uuid 2> /dev/null; echo;`;
 	          result.os = util.getValue(lines, 'os').toLowerCase();
 	          result.hardware = util.getValue(lines, 'hardware').toLowerCase();
 	          if (!result.hardware) {
-	            const lines = fs.readFileSync('/proc/cpuinfo', { encoding: 'utf8' }).toString().split('\n');
+	            const lines = fs$1.readFileSync('/proc/cpuinfo', { encoding: 'utf8' }).toString().split('\n');
 	            const serial = util.getValue(lines, 'serial');
 	            result.hardware = serial || '';
 	          }
@@ -36900,13 +36900,13 @@ function requireSystem () {
 	// 2. System (Hardware, BIOS, Base Board)
 	// ----------------------------------------------------------------------------------
 
-	const fs = require$$1;
+	const fs$1 = fs;
 	const os = require$$0$1;
 	const util = requireUtil();
 	const { uuid } = requireOsinfo();
-	const exec = require$$1$6.exec;
-	const execSync = require$$1$6.execSync;
-	const execPromise = util.promisify(require$$1$6.exec);
+	const exec = require$$1$5.exec;
+	const execSync = require$$1$5.execSync;
+	const execPromise = util.promisify(require$$1$5.exec);
 
 	const _platform = process.platform;
 
@@ -37070,7 +37070,7 @@ function requireSystem () {
 	            }
 	          }
 	          // detect docker
-	          if (fs.existsSync('/.dockerenv') || fs.existsSync('/.dockerinit')) {
+	          if (fs$1.existsSync('/.dockerenv') || fs$1.existsSync('/.dockerinit')) {
 	            result.model = 'Docker Container';
 	          }
 	          try {
@@ -37101,7 +37101,7 @@ function requireSystem () {
 
 	          if (result.manufacturer === '' && result.model === 'Computer' && result.version === '') {
 	            // Check Raspberry Pi
-	            fs.readFile('/proc/cpuinfo', (error, stdout) => {
+	            fs$1.readFile('/proc/cpuinfo', (error, stdout) => {
 	              if (!error) {
 	                let lines = stdout.toString().split('\n');
 	                result.model = util.getValue(lines, 'hardware', ':', true).toUpperCase();
@@ -37766,9 +37766,9 @@ function requireCpu () {
 	// ----------------------------------------------------------------------------------
 
 	const os = require$$0$1;
-	const exec = require$$1$6.exec;
-	const execSync = require$$1$6.execSync;
-	const fs = require$$1;
+	const exec = require$$1$5.exec;
+	const execSync = require$$1$5.execSync;
+	const fs$1 = fs;
 	const util = requireUtil();
 
 	const _platform = process.platform;
@@ -38781,7 +38781,7 @@ function requireCpu () {
 
 	            // Test RISC-V
 	            if (util.getValue(lines, 'architecture') === 'riscv64') {
-	              const linesRiscV = fs.readFileSync('/proc/cpuinfo').toString().split('\n');
+	              const linesRiscV = fs$1.readFileSync('/proc/cpuinfo').toString().split('\n');
 	              const uarch = util.getValue(linesRiscV, 'uarch') || '';
 	              if (uarch.indexOf(',') > -1) {
 	                const split = uarch.split(',');
@@ -39220,9 +39220,9 @@ function requireCpu () {
 	                  return;
 	                }
 	              }
-	              fs.stat('/sys/class/thermal/thermal_zone0/temp', (err) => {
+	              fs$1.stat('/sys/class/thermal/thermal_zone0/temp', (err) => {
 	                if (err === null) {
-	                  fs.readFile('/sys/class/thermal/thermal_zone0/temp', (error, stdout) => {
+	                  fs$1.readFile('/sys/class/thermal/thermal_zone0/temp', (error, stdout) => {
 	                    if (!error) {
 	                      const lines = stdout.toString().split('\n');
 	                      if (lines.length > 0) {
@@ -39460,7 +39460,7 @@ function requireCpu () {
 	              });
 	            }
 	            if (!result) {
-	              fs.readFile('/proc/cpuinfo', (error, stdout) => {
+	              fs$1.readFile('/proc/cpuinfo', (error, stdout) => {
 	                if (!error) {
 	                  let lines = stdout.toString().split('\n');
 	                  result = util.getValue(lines, 'features', ':', true).toLowerCase();
@@ -40012,10 +40012,10 @@ function requireMemory () {
 	// ----------------------------------------------------------------------------------
 
 	const os = require$$0$1;
-	const exec = require$$1$6.exec;
-	const execSync = require$$1$6.execSync;
+	const exec = require$$1$5.exec;
+	const execSync = require$$1$5.execSync;
 	const util = requireUtil();
-	const fs = require$$1;
+	const fs$1 = fs;
 
 	let _platform = process.platform;
 
@@ -40161,7 +40161,7 @@ function requireMemory () {
 
 	      if (_linux) {
 	        try {
-	          fs.readFile('/proc/meminfo', function (error, stdout) {
+	          fs$1.readFile('/proc/meminfo', function (error, stdout) {
 	            if (!error) {
 	              const lines = stdout.toString().split('\n');
 	              result.total = parseInt(util.getValue(lines, 'memtotal'), 10);
@@ -40584,8 +40584,8 @@ function requireBattery () {
 	// 6. Battery
 	// ----------------------------------------------------------------------------------
 
-	const exec = require$$1$6.exec;
-	const fs = require$$1;
+	const exec = require$$1$5.exec;
+	const fs$1 = fs;
 	const util = requireUtil();
 
 	let _platform = process.platform;
@@ -40656,27 +40656,27 @@ function requireBattery () {
 
 	      if (_linux) {
 	        let battery_path = '';
-	        if (fs.existsSync('/sys/class/power_supply/BAT1/uevent')) {
+	        if (fs$1.existsSync('/sys/class/power_supply/BAT1/uevent')) {
 	          battery_path = '/sys/class/power_supply/BAT1/';
-	        } else if (fs.existsSync('/sys/class/power_supply/BAT0/uevent')) {
+	        } else if (fs$1.existsSync('/sys/class/power_supply/BAT0/uevent')) {
 	          battery_path = '/sys/class/power_supply/BAT0/';
 	        }
 
 	        let acConnected = false;
 	        let acPath = '';
-	        if (fs.existsSync('/sys/class/power_supply/AC/online')) {
+	        if (fs$1.existsSync('/sys/class/power_supply/AC/online')) {
 	          acPath = '/sys/class/power_supply/AC/online';
-	        } else if (fs.existsSync('/sys/class/power_supply/AC0/online')) {
+	        } else if (fs$1.existsSync('/sys/class/power_supply/AC0/online')) {
 	          acPath = '/sys/class/power_supply/AC0/online';
 	        }
 
 	        if (acPath) {
-	          const file = fs.readFileSync(acPath);
+	          const file = fs$1.readFileSync(acPath);
 	          acConnected = file.toString().trim() === '1';
 	        }
 
 	        if (battery_path) {
-	          fs.readFile(battery_path + 'uevent', function (error, stdout) {
+	          fs$1.readFile(battery_path + 'uevent', function (error, stdout) {
 	            if (!error) {
 	              let lines = stdout.toString().split('\n');
 
@@ -40905,9 +40905,9 @@ function requireGraphics () {
 	// 7. Graphics (controller, display)
 	// ----------------------------------------------------------------------------------
 
-	const fs = require$$1;
-	const exec = require$$1$6.exec;
-	const execSync = require$$1$6.execSync;
+	const fs$1 = fs;
+	const exec = require$$1$5.exec;
+	const execSync = require$$1$5.execSync;
 	const util = requireUtil();
 
 	let _platform = process.platform;
@@ -41317,17 +41317,17 @@ function requireGraphics () {
 	        const basePath = util.WINDIR + String.raw`\System32\DriverStore\FileRepository`;
 	        // find all directories that have an nvidia-smi.exe file
 
-	        const candidateDirs = fs.readdirSync(basePath).filter((dir) => {
-	          if (fs.statSync([basePath, dir].join('/')).isDirectory()) {
-	            return fs.readdirSync([basePath, dir].join('/')).includes('nvidia-smi.exe');
+	        const candidateDirs = fs$1.readdirSync(basePath).filter((dir) => {
+	          if (fs$1.statSync([basePath, dir].join('/')).isDirectory()) {
+	            return fs$1.readdirSync([basePath, dir].join('/')).includes('nvidia-smi.exe');
 	          } else {
 	            return false;
 	          }
 	        });
 	        // use the directory with the most recently created nvidia-smi.exe file
 	        const targetDir = candidateDirs.reduce((prevDir, currentDir) => {
-	          const previousNvidiaSmi = fs.statSync([basePath, prevDir, 'nvidia-smi.exe'].join('/'));
-	          const currentNvidiaSmi = fs.statSync([basePath, currentDir, 'nvidia-smi.exe'].join('/'));
+	          const previousNvidiaSmi = fs$1.statSync([basePath, prevDir, 'nvidia-smi.exe'].join('/'));
+	          const currentNvidiaSmi = fs$1.statSync([basePath, currentDir, 'nvidia-smi.exe'].join('/'));
 	          return previousNvidiaSmi.ctimeMs > currentNvidiaSmi.ctimeMs ? prevDir : currentDir;
 	        });
 
@@ -42152,11 +42152,11 @@ function requireFilesystem () {
 	// ----------------------------------------------------------------------------------
 
 	const util = requireUtil();
-	const fs = require$$1;
+	const fs$1 = fs;
 
-	const exec = require$$1$6.exec;
-	const execSync = require$$1$6.execSync;
-	const execPromiseSave = util.promisifySave(require$$1$6.exec);
+	const exec = require$$1$5.exec;
+	const execSync = require$$1$5.execSync;
+	const execPromiseSave = util.promisifySave(require$$1$5.exec);
 
 	const _platform = process.platform;
 
@@ -42424,7 +42424,7 @@ function requireFilesystem () {
 	        });
 	      }
 	      if (_linux) {
-	        fs.readFile('/proc/sys/fs/file-nr', (error, stdout) => {
+	        fs$1.readFile('/proc/sys/fs/file-nr', (error, stdout) => {
 	          if (!error) {
 	            const lines = stdout.toString().split('\n');
 	            if (lines[0]) {
@@ -42443,7 +42443,7 @@ function requireFilesystem () {
 	            }
 	            resolve(result);
 	          } else {
-	            fs.readFile('/proc/sys/fs/file-max', (error, stdout) => {
+	            fs$1.readFile('/proc/sys/fs/file-max', (error, stdout) => {
 	              if (!error) {
 	                const lines = stdout.toString().split('\n');
 	                if (lines[0]) {
@@ -43853,9 +43853,9 @@ function requireNetwork () {
 	// ----------------------------------------------------------------------------------
 
 	const os = require$$0$1;
-	const exec = require$$1$6.exec;
-	const execSync = require$$1$6.execSync;
-	const fs = require$$1;
+	const exec = require$$1$5.exec;
+	const execSync = require$$1$5.execSync;
+	const fs$1 = fs;
 	const util = requireUtil();
 
 	let _platform = process.platform;
@@ -45236,7 +45236,7 @@ function requireNetwork () {
 	        (_network[ifaceSanitized] && _network[ifaceSanitized].ms && Date.now() - _network[ifaceSanitized].ms >= 500)
 	      ) {
 	        if (_linux) {
-	          if (fs.existsSync('/sys/class/net/' + ifaceSanitized)) {
+	          if (fs$1.existsSync('/sys/class/net/' + ifaceSanitized)) {
 	            cmd =
 	              'cat /sys/class/net/' +
 	              ifaceSanitized +
@@ -45880,8 +45880,8 @@ function requireWifi () {
 	// ----------------------------------------------------------------------------------
 
 	const os = require$$0$1;
-	const exec = require$$1$6.exec;
-	const execSync = require$$1$6.execSync;
+	const exec = require$$1$5.exec;
+	const execSync = require$$1$5.execSync;
 	const util = requireUtil();
 
 	let _platform = process.platform;
@@ -46723,10 +46723,10 @@ function requireProcesses () {
 	// ----------------------------------------------------------------------------------
 
 	const os = require$$0$1;
-	const fs = require$$1;
+	const fs$1 = fs;
 	const path$1 = path;
-	const exec = require$$1$6.exec;
-	const execSync = require$$1$6.execSync;
+	const exec = require$$1$5.exec;
+	const execSync = require$$1$5.execSync;
 
 	const util = requireUtil();
 
@@ -47371,7 +47371,7 @@ function requireProcesses () {
 
 	          if (firstPos === 10000 && tmpCommand.indexOf(' ') > -1) {
 	            const parts = tmpCommand.split(' ');
-	            if (fs.existsSync(path$1.join(cmdPath, parts[0]))) {
+	            if (fs$1.existsSync(path$1.join(cmdPath, parts[0]))) {
 	              command = parts.shift();
 	              params = (parts.join(' ') + ' ' + tmpParams).trim();
 	            } else {
@@ -48162,7 +48162,7 @@ function requireUsers () {
 	// 11. Users/Sessions
 	// ----------------------------------------------------------------------------------
 
-	const exec = require$$1$6.exec;
+	const exec = require$$1$5.exec;
 	const util = requireUtil();
 
 	let _platform = process.platform;
@@ -49881,7 +49881,7 @@ function requireVirtualbox () {
 	// ----------------------------------------------------------------------------------
 
 	const os = require$$0$1;
-	const exec = require$$1$6.exec;
+	const exec = require$$1$5.exec;
 	const util = requireUtil();
 
 	function vboxInfo(callback) {
@@ -49996,7 +49996,7 @@ function requirePrinter () {
 	// 15. printers
 	// ----------------------------------------------------------------------------------
 
-	const exec = require$$1$6.exec;
+	const exec = require$$1$5.exec;
 	const util = requireUtil();
 
 	let _platform = process.platform;
@@ -50215,7 +50215,7 @@ function requireUsb () {
 	// 16. usb
 	// ----------------------------------------------------------------------------------
 
-	const exec = require$$1$6.exec;
+	const exec = require$$1$5.exec;
 	const util = requireUtil();
 
 	let _platform = process.platform;
@@ -50502,8 +50502,8 @@ function requireAudio () {
 	// 16. audio
 	// ----------------------------------------------------------------------------------
 
-	const exec = require$$1$6.exec;
-	const execSync = require$$1$6.execSync;
+	const exec = require$$1$5.exec;
+	const execSync = require$$1$5.execSync;
 	const util = requireUtil();
 
 	let _platform = process.platform;
@@ -51879,12 +51879,12 @@ function requireBluetooth () {
 	// 17. bluetooth
 	// ----------------------------------------------------------------------------------
 
-	const exec = require$$1$6.exec;
-	const execSync = require$$1$6.execSync;
+	const exec = require$$1$5.exec;
+	const execSync = require$$1$5.execSync;
 	const path$1 = path;
 	const util = requireUtil();
 	const bluetoothVendors = requireBluetoothVendors();
-	const fs = require$$1;
+	const fs$1 = fs;
 
 	let _platform = process.platform;
 
@@ -51995,7 +51995,7 @@ function requireBluetooth () {
 	          const macAddr1 = pathParts.length >= 6 ? pathParts[pathParts.length - 2] : null;
 	          const macAddr2 = pathParts.length >= 7 ? pathParts[pathParts.length - 3] : null;
 	          if (filename === 'info') {
-	            const infoFile = fs.readFileSync(element, { encoding: 'utf8' }).split('\n');
+	            const infoFile = fs$1.readFileSync(element, { encoding: 'utf8' }).split('\n');
 	            result.push(parseLinuxBluetoothInfo(infoFile, macAddr1, macAddr2));
 	          }
 	        });
@@ -52754,7 +52754,7 @@ class ProcessDataRepository {
     }
     save(data) {
         try {
-            require$$1.writeFileSync(PROC_TRACER_DATA_FILE, JSON.stringify(data, null, 2));
+            fs.writeFileSync(PROC_TRACER_DATA_FILE, JSON.stringify(data, null, 2));
         }
         catch (error) {
             this.logger.error(error, "Error saving process data");
@@ -52762,8 +52762,8 @@ class ProcessDataRepository {
     }
     load() {
         try {
-            if (require$$1.existsSync(PROC_TRACER_DATA_FILE)) {
-                const data = JSON.parse(require$$1.readFileSync(PROC_TRACER_DATA_FILE, "utf-8"));
+            if (fs.existsSync(PROC_TRACER_DATA_FILE)) {
+                const data = JSON.parse(fs.readFileSync(PROC_TRACER_DATA_FILE, "utf-8"));
                 return {
                     completed: data.completed || [],
                     tracked: data.tracked || [],
@@ -52790,7 +52790,6 @@ class ProcessTracer {
         this.collectionInterval = null;
         this.trackedProcesses = new Map();
         this.completedProcesses = [];
-        this.finished = false;
     }
     async collectProcesses() {
         try {
@@ -52858,7 +52857,7 @@ class ProcessTracer {
     async start() {
         this.logger.info(`Starting process tracer ...`);
         try {
-            require$$1.writeFileSync(PROC_TRACER_STATE_FILE, Date.now().toString());
+            fs.writeFileSync(PROC_TRACER_STATE_FILE, Date.now().toString());
             await this.collectProcesses();
             this.collectionInterval = setInterval(async () => {
                 await this.collectProcesses();
@@ -52876,7 +52875,7 @@ class ProcessTracer {
     }
     async finish(_currentJob) {
         this.logger.info(`Finishing process tracer ...`);
-        if (!require$$1.existsSync(PROC_TRACER_STATE_FILE)) {
+        if (!fs.existsSync(PROC_TRACER_STATE_FILE)) {
             this.logger.info(`Skipped finishing process tracer since process tracer didn't started`);
             return false;
         }
@@ -52905,7 +52904,6 @@ class ProcessTracer {
             }
             this.trackedProcesses.clear();
             this.saveData();
-            this.finished = true;
             this.logger.info(`Finished process tracer`);
             return true;
         }
@@ -52916,12 +52914,16 @@ class ProcessTracer {
     }
     async report(currentJob) {
         this.logger.info(`Reporting process tracer result ...`);
-        if (!this.finished) {
-            this.logger.info(`Skipped reporting process tracer since process tracer didn't finished`);
+        if (!fs.existsSync(PROC_TRACER_STATE_FILE)) {
+            this.logger.info(`Skipped reporting process tracer since process tracer didn't start`);
             return null;
         }
         try {
             this.loadData();
+            if (this.completedProcesses.length === 0) {
+                this.logger.info(`No process data to report`);
+                return null;
+            }
             this.logger.info(`Getting process tracer result from data file ...`);
             // Filter processes by minimum duration
             let filteredProcesses = this.completedProcesses;
