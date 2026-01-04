@@ -29,7 +29,7 @@ class StatsCollector {
     private chartGenerator: StatsChartGenerator,
     private reportFormatter: StatsReportFormatter,
     private dataRepository: StatsDataRepository
-  ) {}
+  ) { }
 
   private normalizeValue(value: number | undefined): number {
     return value && value > 0 ? value : 0;
@@ -160,109 +160,109 @@ class StatsCollector {
     const cpuLoad =
       userLoadX && userLoadX.length && systemLoadX && systemLoadX.length
         ? await this.chartGenerator.getStackedAreaGraph({
-            label: "CPU Load (%)",
-            areas: [
-              {
-                label: "User Load",
-                color: "#e41a1c99",
-                points: userLoadX,
-              },
-              {
-                label: "System Load",
-                color: "#ff7f0099",
-                points: systemLoadX,
-              },
-            ],
-          })
+          label: "CPU Load (%)",
+          areas: [
+            {
+              label: "User Load",
+              color: "#e41a1c99",
+              points: userLoadX,
+            },
+            {
+              label: "System Load",
+              color: "#ff7f0099",
+              points: systemLoadX,
+            },
+          ],
+        })
         : null;
 
     const memoryUsage =
       activeMemoryX &&
-      activeMemoryX.length &&
-      availableMemoryX &&
-      availableMemoryX.length
+        activeMemoryX.length &&
+        availableMemoryX &&
+        availableMemoryX.length
         ? await this.chartGenerator.getStackedAreaGraph({
-            label: "Memory Usage (MB)",
-            areas: [
-              {
-                label: "Used",
-                color: "#377eb899",
-                points: activeMemoryX,
-              },
-              {
-                label: "Free",
-                color: "#4daf4a99",
-                points: availableMemoryX,
-              },
-            ],
-          })
+          label: "Memory Usage (MB)",
+          areas: [
+            {
+              label: "Used",
+              color: "#377eb899",
+              points: activeMemoryX,
+            },
+            {
+              label: "Free",
+              color: "#4daf4a99",
+              points: availableMemoryX,
+            },
+          ],
+        })
         : null;
 
     const networkIORead =
       networkReadX && networkReadX.length
         ? await this.chartGenerator.getLineGraph({
-            label: "Network I/O Read (MB)",
-            line: {
-              label: "Read",
-              color: "#be4d25",
-              points: networkReadX,
-            },
-          })
+          label: "Network I/O Read (MB)",
+          line: {
+            label: "Read",
+            color: "#be4d25",
+            points: networkReadX,
+          },
+        })
         : null;
 
     const networkIOWrite =
       networkWriteX && networkWriteX.length
         ? await this.chartGenerator.getLineGraph({
-            label: "Network I/O Write (MB)",
-            line: {
-              label: "Write",
-              color: "#6c25be",
-              points: networkWriteX,
-            },
-          })
+          label: "Network I/O Write (MB)",
+          line: {
+            label: "Write",
+            color: "#6c25be",
+            points: networkWriteX,
+          },
+        })
         : null;
 
     const diskIORead =
       diskReadX && diskReadX.length
         ? await this.chartGenerator.getLineGraph({
-            label: "Disk I/O Read (MB)",
-            line: {
-              label: "Read",
-              color: "#be4d25",
-              points: diskReadX,
-            },
-          })
+          label: "Disk I/O Read (MB)",
+          line: {
+            label: "Read",
+            color: "#be4d25",
+            points: diskReadX,
+          },
+        })
         : null;
 
     const diskIOWrite =
       diskWriteX && diskWriteX.length
         ? await this.chartGenerator.getLineGraph({
-            label: "Disk I/O Write (MB)",
-            line: {
-              label: "Write",
-              color: "#6c25be",
-              points: diskWriteX,
-            },
-          })
+          label: "Disk I/O Write (MB)",
+          line: {
+            label: "Write",
+            color: "#6c25be",
+            points: diskWriteX,
+          },
+        })
         : null;
 
     const diskSizeUsage =
       diskUsedX && diskUsedX.length && diskAvailableX && diskAvailableX.length
         ? await this.chartGenerator.getStackedAreaGraph({
-            label: "Disk Usage (MB)",
-            areas: [
-              {
-                label: "Used",
-                color: "#377eb899",
-                points: diskUsedX,
-              },
-              {
-                label: "Free",
-                color: "#4daf4a99",
-                points: diskAvailableX,
-              },
-            ],
-          })
+          label: "Disk Usage (MB)",
+          areas: [
+            {
+              label: "Used",
+              color: "#377eb899",
+              points: diskUsedX,
+            },
+            {
+              label: "Free",
+              color: "#4daf4a99",
+              points: diskAvailableX,
+            },
+          ],
+        })
         : null;
 
     return {
@@ -317,9 +317,6 @@ class StatsCollector {
     this.logger.info(`Finishing stat collector ...`);
 
     try {
-      // Note: No action needed for finish. The background collector
-      // automatically saves stats to file periodically.
-
       this.logger.info(`Finished stat collector`);
 
       return true;

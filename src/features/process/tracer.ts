@@ -66,9 +66,6 @@ class ProcessTracer {
     }
 
     try {
-      // Note: No action needed for finish. The background tracer
-      // automatically saves process data periodically.
-
       this.logger.info(`Finished process tracer`);
 
       return true;
