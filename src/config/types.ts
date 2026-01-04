@@ -36,4 +36,6 @@ export interface MainConfig {
 export interface PostConfig {
   github: GitHubConfig;
   report: ReportConfig;
+  processTracer: ProcessTracerConfig;
+  statsCollector: StatsCollectorConfig;
 }

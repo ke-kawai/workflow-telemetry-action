@@ -354,31 +354,32 @@ const chartGenerator = new StatsChartGenerator(logger);
 const reportFormatter = new StatsReportFormatter();
 const dataRepository = new StatsDataRepository(logger);
 
-let statsCollector: StatsCollector | null = null;
-
-function getOrCreateCollector(): StatsCollector {
-  if (!statsCollector) {
-    statsCollector = new StatsCollector(
-      logger,
-      chartGenerator,
-      reportFormatter,
-      dataRepository
-    );
-  }
-  return statsCollector;
-}
-
 export const start = (config: StatsCollectorConfig) => {
-  const collector = getOrCreateCollector();
-  return collector.start(config);
+  const statsCollector = new StatsCollector(
+    logger,
+    chartGenerator,
+    reportFormatter,
+    dataRepository
+  );
+  return statsCollector.start(config);
 };
 
 export const finish = (currentJob: WorkflowJobType) => {
-  const collector = getOrCreateCollector();
-  return collector.finish(currentJob);
+  const statsCollector = new StatsCollector(
+    logger,
+    chartGenerator,
+    reportFormatter,
+    dataRepository
+  );
+  return statsCollector.finish(currentJob);
 };
 
 export const report = (currentJob: WorkflowJobType) => {
-  const collector = getOrCreateCollector();
-  return collector.report(currentJob);
+  const statsCollector = new StatsCollector(
+    logger,
+    chartGenerator,
+    reportFormatter,
+    dataRepository
+  );
+  return statsCollector.report(currentJob);
 };

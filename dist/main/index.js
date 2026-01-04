@@ -28097,16 +28097,9 @@ const logger$2 = new Logger();
 const chartGenerator$1 = new StatsChartGenerator(logger$2);
 const reportFormatter$1 = new StatsReportFormatter();
 const dataRepository$1 = new StatsDataRepository(logger$2);
-let statsCollector = null;
-function getOrCreateCollector() {
-    if (!statsCollector) {
-        statsCollector = new StatsCollector(logger$2, chartGenerator$1, reportFormatter$1, dataRepository$1);
-    }
-    return statsCollector;
-}
 const start$1 = (config) => {
-    const collector = getOrCreateCollector();
-    return collector.start(config);
+    const statsCollector = new StatsCollector(logger$2, chartGenerator$1, reportFormatter$1, dataRepository$1);
+    return statsCollector.start(config);
 };
 
 var lib = {};
@@ -48195,9 +48188,8 @@ const chartGenerator = new ProcessChartGenerator();
 const tableGenerator = new ProcessTableGenerator();
 const reportFormatter = new ProcessReportFormatter();
 const dataRepository = new ProcessDataRepository(logger$1);
-let processTracer = null;
 const start = (config) => {
-    processTracer = new ProcessTracer(logger$1, chartGenerator, tableGenerator, reportFormatter, config, dataRepository);
+    const processTracer = new ProcessTracer(logger$1, chartGenerator, tableGenerator, reportFormatter, config, dataRepository);
     return processTracer.start();
 };
 

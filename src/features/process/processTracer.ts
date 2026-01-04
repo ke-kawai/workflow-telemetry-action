@@ -226,10 +226,8 @@ const tableGenerator = new ProcessTableGenerator();
 const reportFormatter = new ProcessReportFormatter();
 const dataRepository = new ProcessDataRepository(logger);
 
-let processTracer: ProcessTracer | null = null;
-
 export const start = (config: ProcessTracerConfig) => {
-  processTracer = new ProcessTracer(
+  const processTracer = new ProcessTracer(
     logger,
     chartGenerator,
     tableGenerator,
@@ -240,16 +238,26 @@ export const start = (config: ProcessTracerConfig) => {
   return processTracer.start();
 };
 
-export const finish = (currentJob: WorkflowJobType) => {
-  if (!processTracer) {
-    throw new Error("ProcessTracer not initialized. Call start() first.");
-  }
+export const finish = (config: ProcessTracerConfig, currentJob: WorkflowJobType) => {
+  const processTracer = new ProcessTracer(
+    logger,
+    chartGenerator,
+    tableGenerator,
+    reportFormatter,
+    config,
+    dataRepository
+  );
   return processTracer.finish(currentJob);
 };
 
-export const report = (currentJob: WorkflowJobType) => {
-  if (!processTracer) {
-    throw new Error("ProcessTracer not initialized. Call start() first.");
-  }
+export const report = (config: ProcessTracerConfig, currentJob: WorkflowJobType) => {
+  const processTracer = new ProcessTracer(
+    logger,
+    chartGenerator,
+    tableGenerator,
+    reportFormatter,
+    config,
+    dataRepository
+  );
   return processTracer.report(currentJob);
 };

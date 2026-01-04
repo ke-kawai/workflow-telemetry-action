@@ -139,7 +139,7 @@ async function run(): Promise<void> {
     // Finish tracer and collector
     await stepTracer.finish(currentJob);
     await statCollector.finish(currentJob);
-    await processTracer.finish(currentJob);
+    await processTracer.finish(config.processTracer, currentJob);
 
     // Report tracer and collector
     const stepTracerContent: string | null = await stepTracer.report(
@@ -149,6 +149,7 @@ async function run(): Promise<void> {
       currentJob
     );
     const procTracerContent: string | null = await processTracer.report(
+      config.processTracer,
       currentJob
     );
 

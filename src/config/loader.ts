@@ -30,5 +30,14 @@ export function loadPostConfig(): PostConfig {
       jobSummary: core.getInput("job_summary") === "true",
       commentOnPR: core.getInput("comment_on_pr") === "true",
     },
+    processTracer: {
+      minDuration: parseInt(core.getInput("proc_trace_min_duration")),
+      chartShow: core.getInput("proc_trace_chart_show") === "true",
+      chartMaxCount: parseInt(core.getInput("proc_trace_chart_max_count")),
+      tableShow: core.getInput("proc_trace_table_show") === "true",
+    },
+    statsCollector: {
+      metricFrequency: parseInt(core.getInput("metric_frequency")) * 1000,
+    },
   };
 }
