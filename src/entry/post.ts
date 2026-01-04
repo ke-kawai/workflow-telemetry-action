@@ -5,6 +5,7 @@ import * as statCollector from "../features/stats/collector";
 import * as processTracer from "../features/process/processTracer";
 import { Logger } from "../utils/logger";
 import { WorkflowJobType } from "../interfaces";
+import { loadPostConfig } from "../config/loader";
 
 const logger = new Logger();
 
@@ -12,10 +13,11 @@ const PAGE_SIZE = 100;
 const CURRENT_JOB_RETRY_COUNT = 10;
 const CURRENT_JOB_RETRY_INTERVAL_MS = 1000;
 
+const config = loadPostConfig();
+
 const { pull_request } = github.context.payload;
 const { workflow, job, repo, runId, sha } = github.context;
-const token = core.getInput("github_token");
-const octokit = github.getOctokit(token);
+const octokit = github.getOctokit(config.github.token);
 
 async function fetchJobPage(page: number): Promise<WorkflowJobType[]> {
   const result = await octokit.rest.actions.listJobsForWorkflowRun({
@@ -97,14 +99,12 @@ async function reportAll(
 
   const postContent: string = [title, content].join("\n");
 
-  const jobSummary: string = core.getInput("job_summary");
-  if ("true" === jobSummary) {
+  if (config.report.jobSummary) {
     core.summary.addRaw(postContent);
     await core.summary.write();
   }
 
-  const commentOnPR: string = core.getInput("comment_on_pr");
-  if (pull_request && "true" === commentOnPR) {
+  if (pull_request && config.report.commentOnPR) {
     if (logger.isDebugEnabled()) {
       logger.debug(`Found Pull Request: ${JSON.stringify(pull_request)}`);
     }

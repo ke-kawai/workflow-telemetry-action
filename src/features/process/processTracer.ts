@@ -7,8 +7,8 @@ import { ProcessChartGenerator } from "./processChartGenerator";
 import { ProcessTableGenerator } from "./processTableGenerator";
 import { ProcessReportFormatter } from "./processReportFormatter";
 import { ProcessDataRepository } from "./processDataRepository";
-import { loadProcessTracerConfig } from "./configLoader";
-import { TrackedProcess, CompletedProcess, ProcessTracerConfig } from "./types";
+import { ProcessTracerConfig } from "../../config/types";
+import { TrackedProcess, CompletedProcess } from "./types";
 
 const PROC_TRACER_STATE_FILE = path.join(__dirname, "../", ".proc-tracer-started");
 const COLLECTION_INTERVAL_MS = 1000;
@@ -224,17 +224,32 @@ const logger = new Logger();
 const chartGenerator = new ProcessChartGenerator();
 const tableGenerator = new ProcessTableGenerator();
 const reportFormatter = new ProcessReportFormatter();
-const config = loadProcessTracerConfig();
 const dataRepository = new ProcessDataRepository(logger);
-const processTracer = new ProcessTracer(
-  logger,
-  chartGenerator,
-  tableGenerator,
-  reportFormatter,
-  config,
-  dataRepository
-);
 
-export const start = () => processTracer.start();
-export const finish = (currentJob: WorkflowJobType) => processTracer.finish(currentJob);
-export const report = (currentJob: WorkflowJobType) => processTracer.report(currentJob);
+let processTracer: ProcessTracer | null = null;
+
+export const start = (config: ProcessTracerConfig) => {
+  processTracer = new ProcessTracer(
+    logger,
+    chartGenerator,
+    tableGenerator,
+    reportFormatter,
+    config,
+    dataRepository
+  );
+  return processTracer.start();
+};
+
+export const finish = (currentJob: WorkflowJobType) => {
+  if (!processTracer) {
+    throw new Error("ProcessTracer not initialized. Call start() first.");
+  }
+  return processTracer.finish(currentJob);
+};
+
+export const report = (currentJob: WorkflowJobType) => {
+  if (!processTracer) {
+    throw new Error("ProcessTracer not initialized. Call start() first.");
+  }
+  return processTracer.report(currentJob);
+};

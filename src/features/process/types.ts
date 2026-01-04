@@ -19,10 +19,3 @@ export interface CompletedProcess {
   maxCpu: number;
   maxMem: number;
 }
-
-export interface ProcessTracerConfig {
-  minDuration: number;
-  chartShow: boolean;
-  chartMaxCount: number;
-  tableShow: boolean;
-}
