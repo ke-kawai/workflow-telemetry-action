@@ -244,7 +244,8 @@ async function createLineChartIfData(
         label,
         line: { label: lineLabel, color, points: data },
       })
-    : null;ddd
+    : null;
+  ddd;
 }
 
 async function createStackedAreaChartIfData(
@@ -355,6 +356,3 @@ if (
 - generateStepLine を改良
   - 最後に謎の join("")してるのをやめる
   - 代わりに generateStepLine を map 関数で呼び出しているやつがいるのでその後で join("\n")にする
-- formatRow の見た目を改善
-  - 不自然な改行でわかりづらい
-- configLoader.ts の 
