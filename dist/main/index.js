@@ -28098,9 +28098,15 @@ const chartGenerator$1 = new StatsChartGenerator(logger$2);
 const reportFormatter$1 = new StatsReportFormatter();
 const dataRepository$1 = new StatsDataRepository(logger$2);
 let statsCollector = null;
+function getOrCreateCollector() {
+    if (!statsCollector) {
+        statsCollector = new StatsCollector(logger$2, chartGenerator$1, reportFormatter$1, dataRepository$1);
+    }
+    return statsCollector;
+}
 const start$1 = (config) => {
-    statsCollector = new StatsCollector(logger$2, chartGenerator$1, reportFormatter$1, dataRepository$1);
-    return statsCollector.start(config);
+    const collector = getOrCreateCollector();
+    return collector.start(config);
 };
 
 var lib = {};

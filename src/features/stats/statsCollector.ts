@@ -356,26 +356,29 @@ const dataRepository = new StatsDataRepository(logger);
 
 let statsCollector: StatsCollector | null = null;
 
+function getOrCreateCollector(): StatsCollector {
+  if (!statsCollector) {
+    statsCollector = new StatsCollector(
+      logger,
+      chartGenerator,
+      reportFormatter,
+      dataRepository
+    );
+  }
+  return statsCollector;
+}
+
 export const start = (config: StatsCollectorConfig) => {
-  statsCollector = new StatsCollector(
-    logger,
-    chartGenerator,
-    reportFormatter,
-    dataRepository
-  );
-  return statsCollector.start(config);
+  const collector = getOrCreateCollector();
+  return collector.start(config);
 };
 
 export const finish = (currentJob: WorkflowJobType) => {
-  if (!statsCollector) {
-    throw new Error("StatsCollector not initialized. Call start() first.");
-  }
-  return statsCollector.finish(currentJob);
+  const collector = getOrCreateCollector();
+  return collector.finish(currentJob);
 };
 
 export const report = (currentJob: WorkflowJobType) => {
-  if (!statsCollector) {
-    throw new Error("StatsCollector not initialized. Call start() first.");
-  }
-  return statsCollector.report(currentJob);
+  const collector = getOrCreateCollector();
+  return collector.report(currentJob);
 };
