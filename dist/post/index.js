@@ -52601,16 +52601,13 @@ const report = (currentJob) => {
  * Load configuration for post entry point
  */
 function loadPostConfig() {
-    const token = coreExports.getInput("github_token");
-    const jobSummary = coreExports.getInput("job_summary") === "true";
-    const commentOnPR = coreExports.getInput("comment_on_pr") === "true";
     return {
         github: {
-            token,
+            token: coreExports.getInput("github_token"),
         },
         report: {
-            jobSummary,
-            commentOnPR,
+            jobSummary: coreExports.getInput("job_summary") === "true",
+            commentOnPR: coreExports.getInput("comment_on_pr") === "true",
         },
     };
 }

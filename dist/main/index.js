@@ -47739,39 +47739,15 @@ const start = (config) => {
  * Load configuration for main entry point
  */
 function loadMainConfig() {
-    // Process Tracer Configuration
-    let minDuration = -1;
-    const procTraceMinDurationInput = coreExports.getInput("proc_trace_min_duration");
-    if (procTraceMinDurationInput) {
-        const minProcDurationVal = parseInt(procTraceMinDurationInput);
-        if (Number.isInteger(minProcDurationVal)) {
-            minDuration = minProcDurationVal;
-        }
-    }
-    const chartShow = coreExports.getInput("proc_trace_chart_show") === "true";
-    const procTraceChartMaxCountInput = parseInt(coreExports.getInput("proc_trace_chart_max_count"));
-    const chartMaxCount = Number.isInteger(procTraceChartMaxCountInput)
-        ? procTraceChartMaxCountInput
-        : 100;
-    const tableShow = coreExports.getInput("proc_trace_table_show") === "true";
-    // Stats Collector Configuration
-    let metricFrequency = 0;
-    const metricFrequencyInput = coreExports.getInput("metric_frequency");
-    if (metricFrequencyInput) {
-        const metricFrequencyVal = parseInt(metricFrequencyInput);
-        if (Number.isInteger(metricFrequencyVal)) {
-            metricFrequency = metricFrequencyVal * 1000;
-        }
-    }
     return {
         processTracer: {
-            minDuration,
-            chartShow,
-            chartMaxCount,
-            tableShow,
+            minDuration: parseInt(coreExports.getInput("proc_trace_min_duration")),
+            chartShow: coreExports.getInput("proc_trace_chart_show") === "true",
+            chartMaxCount: parseInt(coreExports.getInput("proc_trace_chart_max_count")),
+            tableShow: coreExports.getInput("proc_trace_table_show") === "true",
         },
         statsCollector: {
-            metricFrequency,
+            metricFrequency: parseInt(coreExports.getInput("metric_frequency")) * 1000,
         },
     };
 }
