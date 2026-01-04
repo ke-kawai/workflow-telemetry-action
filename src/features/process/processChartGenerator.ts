@@ -1,4 +1,5 @@
-import { CompletedProcess, ProcessTracerConfig } from "./types";
+import { CompletedProcess } from "./types";
+import { ProcessTracerConfig } from "../../config/types";
 
 const GHA_FILE_NAME_PREFIX = "/home/runner/work/_actions/";
 

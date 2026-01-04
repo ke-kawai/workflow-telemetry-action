@@ -27621,20 +27621,12 @@ const start$2 = () => stepTracer.start();
 
 const logger$2 = new Logger();
 path.join(__dirname, "../", "stats-data.json");
-async function start$1() {
+async function start$1(config) {
     logger$2.info(`Starting stat collector ...`);
     try {
-        let metricFrequency = 0;
-        const metricFrequencyInput = coreExports.getInput("metric_frequency");
-        if (metricFrequencyInput) {
-            const metricFrequencyVal = parseInt(metricFrequencyInput);
-            if (Number.isInteger(metricFrequencyVal)) {
-                metricFrequency = metricFrequencyVal * 1000;
-            }
-        }
         const env = { ...process.env };
-        if (metricFrequency) {
-            env.WORKFLOW_TELEMETRY_STAT_FREQ = `${metricFrequency}`;
+        if (config.metricFrequency) {
+            env.WORKFLOW_TELEMETRY_STAT_FREQ = `${config.metricFrequency}`;
         }
         const child = require$$1$5.spawn(process.execPath, [path.join(__dirname, "../scw/index.js")], {
             detached: true,
@@ -47496,7 +47488,15 @@ class ProcessTableGenerator {
     /// node            1234    1234567890000            5000       45.23      12.50  /usr/bin/node index.js
     /// python          5678    1234567895000            3000       30.15       8.20  python script.py
     formatRow(name, pid, startTime, duration, maxCpu, maxMem, commandParams) {
-        return `${padEnd(name, 16)} ${padStart(pid, 7)} ${padStart(startTime, 15)} ${padStart(duration, 15)} ${padStart(maxCpu, 10)} ${padStart(maxMem, 10)} ${padEnd(commandParams, 40)}`;
+        return `
+      ${padEnd(name, 16)}
+      ${padStart(pid, 7)}
+      ${padStart(startTime, 15)}
+      ${padStart(duration, 15)}
+      ${padStart(maxCpu, 10)}
+      ${padStart(maxMem, 10)}
+      ${padEnd(commandParams, 40)}
+    `;
     }
     formatHeader() {
         return this.formatRow("NAME", "PID", "START TIME", "DURATION (ms)", "MAX CPU %", "MAX MEM %", "COMMAND + PARAMS");
@@ -47555,25 +47555,6 @@ class ProcessDataRepository {
         }
         return { completed: [], tracked: [] };
     }
-}
-
-const DEFAULT_PROC_TRACE_CHART_MAX_COUNT = 100;
-function loadProcessTracerConfig() {
-    let minDuration = -1;
-    const procTraceMinDurationInput = coreExports.getInput("proc_trace_min_duration");
-    if (procTraceMinDurationInput) {
-        const minProcDurationVal = parseInt(procTraceMinDurationInput);
-        if (Number.isInteger(minProcDurationVal)) {
-            minDuration = minProcDurationVal;
-        }
-    }
-    const chartShow = coreExports.getInput("proc_trace_chart_show") === "true";
-    const procTraceChartMaxCountInput = parseInt(coreExports.getInput("proc_trace_chart_max_count"));
-    const chartMaxCount = Number.isInteger(procTraceChartMaxCountInput)
-        ? procTraceChartMaxCountInput
-        : DEFAULT_PROC_TRACE_CHART_MAX_COUNT;
-    const tableShow = coreExports.getInput("proc_trace_table_show") === "true";
-    return { minDuration, chartShow, chartMaxCount, tableShow };
 }
 
 const PROC_TRACER_STATE_FILE = path.join(__dirname, "../", ".proc-tracer-started");
@@ -47747,19 +47728,39 @@ const logger$1 = new Logger();
 const chartGenerator = new ProcessChartGenerator();
 const tableGenerator = new ProcessTableGenerator();
 const reportFormatter = new ProcessReportFormatter();
-const config = loadProcessTracerConfig();
 const dataRepository = new ProcessDataRepository(logger$1);
-const processTracer = new ProcessTracer(logger$1, chartGenerator, tableGenerator, reportFormatter, config, dataRepository);
-const start = () => processTracer.start();
+let processTracer = null;
+const start = (config) => {
+    processTracer = new ProcessTracer(logger$1, chartGenerator, tableGenerator, reportFormatter, config, dataRepository);
+    return processTracer.start();
+};
+
+/**
+ * Load configuration for main entry point
+ */
+function loadMainConfig() {
+    return {
+        processTracer: {
+            minDuration: parseInt(coreExports.getInput("proc_trace_min_duration")),
+            chartShow: coreExports.getInput("proc_trace_chart_show") === "true",
+            chartMaxCount: parseInt(coreExports.getInput("proc_trace_chart_max_count")),
+            tableShow: coreExports.getInput("proc_trace_table_show") === "true",
+        },
+        statsCollector: {
+            metricFrequency: parseInt(coreExports.getInput("metric_frequency")) * 1000,
+        },
+    };
+}
 
 const logger = new Logger();
 async function run() {
     try {
         logger.info(`Initializing ...`);
+        const config = loadMainConfig();
         // Start tracers and collectors
         await start$2();
-        await start$1();
-        await start();
+        await start$1(config.statsCollector);
+        await start(config.processTracer);
         logger.info(`Initialization completed`);
     }
     catch (error) {

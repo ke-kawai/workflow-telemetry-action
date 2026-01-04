@@ -19,7 +19,7 @@ inputs:
     default: "true"
     required: false
   proc_trace_chart_max_count:
-    description: "Maximum number of processes to be shown in trace chart (applicable if `proc_trace_chart_show` input is `true`). Must be a number. Defaults to '100'."
+    description: "Maximum number of processes to be shown in trace chart (applicable if `proc_trace_chart_show` input is `true`). Must be a number. Defaults to '10'."
     default: "10"
     required: false
   proc_trace_table_show:

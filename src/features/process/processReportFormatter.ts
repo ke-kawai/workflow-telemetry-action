@@ -1,4 +1,4 @@
-import { ProcessTracerConfig } from "./types";
+import { ProcessTracerConfig } from "../../config/types";
 
 export class ProcessReportFormatter {
   format(

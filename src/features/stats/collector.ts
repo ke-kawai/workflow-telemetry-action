@@ -1,7 +1,6 @@
 import { ChildProcess, spawn } from "child_process";
 import path from "path";
 import fs from "fs";
-import * as core from "@actions/core";
 import { WorkflowJobType } from "../../interfaces";
 import {
   CPUStats,
@@ -18,6 +17,7 @@ import {
 } from "./types";
 import { Logger } from "../../utils/logger";
 import { getLineGraph, getStackedAreaGraph } from "./chartGenerator";
+import { StatsCollectorConfig } from "../../config/types";
 
 const logger = new Logger();
 
@@ -356,22 +356,13 @@ async function getDiskSizeStats(): Promise<ProcessedDiskSizeStats> {
   return { diskAvailableX, diskUsedX };
 }
 
-export async function start(): Promise<boolean> {
+export async function start(config: StatsCollectorConfig): Promise<boolean> {
   logger.info(`Starting stat collector ...`);
 
   try {
-    let metricFrequency = 0;
-    const metricFrequencyInput: string = core.getInput("metric_frequency");
-    if (metricFrequencyInput) {
-      const metricFrequencyVal: number = parseInt(metricFrequencyInput);
-      if (Number.isInteger(metricFrequencyVal)) {
-        metricFrequency = metricFrequencyVal * 1000;
-      }
-    }
-
     const env: NodeJS.ProcessEnv = { ...process.env };
-    if (metricFrequency) {
-      env.WORKFLOW_TELEMETRY_STAT_FREQ = `${metricFrequency}`;
+    if (config.metricFrequency) {
+      env.WORKFLOW_TELEMETRY_STAT_FREQ = `${config.metricFrequency}`;
     }
 
     const child: ChildProcess = spawn(
