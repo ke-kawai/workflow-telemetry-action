@@ -27614,34 +27614,494 @@ class StepTracer {
     }
 }
 const logger$3 = new Logger();
-const chartGenerator$1 = new StepChartGenerator();
-const reportFormatter$1 = new StepReportFormatter();
-const stepTracer = new StepTracer(logger$3, chartGenerator$1, reportFormatter$1);
+const chartGenerator$2 = new StepChartGenerator();
+const reportFormatter$2 = new StepReportFormatter();
+const stepTracer = new StepTracer(logger$3, chartGenerator$2, reportFormatter$2);
 const start$2 = () => stepTracer.start();
 
-const logger$2 = new Logger();
-path.join(__dirname, "../", "stats-data.json");
-async function start$1(config) {
-    logger$2.info(`Starting stat collector ...`);
-    try {
-        const env = { ...process.env };
-        if (config.metricFrequency) {
-            env.WORKFLOW_TELEMETRY_STAT_FREQ = `${config.metricFrequency}`;
-        }
-        const child = require$$1$5.spawn(process.execPath, [path.join(__dirname, "../scw/index.js")], {
-            detached: true,
-            stdio: "ignore",
-            env,
-        });
-        child.unref();
-        logger$2.info(`Started stat collector`);
-        return true;
+/**
+ * Chart Generator using QuickChart.io API
+ * QuickChart.io is an open-source Chart.js service that can be self-hosted
+ * Free tier: https://quickchart.io
+ * GitHub: https://github.com/typpo/quickchart
+ */
+const QUICKCHART_API_URL = "https://quickchart.io/chart/create";
+const CHART_WIDTH = 800;
+const CHART_HEIGHT = 400;
+const THEMES = [
+    { name: "light", axisColor: "#000000", backgroundColor: "white" },
+    { name: "dark", axisColor: "#FFFFFF", backgroundColor: "#0d1117" },
+];
+class StatsChartGenerator {
+    constructor(logger) {
+        this.logger = logger;
     }
-    catch (error) {
-        logger$2.error(error, "Unable to start stat collector");
-        return false;
+    generatePictureHTML(themeToURLMap, label) {
+        const sources = Array.from(themeToURLMap.entries())
+            .map(([theme, url]) => `<source media="(prefers-color-scheme: ${theme})" srcset="${url}">`)
+            .join("");
+        const fallbackUrl = themeToURLMap.get("light") || "";
+        return `<picture>${sources}<img alt="${label}" src="${fallbackUrl}"></picture>`;
+    }
+    createTimeScaleConfig(theme) {
+        return {
+            type: "time",
+            time: {
+                displayFormats: {
+                    millisecond: "HH:mm:ss",
+                    second: "HH:mm:ss",
+                    minute: "HH:mm:ss",
+                    hour: "HH:mm",
+                },
+                unit: "second",
+            },
+            scaleLabel: {
+                display: true,
+                labelString: "Time",
+                fontColor: theme.axisColor,
+            },
+            ticks: {
+                fontColor: theme.axisColor,
+            },
+        };
+    }
+    createYAxisConfig(theme, label, stacked = false) {
+        return {
+            stacked,
+            scaleLabel: {
+                display: true,
+                labelString: label,
+                fontColor: theme.axisColor,
+            },
+            ticks: {
+                fontColor: theme.axisColor,
+                beginAtZero: true,
+            },
+        };
+    }
+    createLegendConfig(theme) {
+        return {
+            labels: {
+                fontColor: theme.axisColor,
+            },
+        };
+    }
+    async createChartFromConfig(theme, chartConfig, errorLabel) {
+        const payload = {
+            width: CHART_WIDTH,
+            height: CHART_HEIGHT,
+            backgroundColor: theme.backgroundColor,
+            chart: chartConfig,
+        };
+        try {
+            const response = await fetch(QUICKCHART_API_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(payload),
+            });
+            const data = await response.json();
+            if (data?.success && data?.url) {
+                return data.url;
+            }
+        }
+        catch (error) {
+            this.logger.error(error, `${errorLabel} ${theme.name} ${JSON.stringify(payload)}`);
+        }
+        return null;
+    }
+    /**
+     * Generate a line chart using QuickChart API
+     * Time format matches Mermaid gantt chart (HH:mm:ss)
+     */
+    async getLineGraph(options) {
+        const themeToURLMap = new Map();
+        await Promise.all(THEMES.map(async (theme) => {
+            const chartConfig = {
+                type: "line",
+                data: {
+                    datasets: [
+                        {
+                            label: options.line.label,
+                            data: options.line.points,
+                            borderColor: options.line.color,
+                            backgroundColor: options.line.color + "33",
+                            fill: false,
+                            tension: 0.1,
+                        },
+                    ],
+                },
+                options: {
+                    scales: {
+                        xAxes: [this.createTimeScaleConfig(theme)],
+                        yAxes: [this.createYAxisConfig(theme, options.label)],
+                    },
+                    legend: this.createLegendConfig(theme),
+                },
+            };
+            const url = await this.createChartFromConfig(theme, chartConfig, "getLineGraph");
+            if (url) {
+                themeToURLMap.set(theme.name, url);
+            }
+        }));
+        return this.generatePictureHTML(themeToURLMap, options.label);
+    }
+    /**
+     * Generate a stacked area chart using QuickChart API
+     * Time format matches Mermaid gantt chart (HH:mm:ss)
+     */
+    async getStackedAreaGraph(options) {
+        const themeToURLMap = new Map();
+        await Promise.all(THEMES.map(async (theme) => {
+            const datasets = options.areas.map((area, index) => ({
+                label: area.label,
+                data: area.points,
+                borderColor: area.color,
+                backgroundColor: area.color,
+                fill: index === 0 ? "origin" : "-1",
+                tension: 0.1,
+            }));
+            const chartConfig = {
+                type: "line",
+                data: {
+                    datasets,
+                },
+                options: {
+                    scales: {
+                        xAxes: [this.createTimeScaleConfig(theme)],
+                        yAxes: [this.createYAxisConfig(theme, options.label, true)],
+                    },
+                    legend: this.createLegendConfig(theme),
+                },
+            };
+            const url = await this.createChartFromConfig(theme, chartConfig, "getStackedAreaGraph");
+            if (url) {
+                themeToURLMap.set(theme.name, url);
+            }
+        }));
+        return this.generatePictureHTML(themeToURLMap, options.label);
     }
 }
+
+const STATS_DATA_FILE = path.join(__dirname, "../", "stats-data.json");
+class StatsDataRepository {
+    constructor(logger) {
+        this.logger = logger;
+    }
+    load() {
+        try {
+            if (require$$1.existsSync(STATS_DATA_FILE)) {
+                const data = JSON.parse(require$$1.readFileSync(STATS_DATA_FILE, "utf-8"));
+                this.logger.debug("Loaded stats data from file");
+                return data;
+            }
+            this.logger.debug("Stats data file does not exist");
+            return null;
+        }
+        catch (error) {
+            this.logger.error(error, "Error loading stats data");
+            return null;
+        }
+    }
+}
+
+class StatsReportFormatter {
+    format(charts) {
+        const postContentItems = [];
+        if (charts.cpuLoad) {
+            postContentItems.push("### CPU Metrics", charts.cpuLoad, "");
+        }
+        if (charts.memoryUsage) {
+            postContentItems.push("### Memory Metrics", charts.memoryUsage, "");
+        }
+        if ((charts.networkIORead && charts.networkIOWrite) ||
+            (charts.diskIORead && charts.diskIOWrite)) {
+            postContentItems.push("### IO Metrics", "|               | Read      | Write     |", "|---            |---        |---        |");
+        }
+        if (charts.networkIORead && charts.networkIOWrite) {
+            postContentItems.push(`| Network I/O   | ${charts.networkIORead}        | ${charts.networkIOWrite}        |`);
+        }
+        if (charts.diskIORead && charts.diskIOWrite) {
+            postContentItems.push(`| Disk I/O      | ${charts.diskIORead}              | ${charts.diskIOWrite}              |`);
+        }
+        if (charts.diskSizeUsage) {
+            postContentItems.push("### Disk Size Metrics", charts.diskSizeUsage, "");
+        }
+        return postContentItems.join("\n");
+    }
+}
+
+class StatsCollector {
+    constructor(logger, chartGenerator, reportFormatter, dataRepository) {
+        this.logger = logger;
+        this.chartGenerator = chartGenerator;
+        this.reportFormatter = reportFormatter;
+        this.dataRepository = dataRepository;
+    }
+    normalizeValue(value) {
+        return value && value > 0 ? value : 0;
+    }
+    async getCPUStats(statsData) {
+        const userLoadX = [];
+        const systemLoadX = [];
+        const data = statsData?.cpu || [];
+        data.forEach((element) => {
+            userLoadX.push({
+                x: element.time,
+                y: this.normalizeValue(element.userLoad),
+            });
+            systemLoadX.push({
+                x: element.time,
+                y: this.normalizeValue(element.systemLoad),
+            });
+        });
+        return { userLoadX, systemLoadX };
+    }
+    async getMemoryStats(statsData) {
+        const activeMemoryX = [];
+        const availableMemoryX = [];
+        const data = statsData?.memory || [];
+        data.forEach((element) => {
+            activeMemoryX.push({
+                x: element.time,
+                y: this.normalizeValue(element.activeMemoryMb),
+            });
+            availableMemoryX.push({
+                x: element.time,
+                y: this.normalizeValue(element.availableMemoryMb),
+            });
+        });
+        return { activeMemoryX, availableMemoryX };
+    }
+    async getNetworkStats(statsData) {
+        const networkReadX = [];
+        const networkWriteX = [];
+        const data = statsData?.network || [];
+        data.forEach((element) => {
+            networkReadX.push({
+                x: element.time,
+                y: this.normalizeValue(element.rxMb),
+            });
+            networkWriteX.push({
+                x: element.time,
+                y: this.normalizeValue(element.txMb),
+            });
+        });
+        return { networkReadX, networkWriteX };
+    }
+    async getDiskStats(statsData) {
+        const diskReadX = [];
+        const diskWriteX = [];
+        const data = statsData?.disk || [];
+        data.forEach((element) => {
+            diskReadX.push({
+                x: element.time,
+                y: this.normalizeValue(element.rxMb),
+            });
+            diskWriteX.push({
+                x: element.time,
+                y: this.normalizeValue(element.wxMb),
+            });
+        });
+        return { diskReadX, diskWriteX };
+    }
+    async getDiskSizeStats(statsData) {
+        const diskAvailableX = [];
+        const diskUsedX = [];
+        const data = statsData?.diskSize || [];
+        data.forEach((element) => {
+            diskAvailableX.push({
+                x: element.time,
+                y: this.normalizeValue(element.availableSizeMb),
+            });
+            diskUsedX.push({
+                x: element.time,
+                y: this.normalizeValue(element.usedSizeMb),
+            });
+        });
+        return { diskAvailableX, diskUsedX };
+    }
+    async fetchAllStats(statsData) {
+        const cpu = await this.getCPUStats(statsData);
+        const memory = await this.getMemoryStats(statsData);
+        const network = await this.getNetworkStats(statsData);
+        const disk = await this.getDiskStats(statsData);
+        const diskSize = await this.getDiskSizeStats(statsData);
+        return { cpu, memory, network, disk, diskSize };
+    }
+    async createMetricCharts(stats) {
+        const { userLoadX, systemLoadX } = stats.cpu;
+        const { activeMemoryX, availableMemoryX } = stats.memory;
+        const { networkReadX, networkWriteX } = stats.network;
+        const { diskReadX, diskWriteX } = stats.disk;
+        const { diskAvailableX, diskUsedX } = stats.diskSize;
+        const cpuLoad = userLoadX && userLoadX.length && systemLoadX && systemLoadX.length
+            ? await this.chartGenerator.getStackedAreaGraph({
+                label: "CPU Load (%)",
+                areas: [
+                    {
+                        label: "User Load",
+                        color: "#e41a1c99",
+                        points: userLoadX,
+                    },
+                    {
+                        label: "System Load",
+                        color: "#ff7f0099",
+                        points: systemLoadX,
+                    },
+                ],
+            })
+            : null;
+        const memoryUsage = activeMemoryX &&
+            activeMemoryX.length &&
+            availableMemoryX &&
+            availableMemoryX.length
+            ? await this.chartGenerator.getStackedAreaGraph({
+                label: "Memory Usage (MB)",
+                areas: [
+                    {
+                        label: "Used",
+                        color: "#377eb899",
+                        points: activeMemoryX,
+                    },
+                    {
+                        label: "Free",
+                        color: "#4daf4a99",
+                        points: availableMemoryX,
+                    },
+                ],
+            })
+            : null;
+        const networkIORead = networkReadX && networkReadX.length
+            ? await this.chartGenerator.getLineGraph({
+                label: "Network I/O Read (MB)",
+                line: {
+                    label: "Read",
+                    color: "#be4d25",
+                    points: networkReadX,
+                },
+            })
+            : null;
+        const networkIOWrite = networkWriteX && networkWriteX.length
+            ? await this.chartGenerator.getLineGraph({
+                label: "Network I/O Write (MB)",
+                line: {
+                    label: "Write",
+                    color: "#6c25be",
+                    points: networkWriteX,
+                },
+            })
+            : null;
+        const diskIORead = diskReadX && diskReadX.length
+            ? await this.chartGenerator.getLineGraph({
+                label: "Disk I/O Read (MB)",
+                line: {
+                    label: "Read",
+                    color: "#be4d25",
+                    points: diskReadX,
+                },
+            })
+            : null;
+        const diskIOWrite = diskWriteX && diskWriteX.length
+            ? await this.chartGenerator.getLineGraph({
+                label: "Disk I/O Write (MB)",
+                line: {
+                    label: "Write",
+                    color: "#6c25be",
+                    points: diskWriteX,
+                },
+            })
+            : null;
+        const diskSizeUsage = diskUsedX && diskUsedX.length && diskAvailableX && diskAvailableX.length
+            ? await this.chartGenerator.getStackedAreaGraph({
+                label: "Disk Usage (MB)",
+                areas: [
+                    {
+                        label: "Used",
+                        color: "#377eb899",
+                        points: diskUsedX,
+                    },
+                    {
+                        label: "Free",
+                        color: "#4daf4a99",
+                        points: diskAvailableX,
+                    },
+                ],
+            })
+            : null;
+        return {
+            cpuLoad,
+            memoryUsage,
+            networkIORead,
+            networkIOWrite,
+            diskIORead,
+            diskIOWrite,
+            diskSizeUsage,
+        };
+    }
+    async reportWorkflowMetrics() {
+        const statsData = this.dataRepository.load();
+        const stats = await this.fetchAllStats(statsData);
+        const charts = await this.createMetricCharts(stats);
+        return this.reportFormatter.format(charts);
+    }
+    async start(config) {
+        this.logger.info(`Starting stat collector ...`);
+        try {
+            const env = { ...process.env };
+            if (config.metricFrequency) {
+                env.WORKFLOW_TELEMETRY_STAT_FREQ = `${config.metricFrequency}`;
+            }
+            const child = require$$1$5.spawn(process.execPath, [path.join(__dirname, "../scw/index.js")], {
+                detached: true,
+                stdio: "ignore",
+                env,
+            });
+            child.unref();
+            this.logger.info(`Started stat collector`);
+            return true;
+        }
+        catch (error) {
+            this.logger.error(error, "Unable to start stat collector");
+            return false;
+        }
+    }
+    async finish(_currentJob) {
+        this.logger.info(`Finishing stat collector ...`);
+        try {
+            // Note: No action needed for finish. The background collector
+            // automatically saves stats to file periodically.
+            this.logger.info(`Finished stat collector`);
+            return true;
+        }
+        catch (error) {
+            this.logger.error(error, "Unable to finish stat collector");
+            return false;
+        }
+    }
+    async report(_currentJob) {
+        this.logger.info(`Reporting stat collector result ...`);
+        try {
+            const postContent = await this.reportWorkflowMetrics();
+            this.logger.info(`Reported stat collector result`);
+            return postContent;
+        }
+        catch (error) {
+            this.logger.error(error, "Unable to report stat collector result");
+            return null;
+        }
+    }
+}
+const logger$2 = new Logger();
+const chartGenerator$1 = new StatsChartGenerator(logger$2);
+const reportFormatter$1 = new StatsReportFormatter();
+const dataRepository$1 = new StatsDataRepository(logger$2);
+let statsCollector = null;
+const start$1 = (config) => {
+    statsCollector = new StatsCollector(logger$2, chartGenerator$1, reportFormatter$1, dataRepository$1);
+    return statsCollector.start(config);
+};
 
 var lib = {};
 
